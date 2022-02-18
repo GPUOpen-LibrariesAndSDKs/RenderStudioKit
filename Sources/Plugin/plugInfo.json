@@ -1,0 +1,22 @@
+{
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "WebUsdAssetResolver": {
+                        "bases": [
+                            "ArResolver"
+                        ],
+                        "schemas": [
+                            "webusd"
+                        ]
+                    }
+                }
+            },
+            "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
+            "Root": "..",
+            "Name": "WebUsdAssetResolver",
+            "Type": "library"
+        }
+    ]
+}
