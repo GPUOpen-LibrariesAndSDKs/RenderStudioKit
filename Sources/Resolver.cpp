@@ -13,6 +13,7 @@
 
 #include <Logger.hpp>
 #include <pxr/usd/ar/defineResolver.h>
+#include <base64.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -48,6 +49,10 @@ WebUsdAssetResolver::_Resolve(const std::string& path) const
 std::shared_ptr<ArAsset>
 WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
+    if (resolvedPath.GetPathString().find("generatedSchema.usda") != std::string::npos) {
+        return ArDefaultResolver::_OpenAsset(resolvedPath);
+    }
+
     std::string assetData;
     
     if (mProtocol == "http") {
@@ -138,7 +143,7 @@ WebUsdAssetResolver::WebSocketRequest(const std::string& asset) const
 {
     if (mProtocol == "ws" && !mLiveServerEndpoint.IsConnected()) {
         std::string url = mProtocol + "://" + mHost + ":" + std::to_string(mPort);
-        mLiveServerEndpoint.Connect(url);
+        mLiveServerEndpoint.Connect(url).wait();
         Logger::Info("Connected to live server");
     }
 
@@ -153,9 +158,11 @@ WebUsdAssetResolver::WebSocketRequest(const std::string& asset) const
     };
 
     mLiveServerEndpoint.send(request.dump());
-    nlohmann::json response = mLiveServerEndpoint.wait_for_message_tag(tag).get();
 
-    return response.get<std::string>();
+    nlohmann::json response = mLiveServerEndpoint.wait_for_message_tag(tag).get();
+    std::string layer = base64_decode(response["body"]["data"].get<std::string>());
+    
+    return layer;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

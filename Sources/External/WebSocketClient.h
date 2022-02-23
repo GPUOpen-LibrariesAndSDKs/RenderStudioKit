@@ -59,8 +59,15 @@ public:
         std::lock_guard<std::mutex> lock(m_event_mutex);
 
         auto json = nlohmann::json::parse(message->get_payload());
-        std::string tag = json["tag"].get<std::string>();
-        nlohmann::json payload = json["payload"];
+        
+        std::string event = json["event"].get<std::string>();
+        if (event != "StageLayer") {
+            return;
+        } 
+
+        nlohmann::json body = json["body"];
+        std::string tag = body["tag"].get<std::string>();
+        std::string data = body["data"].get<std::string>();
 
         // Check if we have subscription for tag
         auto subscription_iter = std::find_if(std::begin(m_subscriptions), std::end(m_subscriptions), [&tag](const auto& entry) {
@@ -69,11 +76,11 @@ public:
 
         if (subscription_iter != std::end(m_subscriptions)) {
             // Resolve for existing subscription
-            subscription_iter->second.set_value(payload);
+            subscription_iter->second.set_value(json);
             m_subscriptions.erase(subscription_iter);
         } else {
             // Add to queue
-            m_messages[tag] = payload;
+            m_messages[tag] = json;
         }
     }
 

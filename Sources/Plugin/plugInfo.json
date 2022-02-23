@@ -6,9 +6,6 @@
                     "WebUsdAssetResolver": {
                         "bases": [
                             "ArResolver"
-                        ],
-                        "schemas": [
-                            "webusd"
                         ]
                     }
                 }

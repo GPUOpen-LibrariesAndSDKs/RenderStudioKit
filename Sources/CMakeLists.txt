@@ -37,6 +37,9 @@ configure_file(Plugin/plugInfo.json Plugin/plugInfo.json @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${USDPLUGIN_NAME}/resources)
 
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h
+    DESTINATION include/WebUsdAssetResolver)
+
 # Install python bindings
 if (PXR_ENABLE_PYTHON_SUPPORT)
     add_subdirectory(Bindings)
