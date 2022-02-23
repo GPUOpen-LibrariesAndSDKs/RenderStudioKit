@@ -23,16 +23,16 @@ public:
     ~WebUsdAsset();
 
     AR_API
-    virtual size_t GetSize() override;
+    virtual size_t GetSize() const override;
 
     AR_API
-    virtual std::shared_ptr<const char> GetBuffer() override;
+    virtual std::shared_ptr<const char> GetBuffer() const override;
     
     AR_API
-    virtual size_t Read(void* buffer, size_t count, size_t offset) override;
+    virtual size_t Read(void* buffer, size_t count, size_t offset) const override;
 
     AR_API
-    virtual std::pair<FILE*, size_t> GetFileUnsafe();
+    virtual std::pair<FILE*, size_t> GetFileUnsafe() const;
 
 
 private:

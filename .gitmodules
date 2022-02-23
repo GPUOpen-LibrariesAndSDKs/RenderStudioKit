@@ -1,0 +1,6 @@
+[submodule "Sources/External/websocketpp"]
+	path = Sources/External/websocketpp
+	url = git@github.com:zaphoyd/websocketpp.git
+[submodule "Sources/External/fmt"]
+	path = Sources/External/fmt
+	url = git@github.com:fmtlib/fmt.git

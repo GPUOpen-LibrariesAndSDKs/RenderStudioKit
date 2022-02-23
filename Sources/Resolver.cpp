@@ -11,8 +11,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
-#include <pxr/usd/ar/defineResolver.h>
 #include <Logger.hpp>
+#include <pxr/usd/ar/defineResolver.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -30,13 +30,14 @@ WebUsdAssetResolver::~WebUsdAssetResolver()
 
 void
 WebUsdAssetResolver::SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port) {
+    Logger::Info("Set remote server address to {}://{}:{}", protocol, host, port);
     mHost = host;
     mPort = port;
     mProtocol = protocol;
 }
 
 ArResolvedPath
-WebUsdAssetResolver::_Resolve(const std::string& path)
+WebUsdAssetResolver::_Resolve(const std::string& path) const
 {
     const std::regex protocol("^webusd:/[/]?");
     std::stringstream result;
@@ -45,7 +46,7 @@ WebUsdAssetResolver::_Resolve(const std::string& path)
 }
 
 std::shared_ptr<ArAsset>
-WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath)
+WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
     std::string assetData;
     
@@ -56,7 +57,6 @@ WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath)
     }
 
     std::size_t assetSize = assetData.size();
-
     const char* data = new char[assetSize];
     std::strncpy(const_cast<char*>(data), assetData.c_str(), assetSize);
     auto assetPtr = std::shared_ptr<const char>(data);
@@ -64,12 +64,12 @@ WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath)
     return std::shared_ptr<ArAsset>(new WebUsdAsset(assetPtr, assetSize));
 }
 
-VtValue
+ArTimestamp
 WebUsdAssetResolver::_GetModificationTimestamp(
     const std::string& path,
-    const ArResolvedPath& resolvedPath)
+    const ArResolvedPath& resolvedPath) const
 {
-    return VtValue(0);
+    return ArTimestamp(0);
 }
 
 std::string 
@@ -91,7 +91,7 @@ WebUsdAssetResolver::HttpGetRequest(const std::string& asset) const
 
         // Look up the domain name
         auto const results = resolver.resolve(mHost, std::to_string(mPort));
-
+        
         // Make the connection on the IP address we get from a lookup
         stream.connect(results);
 
@@ -128,6 +128,7 @@ WebUsdAssetResolver::HttpGetRequest(const std::string& asset) const
     catch(std::exception const& e)
     {
         Logger::Error(e.what());
+        throw std::runtime_error(std::string(e.what()) + ", host: " + mHost + ", port: " + std::to_string(mPort));
         return "";
     }
 }

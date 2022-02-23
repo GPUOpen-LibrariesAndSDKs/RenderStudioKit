@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
+add_subdirectory(External)
+
 add_library(${USDPLUGIN_NAME} SHARED
     Asset.cpp
     Asset.h

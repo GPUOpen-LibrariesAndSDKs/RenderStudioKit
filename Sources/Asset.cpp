@@ -1,11 +1,10 @@
 #include "Asset.h"
 
 #include <stdexcept>
-
 #include <pxr/pxr.h>
-#include <Logger.hpp>
 #define FMT_HEADER_ONLY
 #include <fmt/format-inl.h>
+#include <Logger.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -22,26 +21,26 @@ WebUsdAsset::~WebUsdAsset()
 }
 
 size_t
-WebUsdAsset::GetSize()
+WebUsdAsset::GetSize() const
 {
     return mDataSize;
 }
 
 std::shared_ptr<const char>
-WebUsdAsset::GetBuffer()
+WebUsdAsset::GetBuffer() const
 {
     return mData;
 }
     
 size_t
-WebUsdAsset::Read(void* buffer, size_t count, size_t offset)
+WebUsdAsset::Read(void* buffer, size_t count, size_t offset) const
 {
     std::memcpy(buffer, mData.get() + offset, count);
     return count;
 }
 
 std::pair<FILE*, size_t>
-WebUsdAsset::GetFileUnsafe()
+WebUsdAsset::GetFileUnsafe() const
 {
     throw std::runtime_error("GetFileUnsafe() called on WebUsdAsset");
 }

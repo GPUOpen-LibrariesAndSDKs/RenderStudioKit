@@ -10,7 +10,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "WebSocketClient.h"
+#include <WebSocketClient.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -27,14 +27,14 @@ public:
     static void SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port);
 
     AR_API
-    virtual ArResolvedPath _Resolve(const std::string& path) override;
+    virtual ArResolvedPath _Resolve(const std::string& path) const override;
 
 protected:
     AR_API
-    virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) override;
+    virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
 
     AR_API
-    virtual VtValue _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) override;
+    virtual ArTimestamp _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
 
 private:
     std::string HttpGetRequest(const std::string& asset) const;
