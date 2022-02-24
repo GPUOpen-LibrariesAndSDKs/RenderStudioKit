@@ -11,7 +11,6 @@ add_library(${USDPLUGIN_PYTHON_NAME} SHARED
     BoostIncludeWrapper.h
 )
 
-#set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY SUFFIX ".pyd")
 set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY PREFIX "")
 target_link_libraries(${USDPLUGIN_PYTHON_NAME} ${USDPLUGIN_NAME})
 
