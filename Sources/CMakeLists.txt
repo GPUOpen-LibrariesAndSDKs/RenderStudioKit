@@ -6,7 +6,9 @@ add_library(${USDPLUGIN_NAME} SHARED
     Asset.cpp
     Asset.h
     Resolver.cpp
-    Resolver.h)
+    Resolver.h
+    Context.cpp
+    Context.h)
 
 set_boost_namespace(${USDPLUGIN_NAME})
 
@@ -37,7 +39,7 @@ configure_file(Plugin/plugInfo.json Plugin/plugInfo.json @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${USDPLUGIN_NAME}/resources)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h
     DESTINATION include/WebUsdAssetResolver)
 
 # Install python bindings

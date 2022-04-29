@@ -10,6 +10,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include "Context.h"
 #include <WebSocketClient.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -41,7 +42,7 @@ private:
     std::string WebSocketRequest(const std::string& asset) const;
 
     mutable boost::uuids::random_generator mUuidGenerator;
-    mutable websocket_endpoint mLiveServerEndpoint;
+    mutable std::map<std::string, std::unique_ptr<websocket_endpoint>> mLiveServerEndpoints;
 
     static inline std::string mProtocol;
     static inline std::string mHost;

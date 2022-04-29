@@ -13,6 +13,7 @@
 
 #include <Logger.hpp>
 #include <pxr/usd/ar/defineResolver.h>
+#include <pxr/base/tf/diagnostic.h>
 #include <base64.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -141,10 +142,31 @@ WebUsdAssetResolver::HttpGetRequest(const std::string& asset) const
 std::string 
 WebUsdAssetResolver::WebSocketRequest(const std::string& asset) const 
 {
-    if (mProtocol == "ws" && !mLiveServerEndpoint.IsConnected()) {
+    const WebUsdAssetResolverContext* context =_GetCurrentContextObject<WebUsdAssetResolverContext>();
+
+    if (context == nullptr) {
+        Logger::Error("WebUsdAssetResolverContext must be bound to WebUsdAssetResolver");
+        return "";
+    }
+
+    std::string currentResolverUuid = context->GetValue();
+    websocket_endpoint* liveEndpoint = nullptr;
+
+    if (mLiveServerEndpoints.find(currentResolverUuid) == mLiveServerEndpoints.end()) {
+        // Place to map
+        auto endpointPtr = std::make_unique<websocket_endpoint>();
+        mLiveServerEndpoints.emplace(currentResolverUuid, std::move(endpointPtr));
+
+        // Get raw pointer
+        liveEndpoint = mLiveServerEndpoints[currentResolverUuid].get();
+        
+        // Connect
         std::string url = mProtocol + "://" + mHost + ":" + std::to_string(mPort);
-        mLiveServerEndpoint.Connect(url).wait();
+        liveEndpoint->Connect(url).wait();
+        
         Logger::Info("Connected to live server");
+    } else {
+        liveEndpoint = mLiveServerEndpoints[currentResolverUuid].get();
     }
 
     std::string tag = boost::uuids::to_string(mUuidGenerator());
@@ -157,9 +179,9 @@ WebUsdAssetResolver::WebSocketRequest(const std::string& asset) const
         }}
     };
 
-    mLiveServerEndpoint.send(request.dump());
+    liveEndpoint->send(request.dump());
 
-    nlohmann::json response = mLiveServerEndpoint.wait_for_message_tag(tag).get();
+    nlohmann::json response = liveEndpoint->wait_for_message_tag(tag).get();
     std::string layer = base64_decode(response["body"]["data"].get<std::string>());
     
     return layer;
