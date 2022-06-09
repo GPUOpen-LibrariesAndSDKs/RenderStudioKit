@@ -54,6 +54,11 @@ WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         return ArDefaultResolver::_OpenAsset(resolvedPath);
     }
 
+    // TODO: Remove this and implement normal loading of binary files
+    if (resolvedPath.GetPathString().find(".hdr") != std::string::npos) {
+        return ArDefaultResolver::_OpenAsset(resolvedPath);
+    }
+
     std::string assetData;
     
     if (mProtocol == "http") {
