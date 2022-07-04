@@ -41,32 +41,37 @@ WebUsdAssetResolver::SetRemoteServerAddress(std::string protocol, std::string ho
 ArResolvedPath
 WebUsdAssetResolver::_Resolve(const std::string& path) const
 {
-    const std::regex protocol("^webusd:/[/]?");
-    std::stringstream result;
-    std::regex_replace(std::ostream_iterator<char>(result), path.begin(), path.end(), protocol, "");
-    return ArResolvedPath(result.str());
+    // Do not resolve here and do that in _OpenAsset()
+    // That's because asset resolver config is broken and all the assets (even without webusd:// prefix came here)
+    // So we need to resolve all the assets here manually
+    return ArResolvedPath(path);
 }
 
 std::shared_ptr<ArAsset>
 WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
-    if (resolvedPath.GetPathString().find("generatedSchema.usda") != std::string::npos) {
+    // Resolve here
+    std::string path = resolvedPath.GetPathString();
+    if (path.find("webusd:/") == std::string::npos) {
         return ArDefaultResolver::_OpenAsset(resolvedPath);
     }
 
-    // TODO: Remove this and implement normal loading of binary files
-    if (resolvedPath.GetPathString().find(".hdr") != std::string::npos) {
-        return ArDefaultResolver::_OpenAsset(resolvedPath);
-    }
+    // Remove webusd:// prefix
+    const std::regex protocol("^webusd:/[/]?");
+    std::stringstream result;
+    std::regex_replace(std::ostream_iterator<char>(result), path.begin(), path.end(), protocol, "");
+    std::string resolvedString = result.str();
 
     std::string assetData;
     
+    // Download asset
     if (mProtocol == "http") {
-        assetData = HttpGetRequest(resolvedPath);
+        assetData = HttpGetRequest(resolvedString);
     } else if (mProtocol == "ws") {
-        assetData = WebSocketRequest(resolvedPath);
+        assetData = WebSocketRequest(resolvedString);
     }
 
+    // Prepare payload
     std::size_t assetSize = assetData.size();
     const char* data = new char[assetSize];
     std::strncpy(const_cast<char*>(data), assetData.c_str(), assetSize);
