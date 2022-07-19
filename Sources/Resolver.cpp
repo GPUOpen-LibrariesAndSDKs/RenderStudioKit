@@ -56,19 +56,18 @@ WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         return ArDefaultResolver::_OpenAsset(resolvedPath);
     }
 
-    // Remove webusd:// prefix
-    const std::regex protocol("^webusd:/[/]?");
-    std::stringstream result;
-    std::regex_replace(std::ostream_iterator<char>(result), path.begin(), path.end(), protocol, "");
-    std::string resolvedString = result.str();
-
     std::string assetData;
     
     // Download asset
     if (mProtocol == "http") {
+        // Remove webusd:// prefix
+        const std::regex protocol("^webusd:/[/]?");
+        std::stringstream result;
+        std::regex_replace(std::ostream_iterator<char>(result), path.begin(), path.end(), protocol, "");
+        std::string resolvedString = result.str();
         assetData = HttpGetRequest(resolvedString);
     } else if (mProtocol == "ws") {
-        assetData = WebSocketRequest(resolvedString);
+        assetData = WebSocketRequest(path);
     }
 
     // Prepare payload
