@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(WebUsdAssetResolver VERSION 0.2 LANGUAGES CXX)
+project(RenderStudioResolver VERSION 0.2 LANGUAGES CXX)
 
 set(USDPLUGIN_NAME ${CMAKE_PROJECT_NAME})
 set(CMAKE_CXX_STANDARD 17)

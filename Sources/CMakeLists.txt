@@ -40,7 +40,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${USDPLUGIN_NAME}/resources)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h
-    DESTINATION include/WebUsdAssetResolver)
+    DESTINATION include/RenderStudioResolver)
 
 # Install python bindings
 if (PXR_ENABLE_PYTHON_SUPPORT)
