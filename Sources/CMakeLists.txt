@@ -1,43 +1,77 @@
 cmake_minimum_required(VERSION 3.12)
 
-add_subdirectory(External)
+# Create target
+file(GLOB SOURCES *.h *.cpp)
+add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 
-add_library(${USDPLUGIN_NAME} SHARED
-    Asset.cpp
-    Asset.h
-    Resolver.cpp
-    Resolver.h
-    Context.cpp
-    Context.h)
+# Find packages
+find_package(USDMonolithic REQUIRED)
+find_package(Boost REQUIRED COMPONENTS python random)
 
-set_boost_namespace(${USDPLUGIN_NAME})
-
-target_link_libraries(${USDPLUGIN_NAME}
-    ${Boost_PYTHON_LIBRARY}
-    ar 
-    sdf
+# Link libraries
+add_library(External INTERFACE)
+target_include_directories(External SYSTEM INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/External
+    ${CMAKE_CURRENT_SOURCE_DIR}/External/websocketpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/External/fmt/include
 )
 
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+    Boost::boost
+    Boost::python
+    Boost::random
+    ar
+    sdf
+    External
+)
+
+# Temporary hack to make fmt working in other projects
+target_include_directories(${CMAKE_PROJECT_NAME} INTERFACE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/External/fmt/include)
+
 if(WIN32)
-  target_link_libraries(${USDPLUGIN_NAME} wsock32 ws2_32)
-  target_compile_definitions(${USDPLUGIN_NAME} PUBLIC HAVE_SNPRINTF WIN32_LEAN_AND_MEAN BOOST_ALL_DYN_LINK AR_EXPORTS)
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        wsock32 
+        ws2_32
+        bcrypt
+    )
 endif()
 
+# Set compile options
+target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE 
+    HAVE_SNPRINTF 
+    WIN32_LEAN_AND_MEAN 
+    AR_EXPORTS
+)
+
+SetMaxWarningLevel(${CMAKE_PROJECT_NAME})
+
 # Install library
-install(TARGETS ${USDPLUGIN_NAME}
+install(TARGETS ${CMAKE_PROJECT_NAME}
     DESTINATION plugin/usd)
 
 # Install plugInfo
 if(WIN32)
-    set(PLUGIN_LIBRARY_NAME ${USDPLUGIN_NAME}.dll)
+    set(PLUGIN_LIBRARY_NAME ${CMAKE_PROJECT_NAME}.dll)
 elseif(UNIX)
-    set(PLUGIN_LIBRARY_NAME lib${USDPLUGIN_NAME}.so)
+    set(PLUGIN_LIBRARY_NAME lib${CMAKE_PROJECT_NAME}.so)
 endif()
 
 configure_file(Plugin/plugInfo.json Plugin/plugInfo.json @ONLY)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
-    DESTINATION plugin/usd/${USDPLUGIN_NAME}/resources)
+    DESTINATION plugin/usd/${CMAKE_PROJECT_NAME}/resources)
 
+# Install headers
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h
     DESTINATION include/RenderStudioResolver)
+
+# Export CMake target
+set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
+    EXPORT_NAME Resolver
+)
+
+export(TARGETS ${CMAKE_PROJECT_NAME}
+    NAMESPACE RenderStudio::
+    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioResolverConfig.cmake
+)

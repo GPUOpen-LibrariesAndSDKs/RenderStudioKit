@@ -11,7 +11,8 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "Context.h"
-#include <WebSocketClient.h>
+
+class websocket_endpoint;
 
 PXR_NAMESPACE_OPEN_SCOPE
 

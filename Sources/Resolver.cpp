@@ -16,6 +16,8 @@
 #include <pxr/base/tf/diagnostic.h>
 #include <base64.hpp>
 
+#include <WsClient.hpp>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
@@ -36,6 +38,8 @@ RenderStudioResolver::SetRemoteServerAddress(std::string protocol, std::string h
     mHost = host;
     mPort = port;
     mProtocol = protocol;
+
+    int a = 5;
 }
 
 ArResolvedPath
