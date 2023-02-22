@@ -18,20 +18,20 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-AR_DEFINE_RESOLVER(WebUsdAssetResolver, ArResolver);
+AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
 
-WebUsdAssetResolver::WebUsdAssetResolver()
+RenderStudioResolver::RenderStudioResolver()
 {
     Logger::Info("Created");
 }
 
-WebUsdAssetResolver::~WebUsdAssetResolver()
+RenderStudioResolver::~RenderStudioResolver()
 {
     Logger::Info("Destroyed");
 }
 
 void
-WebUsdAssetResolver::SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port) {
+RenderStudioResolver::SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port) {
     Logger::Info("Set remote server address to {}://{}:{}", protocol, host, port);
     mHost = host;
     mPort = port;
@@ -39,7 +39,7 @@ WebUsdAssetResolver::SetRemoteServerAddress(std::string protocol, std::string ho
 }
 
 ArResolvedPath
-WebUsdAssetResolver::_Resolve(const std::string& path) const
+RenderStudioResolver::_Resolve(const std::string& path) const
 {
     // Do not resolve here and do that in _OpenAsset()
     // That's because asset resolver config is broken and all the assets (even without webusd:// prefix came here)
@@ -48,7 +48,7 @@ WebUsdAssetResolver::_Resolve(const std::string& path) const
 }
 
 std::shared_ptr<ArAsset>
-WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
+RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
     // Resolve here
     std::string path = resolvedPath.GetPathString();
@@ -76,11 +76,11 @@ WebUsdAssetResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
     std::strncpy(const_cast<char*>(data), assetData.c_str(), assetSize);
     auto assetPtr = std::shared_ptr<const char>(data);
     
-    return std::shared_ptr<ArAsset>(new WebUsdAsset(assetPtr, assetSize));
+    return std::shared_ptr<ArAsset>(new RenderStudioAsset(assetPtr, assetSize));
 }
 
 ArTimestamp
-WebUsdAssetResolver::_GetModificationTimestamp(
+RenderStudioResolver::_GetModificationTimestamp(
     const std::string& path,
     const ArResolvedPath& resolvedPath) const
 {
@@ -88,7 +88,7 @@ WebUsdAssetResolver::_GetModificationTimestamp(
 }
 
 std::string 
-WebUsdAssetResolver::HttpGetRequest(const std::string& asset) const 
+RenderStudioResolver::HttpGetRequest(const std::string& asset) const 
 {
     namespace beast = boost::beast;     // from <boost/beast.hpp>
     namespace http = beast::http;       // from <boost/beast/http.hpp>
@@ -149,12 +149,12 @@ WebUsdAssetResolver::HttpGetRequest(const std::string& asset) const
 }
 
 std::string 
-WebUsdAssetResolver::WebSocketRequest(const std::string& asset) const 
+RenderStudioResolver::WebSocketRequest(const std::string& asset) const 
 {
-    const WebUsdAssetResolverContext* context =_GetCurrentContextObject<WebUsdAssetResolverContext>();
+    const RenderStudioResolverContext* context =_GetCurrentContextObject<RenderStudioResolverContext>();
 
     if (context == nullptr) {
-        Logger::Error("WebUsdAssetResolverContext must be bound to WebUsdAssetResolver");
+        Logger::Error("RenderStudioResolverContext must be bound to RenderStudioResolver");
         return "";
     }
 

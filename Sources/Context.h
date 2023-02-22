@@ -11,34 +11,34 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class WebUsdAssetResolverContext
+class RenderStudioResolverContext
 {
 public:
     AR_API
-    WebUsdAssetResolverContext() = default;        
+    RenderStudioResolverContext() = default;        
 
     AR_API 
-    WebUsdAssetResolverContext(const std::string& value);
+    RenderStudioResolverContext(const std::string& value);
 
     AR_API
     std::string GetValue() const;
 
     AR_API 
-    bool operator<(const WebUsdAssetResolverContext& rhs) const;
+    bool operator<(const RenderStudioResolverContext& rhs) const;
     
     AR_API 
-    bool operator==(const WebUsdAssetResolverContext& rhs) const;
+    bool operator==(const RenderStudioResolverContext& rhs) const;
     
     AR_API 
-    bool operator!=(const WebUsdAssetResolverContext& rhs) const;
+    bool operator!=(const RenderStudioResolverContext& rhs) const;
 
 private:
     std::string mUuid;
 };
 
-AR_API size_t hash_value(const WebUsdAssetResolverContext& context);
+AR_API size_t hash_value(const RenderStudioResolverContext& context);
 
-AR_DECLARE_RESOLVER_CONTEXT(WebUsdAssetResolverContext);
+AR_DECLARE_RESOLVER_CONTEXT(RenderStudioResolverContext);
 
 PXR_NAMESPACE_CLOSE_SCOPE
 

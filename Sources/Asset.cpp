@@ -8,41 +8,41 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-WebUsdAsset::WebUsdAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize)
+RenderStudioAsset::RenderStudioAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize)
     : mData(assetPtr) 
     , mDataSize(assetSize)
 {
 
 }
 
-WebUsdAsset::~WebUsdAsset()
+RenderStudioAsset::~RenderStudioAsset()
 {
 
 }
 
 size_t
-WebUsdAsset::GetSize() const
+RenderStudioAsset::GetSize() const
 {
     return mDataSize;
 }
 
 std::shared_ptr<const char>
-WebUsdAsset::GetBuffer() const
+RenderStudioAsset::GetBuffer() const
 {
     return mData;
 }
     
 size_t
-WebUsdAsset::Read(void* buffer, size_t count, size_t offset) const
+RenderStudioAsset::Read(void* buffer, size_t count, size_t offset) const
 {
     std::memcpy(buffer, mData.get() + offset, count);
     return count;
 }
 
 std::pair<FILE*, size_t>
-WebUsdAsset::GetFileUnsafe() const
+RenderStudioAsset::GetFileUnsafe() const
 {
-    throw std::runtime_error("GetFileUnsafe() called on WebUsdAsset");
+    throw std::runtime_error("GetFileUnsafe() called on RenderStudioAsset");
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

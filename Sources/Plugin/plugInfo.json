@@ -3,7 +3,7 @@
         {
             "Info": {
                 "Types": {
-                    "WebUsdAssetResolver": {
+                    "RenderStudioResolver": {
                         "bases": [
                             "ArResolver"
                         ]
@@ -12,7 +12,7 @@
             },
             "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
             "Root": "..",
-            "Name": "WebUsdAssetResolver",
+            "Name": "RenderStudioResolver",
             "Type": "library"
         }
     ]

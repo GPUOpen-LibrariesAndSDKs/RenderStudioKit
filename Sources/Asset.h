@@ -13,14 +13,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class WebUsdAsset : public ArAsset
+class RenderStudioAsset : public ArAsset
 {
 public:
     AR_API
-    explicit WebUsdAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize);
+    explicit RenderStudioAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize);
 
     AR_API
-    ~WebUsdAsset();
+    ~RenderStudioAsset();
 
     AR_API
     virtual size_t GetSize() const override;

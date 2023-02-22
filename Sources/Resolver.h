@@ -15,14 +15,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class WebUsdAssetResolver : public ArDefaultResolver
+class RenderStudioResolver : public ArDefaultResolver
 {
 public:
     AR_API
-    WebUsdAssetResolver();
+    RenderStudioResolver();
 
     AR_API
-    virtual ~WebUsdAssetResolver();
+    virtual ~RenderStudioResolver();
 
     AR_API
     static void SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port);

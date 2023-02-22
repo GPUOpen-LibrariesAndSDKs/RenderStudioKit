@@ -20,7 +20,7 @@ target_link_libraries(${USDPLUGIN_NAME}
 
 if(WIN32)
   target_link_libraries(${USDPLUGIN_NAME} wsock32 ws2_32)
-  target_compile_definitions(${USDPLUGIN_NAME} PUBLIC HAVE_SNPRINTF WIN32_LEAN_AND_MEAN BOOST_ALL_DYN_LINK)
+  target_compile_definitions(${USDPLUGIN_NAME} PUBLIC HAVE_SNPRINTF WIN32_LEAN_AND_MEAN BOOST_ALL_DYN_LINK AR_EXPORTS)
 endif()
 
 # Install library
@@ -41,8 +41,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h
     DESTINATION include/RenderStudioResolver)
-
-# Install python bindings
-if (PXR_ENABLE_PYTHON_SUPPORT)
-    add_subdirectory(Bindings)
-endif()
