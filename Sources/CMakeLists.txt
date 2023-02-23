@@ -42,9 +42,12 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     HAVE_SNPRINTF 
     WIN32_LEAN_AND_MEAN 
     AR_EXPORTS
+    NOMINMAX
+    _WIN32_WINNT=0x0601
 )
 
 SetMaxWarningLevel(${CMAKE_PROJECT_NAME})
+SetVisualStudioDebuggerOptions(${CMAKE_PROJECT_NAME})
 
 # Install library
 install(TARGETS ${CMAKE_PROJECT_NAME}

@@ -12,23 +12,11 @@
 class Logger
 {
 public:
-    static std::size_t get_thread_id() noexcept {
-        static std::atomic<std::size_t> thread_idx{0};
-        thread_local std::size_t id = thread_idx;
-        thread_idx++;
-        return id;
-    }
-
     template<typename ... Args>
     static void Info(const std::string& format, const Args&... args)
     {
         fmt::print(fg(fmt::color::steel_blue) | fmt::emphasis::bold, "[AR] ");
         fmt::print(fg(fmt::color::deep_pink) | fmt::emphasis::bold, "[Info] ");
-
-        std::stringstream thread;
-        thread << get_thread_id();
-
-        fmt::print(fg(fmt::color::coral) | fmt::emphasis::bold, fmt::format("[🧵 {}] ", thread.str()));
         fmt::print(format, args...);
         fmt::print("\n");
     }

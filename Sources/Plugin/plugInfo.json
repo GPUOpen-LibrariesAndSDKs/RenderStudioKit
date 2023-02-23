@@ -1,19 +1,24 @@
 {
-    "Plugins": [
-        {
-            "Info": {
-                "Types": {
-                    "RenderStudioResolver": {
-                        "bases": [
-                            "ArResolver"
-                        ]
-                    }
+    "Plugins": [{
+        "Info": {
+            "Types": {
+                "RenderStudioResolver": {
+                    "bases": [ "ArResolver" ]
+                },
+                "RenderStudioFileFormat": {
+                    "bases": [ "SdfTextFileFormat" ],
+                    "displayName": "AMD RenderStudio file format",
+                    "extensions": [ "studio" ],
+                    "formatId": "studio",
+                    "primary": true,
+                    "target": "usd"
                 }
-            },
-            "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
-            "Root": "..",
-            "Name": "RenderStudioResolver",
-            "Type": "library"
-        }
-    ]
+            }
+        },
+        "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
+        "ResourcePath": "resources",
+        "Root": "..",
+        "Name": "AMD RenderStudio asset resolver plugin",
+        "Type": "library"
+    }]
 }
