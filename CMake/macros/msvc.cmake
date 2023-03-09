@@ -23,8 +23,13 @@ function(SetVisualStudioDebuggerOptions)
     set(RS_VS_DEBUGGER_ENVIRONMENT 
         "PATH=${RS_RUNTIME_PATH}")
 
-    set(RS_VS_DEBUGGER_COMMAND 
-        "${RS_BUILD_DIR}/Engine/StreamingApp/RelWithDebInfo/StreamingApp.exe")
+    if (EXISTS "${RS_BUILD_DIR}/Engine/StreamingApp/RelWithDebInfo")
+        set(RS_VS_DEBUGGER_COMMAND 
+            "${RS_BUILD_DIR}/Engine/StreamingApp/RelWithDebInfo/StreamingApp.exe")
+    else()
+        set(RS_VS_DEBUGGER_COMMAND 
+            "${RS_BUILD_DIR}/Engine/StreamingApp/Release/StreamingApp.exe")
+    endif()
 
     set(RS_VS_DEBUGGER_WORKING_DIRECTORY 
         "${RS_INSTALL_DIR}/Engine/StreamingApp")

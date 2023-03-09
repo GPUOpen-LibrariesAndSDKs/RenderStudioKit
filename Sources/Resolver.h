@@ -1,18 +1,15 @@
 #ifndef USD_REMOTE_ASSET_RESOLVER_H
 #define USD_REMOTE_ASSET_RESOLVER_H
 
+#include <filesystem>
+
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/ar/defaultResolver.h>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-
 #include "Context.h"
-
-class websocket_endpoint;
+#include "FileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -24,9 +21,15 @@ public:
 
     AR_API
     virtual ~RenderStudioResolver();
+    
+    AR_API
+    static void ProcessLiveUpdates();
 
     AR_API
-    static void SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port);
+    static void SetRemoteServerAddress(const std::string& url);
+
+    AR_API
+    virtual std::string _GetExtension(const std::string& path) const override;
 
     AR_API
     virtual ArResolvedPath _Resolve(const std::string& path) const override;
@@ -34,20 +37,18 @@ public:
 protected:
     AR_API
     virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
+    
 
     AR_API
     virtual ArTimestamp _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
 
 private:
-    std::string HttpGetRequest(const std::string& asset) const;
-    std::string WebSocketRequest(const std::string& asset) const;
+    static std::filesystem::path GetDocumentsDirectory();
 
-    mutable boost::uuids::random_generator mUuidGenerator;
-    mutable std::map<std::string, std::unique_ptr<websocket_endpoint>> mLiveServerEndpoints;
+    static inline std::string sRemoteUrl;
+    static inline RenderStudioFileFormatPtr sFileFormat;
 
-    static inline std::string mProtocol;
-    static inline std::string mHost;
-    static inline std::uint32_t mPort = 0;
+    std::filesystem::path mRootPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -5,6 +5,10 @@
 #include <pxr/usd/sdf/textFileFormat.h>
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/staticTokens.h>
+#include <pxr/usd/sdf/layer.h>
+
+#include <vector>
+#include "Data.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -18,29 +22,20 @@ TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
 
 class ArAsset;
 
-/// \class UsdUsdaFileFormat
-///
-/// File format used by textual USD files.
-///
 class RenderStudioFileFormat : public SdfTextFileFormat
 {
 public:
+    SDF_API
     SdfAbstractDataRefPtr InitData(
         const FileFormatArguments &args) const override;
-
-    /*SDF_API
-    virtual bool Read(
-        SdfLayer* layer,
-        const std::string& resolvedPath,
-        bool metadataOnly) const override;*/
-
-protected:
-    /*SDF_API
-        bool _ReadFromAsset(
-            SdfLayer* layer,
-            const std::string& resolvedPath,
-            const std::shared_ptr<ArAsset>& asset,
-            bool metadataOnly) const;*/
+    
+    SDF_API
+    virtual SdfLayer* _InstantiateNewLayer(
+        const SdfFileFormatConstPtr& fileFormat,
+        const std::string& identifier,
+        const std::string& realPath,
+        const ArAssetInfo& assetInfo,
+        const FileFormatArguments& args) const override;
 
 private:
     SDF_FILE_FORMAT_FACTORY_ACCESS;
@@ -48,7 +43,12 @@ private:
     RenderStudioFileFormat();
     virtual ~RenderStudioFileFormat();
 
+    void ProcessLiveUpdates();
+
     friend class UsdUsdFileFormat;
+    friend class RenderStudioResolver;
+
+    mutable std::vector<SdfLayerHandle> mCreatedLayers;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

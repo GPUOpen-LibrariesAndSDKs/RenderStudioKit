@@ -8,6 +8,10 @@ add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 find_package(USDMonolithic REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python random)
 
+add_subdirectory(Logger)
+add_subdirectory(Networking)
+add_subdirectory(Serialization)
+
 # Link libraries
 add_library(External INTERFACE)
 target_include_directories(External SYSTEM INTERFACE
@@ -23,6 +27,9 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     ar
     sdf
     External
+    RenderStudioNetworking
+    RenderStudioLogger
+    RenderStudioSerialization
 )
 
 # Temporary hack to make fmt working in other projects
@@ -46,6 +53,12 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     _WIN32_WINNT=0x0601
 )
 
+if (WIN32)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PLATFORM_WINDOWS)
+elseif(UNIX)
+    target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE PLATFORM_UNIX)
+endif()
+
 SetMaxWarningLevel(${CMAKE_PROJECT_NAME})
 SetVisualStudioDebuggerOptions(${CMAKE_PROJECT_NAME})
 
@@ -66,7 +79,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${CMAKE_PROJECT_NAME}/resources)
 
 # Install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resolver.h ${CMAKE_CURRENT_SOURCE_DIR}/Context.h ${CMAKE_CURRENT_SOURCE_DIR}/Data.h ${CMAKE_CURRENT_SOURCE_DIR}/FileFormat.h
     DESTINATION include/RenderStudioResolver)
 
 # Export CMake target

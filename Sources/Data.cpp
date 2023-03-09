@@ -1,63 +1,178 @@
 #include "Data.h"
 
+#include <iostream>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/json/src.hpp>
+
 #include <pxr/pxr.h>
 #include <pxr/base/trace/trace.h>
 #include <pxr/base/work/utils.h>
+#include <pxr/usd/sdf/changeBlock.h>
+#include <pxr/usd/usd/notice.h>
+#include <pxr/usd/sdf/layer.h>
+#include <pxr/usd/sdf/layerStateDelegate.h>
 
-#include <iostream>
+#include "Serialization/Serialization.h"
+#include "Logger/Logger.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+RenderStudioData::RenderStudioData()
+{
+    std::string uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+
+    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
+        [this, uuid](const std::string& message)
+        {
+            _HashTable deltas;
+
+            try
+            {
+                boost::json::value jsonRoot = boost::json::parse(message);
+                boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
+
+                for (const auto& jsonUpdate : jsonUpdates)
+                {
+                    SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
+                    boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
+
+                    for (const auto& jsonField : jsonFields)
+                    {
+                        TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
+                        VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
+                        deltas[path].fields.push_back({ key, value });
+                    }
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                LOG_WARNING << ex.what() << " (" << message << ")";
+            }
+
+            std::unique_lock<std::mutex> lock(mRemoteMutex);
+            mRemoteDeltas = deltas;
+        }
+    );
+
+    mWebsocketClient->Connect({ "127.0.0.1", "8000", "/live/" + uuid });
+    LOG_FATAL << "RenderStudioData created";
+}
+
 RenderStudioData::~RenderStudioData()
 {
-    // Clear out _data in parallel, since it can get big.
-    WorkSwapDestroyAsync(_data);
+    // Clear out mData in parallel, since it can get big.
+    WorkSwapDestroyAsync(mData);
+    mShouldStop = true;
+    mWebsocketClient->Disconnect();
+}
+
+void RenderStudioData::ProcessLiveUpdates(SdfLayerHandle& layer)
+{
+    // Send updates
+    boost::json::object jsonRoot;
+
+    jsonRoot["layer"] = boost::json::value_from(layer);
+    auto& jsonUpdates = jsonRoot["updates"].emplace_array();
+
+    for (auto& [path, spec] : mLocalDeltas)
+    {
+        try
+        {
+            boost::json::object jsonUpdate;
+
+            jsonUpdate["path"] = boost::json::value_from(path);
+            auto& jsonFields = jsonUpdate["fields"].emplace_array();
+
+            for (const auto& field : spec.fields)
+            {
+                boost::json::object jsonField;
+
+                jsonField["key"] = boost::json::value_from(field.first);
+                jsonField["value"] = boost::json::value_from(field.second);
+
+                jsonFields.push_back(jsonField);
+            }
+
+            jsonUpdates.push_back(jsonUpdate);
+        }
+        catch (const std::exception& ex)
+        {
+            LOG_WARNING << ex.what();
+        }
+    }
+
+    if (!mLocalDeltas.empty())
+    {
+        mWebsocketClient->SendMessageString(boost::json::serialize(jsonRoot));
+    }
+
+    // Receive updates
+    SdfChangeBlock block;
+
+    mRemoteDataRequested = true;
+    std::unique_lock<std::mutex> lock(mRemoteMutex);
+    auto copy = mRemoteDeltas;
+    mRemoteDeltas.clear();
+    lock.unlock();
+
+    for (auto& [path, spec] : copy)
+    {
+        for (const auto& field : spec.fields)
+        {
+            layer->GetStateDelegate()->SetField(path, field.first, field.second);
+        }
+    }
+
+    mLocalDeltas.clear();
 }
 
 bool
 RenderStudioData::StreamsData() const
 {
-    return false;
+    return true;
 }
 
 bool
 RenderStudioData::HasSpec(const SdfPath &path) const
 {
-    return _data.find(path) != _data.end();
+    return mData.find(path) != mData.end();
 }
 
 void
 RenderStudioData::EraseSpec(const SdfPath &path)
 {
-    _HashTable::iterator i = _data.find(path);
-    if (!TF_VERIFY(i != _data.end(),
+    _HashTable::iterator i = mData.find(path);
+    if (!TF_VERIFY(i != mData.end(),
                    "No spec to erase at <%s>", path.GetText())) {
         return;
     }
-    _data.erase(i);
+    mData.erase(i);
 }
 
 void
 RenderStudioData::MoveSpec(const SdfPath &oldPath,
                   const SdfPath &newPath)
 {
-    _HashTable::iterator old = _data.find(oldPath);
-    if (!TF_VERIFY(old != _data.end(),
+    _HashTable::iterator old = mData.find(oldPath);
+    if (!TF_VERIFY(old != mData.end(),
             "No spec to move at <%s>", oldPath.GetString().c_str())) {
         return;
     }
-    bool inserted = _data.insert(std::make_pair(newPath, old->second)).second;
+    bool inserted = mData.insert(std::make_pair(newPath, old->second)).second;
     if (!TF_VERIFY(inserted)) {
         return;
     }
-    _data.erase(old);
+    mData.erase(old);
 }
 
 SdfSpecType
 RenderStudioData::GetSpecType(const SdfPath &path) const
 {
-    _HashTable::const_iterator i = _data.find(path);
-    if (i == _data.end()) {
+    _HashTable::const_iterator i = mData.find(path);
+    if (i == mData.end()) {
         return SdfSpecTypeUnknown;
     }
     return i->second.specType;
@@ -69,13 +184,13 @@ RenderStudioData::CreateSpec(const SdfPath &path, SdfSpecType specType)
     if (!TF_VERIFY(specType != SdfSpecTypeUnknown)) {
         return;
     }
-    _data[path].specType = specType;
+    mData[path].specType = specType;
 }
 
 void
 RenderStudioData::_VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const
 {
-    TF_FOR_ALL(it, _data) {
+    TF_FOR_ALL(it, mData) {
         if (!visitor->VisitSpec(*this, it->first)) {
             break;
         }
@@ -140,8 +255,8 @@ RenderStudioData::_GetSpecTypeAndFieldValue(const SdfPath& path,
                                    const TfToken& field,
                                    SdfSpecType* specType) const
 {
-    _HashTable::const_iterator i = _data.find(path);
-    if (i == _data.end()) {
+    _HashTable::const_iterator i = mData.find(path);
+    if (i == mData.end()) {
         *specType = SdfSpecTypeUnknown;
     }
     else {
@@ -160,8 +275,8 @@ const VtValue*
 RenderStudioData::_GetFieldValue(const SdfPath &path,
                         const TfToken &field) const
 {
-    _HashTable::const_iterator i = _data.find(path);
-    if (i != _data.end()) {
+    _HashTable::const_iterator i = mData.find(path);
+    if (i != mData.end()) {
         const _SpecData & spec = i->second;
         for (auto const &f: spec.fields) {
             if (f.first == field) {
@@ -176,8 +291,8 @@ VtValue*
 RenderStudioData::_GetMutableFieldValue(const SdfPath &path,
                                const TfToken &field)
 {
-    _HashTable::iterator i = _data.find(path);
-    if (i != _data.end()) {
+    _HashTable::iterator i = mData.find(path);
+    if (i != mData.end()) {
         _SpecData &spec = i->second;
         for (size_t j=0, jEnd = spec.fields.size(); j != jEnd; ++j) {
             if (spec.fields[j].first == field) {
@@ -201,8 +316,6 @@ void
 RenderStudioData::Set(const SdfPath &path, const TfToken & field, 
              const VtValue& value)
 {
-    // std::string p = path.GetString();
-
     TfAutoMallocTag2 tag("Sdf", "RenderStudioData::Set");
 
     if (value.IsEmpty()) {
@@ -210,15 +323,17 @@ RenderStudioData::Set(const SdfPath &path, const TfToken & field,
         return;
     }
 
+    // Default
     VtValue* newValue = _GetOrCreateFieldValue(path, field);
-
-    /*if (p == "/Root/Cube_2.xformOp:translate") {
-        *newValue = GfVec3d(20, 20, 20);
-        return;
-    }*/
 
     if (newValue) {
         *newValue = value;
+    }
+
+    // Delta
+    VtValue* newValueDelta = _GetOrCreateFieldValueDelta(path, field);
+    if (newValueDelta) {
+        *newValueDelta = value;
     }
 }
 
@@ -228,9 +343,16 @@ RenderStudioData::Set(const SdfPath &path, const TfToken &field,
 {
     TfAutoMallocTag2 tag("Sdf", "RenderStudioData::Set");
 
+    // Default
     VtValue* newValue = _GetOrCreateFieldValue(path, field);
     if (newValue) {
         value.GetValue(newValue);
+    }
+
+    // Delta
+    VtValue* newValueDelta = _GetOrCreateFieldValueDelta(path, field);
+    if (newValueDelta) {
+        value.GetValue(newValueDelta);
     }
 }
 
@@ -238,8 +360,8 @@ VtValue*
 RenderStudioData::_GetOrCreateFieldValue(const SdfPath &path,
                                 const TfToken &field)
 {
-    _HashTable::iterator i = _data.find(path);
-    if (!TF_VERIFY(i != _data.end(),
+    _HashTable::iterator i = mData.find(path);
+    if (!TF_VERIFY(i != mData.end(),
                    "No spec at <%s> when trying to set field '%s'",
                    path.GetText(), field.GetText())) {
         return nullptr;
@@ -259,11 +381,45 @@ RenderStudioData::_GetOrCreateFieldValue(const SdfPath &path,
     return &spec.fields.back().second;
 }
 
+VtValue*
+RenderStudioData::_GetOrCreateFieldValueDelta(const SdfPath& path,
+    const TfToken& field)
+{
+    // Apply spec type from mData to _deltas
+    if (mLocalDeltas.find(path) == mLocalDeltas.end())
+    {
+        _HashTable::iterator i = mData.find(path);
+
+        if (!TF_VERIFY(i != mData.end(),
+            "No spec at <%s> when trying to set field '%s'",
+            path.GetText(), field.GetText())) {
+            return nullptr;
+        }
+
+        mLocalDeltas[path].specType = i->second.specType;
+    }
+
+    _HashTable::iterator i = mLocalDeltas.find(path);
+    _SpecData& spec = i->second;
+
+    for (auto& f : spec.fields) {
+        if (f.first == field) {
+            return &f.second;
+        }
+    }
+
+    spec.fields.emplace_back(std::piecewise_construct,
+        std::forward_as_tuple(field),
+        std::forward_as_tuple());
+
+    return &spec.fields.back().second;
+}
+
 void 
 RenderStudioData::Erase(const SdfPath &path, const TfToken & field)
 {
-    _HashTable::iterator i = _data.find(path);
-    if (i == _data.end()) {
+    _HashTable::iterator i = mData.find(path);
+    if (i == mData.end()) {
         return;
     }
     
@@ -280,8 +436,8 @@ std::vector<TfToken>
 RenderStudioData::List(const SdfPath &path) const
 {
     std::vector<TfToken> names;
-    _HashTable::const_iterator i = _data.find(path);
-    if (i != _data.end()) {
+    _HashTable::const_iterator i = mData.find(path);
+    if (i != mData.end()) {
         const _SpecData & spec = i->second;
 
         const size_t numFields = spec.fields.size();
@@ -304,7 +460,7 @@ RenderStudioData::ListAllTimeSamples() const
     // Use a set to determine unique times.
     std::set<double> times;
 
-    TF_FOR_ALL(i, _data) {
+    TF_FOR_ALL(i, mData) {
         std::set<double> timesForPath = ListTimeSamplesForPath(i->first);
         times.insert(timesForPath.begin(), timesForPath.end());
     }

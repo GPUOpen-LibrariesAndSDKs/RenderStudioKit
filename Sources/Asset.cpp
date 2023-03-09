@@ -2,9 +2,6 @@
 
 #include <stdexcept>
 #include <pxr/pxr.h>
-#define FMT_HEADER_ONLY
-#include <fmt/format-inl.h>
-#include <Logger.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 

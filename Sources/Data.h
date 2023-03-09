@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <pxr/pxr.h>
 #include <pxr/usd/sdf/api.h>
 #include <pxr/usd/sdf/abstractData.h>
@@ -9,23 +10,25 @@
 #include <pxr/base/tf/hashmap.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/base/vt/value.h>
+#include <pxr/usd/usd/stage.h>
+#include "Networking/WebsocketClient.h"
 
-#include <vector>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioData);
 
+class RenderStudioFileFormat;
+
 class RenderStudioData : public SdfData
 {
 public:
-    RenderStudioData() {}
+    RenderStudioData();
 
     SDF_API
     virtual ~RenderStudioData();
 
     /// SdfAbstractData overrides
-
     SDF_API
     virtual bool StreamsData() const;
 
@@ -119,6 +122,8 @@ protected:
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
+    void ProcessLiveUpdates(SdfLayerHandle& layer);
+
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path,
                                              const TfToken& field,
                                              SdfSpecType* specType) const;
@@ -132,7 +137,12 @@ private:
     VtValue* _GetOrCreateFieldValue(const SdfPath& path,
                                     const TfToken& field);
 
+    VtValue* _GetOrCreateFieldValueDelta(const SdfPath& path,
+        const TfToken& field);
+
 private:
+    friend class RenderStudioFileFormat;
+
     // Backing storage for a single "spec" -- prim, property, etc.
     typedef std::pair<TfToken, VtValue> _FieldValuePair;
     struct _SpecData {
@@ -147,7 +157,14 @@ private:
     typedef SdfPath::Hash _KeyHash;
     typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
 
-    _HashTable _data;
+    _HashTable mData;
+    _HashTable mLocalDeltas;
+    _HashTable mRemoteDeltas;
+    std::mutex mRemoteMutex;
+    std::atomic_bool mShouldStop = false;
+    std::atomic_bool mRemoteDataRequested = false;
+
+    std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

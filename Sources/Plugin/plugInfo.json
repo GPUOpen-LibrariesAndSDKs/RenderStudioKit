@@ -3,7 +3,9 @@
         "Info": {
             "Types": {
                 "RenderStudioResolver": {
-                    "bases": [ "ArResolver" ]
+                    "bases": [ "ArResolver" ],
+                    "uriSchemes": ["studio"],
+                    "primary": true
                 },
                 "RenderStudioFileFormat": {
                     "bases": [ "SdfTextFileFormat" ],
