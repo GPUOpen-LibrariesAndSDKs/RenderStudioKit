@@ -13,6 +13,10 @@ using namespace boost::json;
 void tag_invoke(const value_from_tag&, value& json, const SdfPath& v);
 SdfPath tag_invoke(const value_to_tag<SdfPath>&, const value& json);
 
+// --- SdfAssetPath ---
+void tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v);
+SdfAssetPath tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json);
+
 // --- SdfLayerHandle ---
 void tag_invoke(const value_from_tag&, value& json, const SdfLayerHandle& v);
 

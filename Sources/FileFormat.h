@@ -13,8 +13,9 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 #define RENDER_STUDIO_FILE_FORMAT_TOKENS \
-    ((Id,      "studio"))             \
-    ((Version, "1.0"))
+    ((Id,      "studio"))                \
+    ((Version, "1.0"))                   \
+    ((Target,  "usd"))
 
 TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, USD_API, RENDER_STUDIO_FILE_FORMAT_TOKENS);
 

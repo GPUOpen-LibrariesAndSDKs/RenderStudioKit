@@ -16,6 +16,25 @@ SdfPath tag_invoke(const value_to_tag<SdfPath>&, const value& json)
     return SdfPath{ value_to<std::string>(json) };
 }
 
+// --- SdfAssetPath ---
+void tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v)
+{
+    object result;
+    result["asset"] = v.GetAssetPath();
+    result["resolved"] = v.GetResolvedPath();
+    json = result;
+}
+
+SdfAssetPath tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
+{
+    object jsonObject = json.as_object();
+
+    return SdfAssetPath{ 
+        value_to<std::string>(jsonObject["asset"]),
+        value_to<std::string>(jsonObject["resolved"])
+    };
+}
+
 // --- SdfLayerHandle ---
 
 void tag_invoke(const value_from_tag&, value& json, const SdfLayerHandle& v)
@@ -75,6 +94,10 @@ void tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     {
         data = value_from(v.Get<VtArray<int>>());
     }
+    else if (v.IsHolding<VtArray<float>>())
+    {
+        data = value_from(v.Get<VtArray<float>>());
+    }
     else if (v.IsHolding<VtArray<TfToken>>())
     {
         data = value_from(v.Get<VtArray<TfToken>>());
@@ -110,6 +133,18 @@ void tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     else if (v.IsHolding<std::vector<SdfPath>>())
     {
         data = value_from(v.Get<std::vector<SdfPath>>());
+    }
+    else if (v.IsHolding<int>())
+    {
+        data = value_from(v.Get<int>());
+    }
+    else if (v.IsHolding<VtDictionary>())
+    {
+        data = value_from(v.Get<VtDictionary>());
+    }
+    else if (v.IsHolding<SdfAssetPath>())
+    {
+        data = value_from(v.Get<SdfAssetPath>());
     }
     else
     {
@@ -188,6 +223,22 @@ VtValue tag_invoke(const value_to_tag<VtValue>&, const value& json)
     else if ("float" == type)
     {
         return VtValue{ value_to<float>(data) };
+    }
+    else if ("int" == type)
+    {
+        return VtValue{ value_to<int>(data) };
+    }
+    else if ("VtArray<float>" == type)
+    {
+        return VtValue{ value_to<VtArray<float>>(data) };
+    }
+    else if ("VtDictionary" == type)
+    {
+        return VtValue{ value_to<VtDictionary>(data) };
+    }
+    else if ("SdfAssetPath" == type)
+    {
+        return VtValue{ value_to<SdfAssetPath>(data) };
     }
     else
     {

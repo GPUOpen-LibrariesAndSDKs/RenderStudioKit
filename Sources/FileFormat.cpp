@@ -18,7 +18,8 @@ TF_REGISTRY_FUNCTION(TfType)
 }
 
 
-void RenderStudioFileFormat::ProcessLiveUpdates()
+void
+RenderStudioFileFormat::ProcessLiveUpdates()
 {
     // Remove expired layers
     mCreatedLayers.erase(std::remove_if(mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer)

@@ -58,7 +58,6 @@ RenderStudioData::RenderStudioData()
     );
 
     mWebsocketClient->Connect({ "127.0.0.1", "8000", "/live/" + uuid });
-    LOG_FATAL << "RenderStudioData created";
 }
 
 RenderStudioData::~RenderStudioData()

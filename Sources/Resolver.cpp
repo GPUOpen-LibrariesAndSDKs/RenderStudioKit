@@ -14,8 +14,10 @@
 
 #include <pxr/usd/ar/defineResolver.h>
 #include <pxr/base/tf/diagnostic.h>
-#include <base64.hpp>
 #include <pxr/usd/sdf/fileFormat.h>
+#include <pxr/base/tf/pathUtils.h>
+
+#include <base64.hpp>
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -75,6 +77,43 @@ RenderStudioResolver::_Resolve(const std::string& path) const
     return ArResolvedPath(path);
 }
 
+static std::string
+_AnchorRelativePathForStudioProtocol(
+    const std::string& anchorPath,
+    const std::string& path)
+{
+    if (anchorPath.rfind("studio:/", 0) != 0 && (TfIsRelativePath(anchorPath) || !TfIsRelativePath(path))) {
+        return path;
+    }
+
+    // Ensure we are using forward slashes and not back slashes.
+    std::string forwardPath = anchorPath;
+    std::replace(forwardPath.begin(), forwardPath.end(), '\\', '/');
+
+    // If anchorPath does not end with a '/', we assume it is specifying
+    // a file, strip off the last component, and anchor the path to that
+    // directory.
+    const std::string anchoredPath = TfStringCatPaths(
+        TfStringGetBeforeSuffix(forwardPath, '/'), path);
+    return TfNormPath(anchoredPath);
+}
+
+AR_API std::string RenderStudioResolver::_CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const
+{
+    if (assetPath.empty()) {
+        return assetPath;
+    }
+
+    if (!anchorAssetPath) {
+        return TfNormPath(assetPath);
+    }
+
+    const std::string anchoredAssetPath =
+        _AnchorRelativePathForStudioProtocol(anchorAssetPath, assetPath);
+
+    return TfNormPath(anchoredAssetPath);
+}
+
 std::shared_ptr<ArAsset>
 RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
@@ -83,12 +122,10 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
     {
         path.erase(0, std::string("studio:/").size());
         std::filesystem::path resolved = mRootPath / path;
-        LOG_INFO << "Resolved from studio:// : " << resolved;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath{ resolved.string() });
     }
     else
     {
-        LOG_INFO << "Resolved from filesystem: " << path;
         ArDefaultResolver::_OpenAsset(ArResolvedPath{ resolvedPath });
     }
 }
@@ -96,7 +133,6 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 std::string
 RenderStudioResolver::_GetExtension(const std::string& assetPath) const
 {
-    LOG_INFO << "Returning extension .studio";
     return "studio";
 }
 

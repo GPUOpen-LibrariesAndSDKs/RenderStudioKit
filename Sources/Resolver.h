@@ -36,9 +36,11 @@ public:
 
 protected:
     AR_API
+    std::string _CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const override;
+
+    AR_API
     virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
     
-
     AR_API
     virtual ArTimestamp _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
 
