@@ -2,11 +2,6 @@
 
 #include <iostream>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/json/src.hpp>
-
 #include <pxr/pxr.h>
 #include <pxr/base/trace/trace.h>
 #include <pxr/base/work/utils.h>
@@ -22,102 +17,25 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 RenderStudioData::RenderStudioData()
 {
-    std::string uuid = boost::uuids::to_string(boost::uuids::random_generator()());
-
-    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
-        [this, uuid](const std::string& message)
-        {
-            _HashTable deltas;
-
-            try
-            {
-                boost::json::value jsonRoot = boost::json::parse(message);
-                boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
-
-                for (const auto& jsonUpdate : jsonUpdates)
-                {
-                    SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
-                    boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
-
-                    for (const auto& jsonField : jsonFields)
-                    {
-                        TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
-                        VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
-                        deltas[path].fields.push_back({ key, value });
-                    }
-                }
-            }
-            catch (const std::exception& ex)
-            {
-                LOG_WARNING << ex.what() << " (" << message << ")";
-            }
-
-            std::unique_lock<std::mutex> lock(mRemoteMutex);
-            mRemoteDeltas = deltas;
-        }
-    );
-
-    mWebsocketClient->Connect({ "127.0.0.1", "8000", "/live/" + uuid });
+    // Do nothing
 }
 
 RenderStudioData::~RenderStudioData()
 {
     // Clear out mData in parallel, since it can get big.
     WorkSwapDestroyAsync(mData);
-    mShouldStop = true;
-    mWebsocketClient->Disconnect();
 }
 
-void RenderStudioData::ProcessLiveUpdates(SdfLayerHandle& layer)
+void RenderStudioData::ApplyRemoteDeltas(SdfLayerHandle& layer)
 {
-    // Send updates
-    boost::json::object jsonRoot;
-
-    jsonRoot["layer"] = boost::json::value_from(layer);
-    auto& jsonUpdates = jsonRoot["updates"].emplace_array();
-
-    for (auto& [path, spec] : mLocalDeltas)
-    {
-        try
-        {
-            boost::json::object jsonUpdate;
-
-            jsonUpdate["path"] = boost::json::value_from(path);
-            auto& jsonFields = jsonUpdate["fields"].emplace_array();
-
-            for (const auto& field : spec.fields)
-            {
-                boost::json::object jsonField;
-
-                jsonField["key"] = boost::json::value_from(field.first);
-                jsonField["value"] = boost::json::value_from(field.second);
-
-                jsonFields.push_back(jsonField);
-            }
-
-            jsonUpdates.push_back(jsonUpdate);
-        }
-        catch (const std::exception& ex)
-        {
-            LOG_WARNING << ex.what();
-        }
-    }
-
-    if (!mLocalDeltas.empty())
-    {
-        mWebsocketClient->SendMessageString(boost::json::serialize(jsonRoot));
-    }
-
-    // Receive updates
     SdfChangeBlock block;
 
-    mRemoteDataRequested = true;
-    std::unique_lock<std::mutex> lock(mRemoteMutex);
-    auto copy = mRemoteDeltas;
-    mRemoteDeltas.clear();
-    lock.unlock();
+    // Store state of local deltas
+    auto localDeltasCopy = mLocalDeltas;
 
-    for (auto& [path, spec] : copy)
+    std::unique_lock<std::mutex> lock(mRemoteMutex);
+
+    for (const auto& [path, spec] : mRemoteDeltas)
     {
         for (const auto& field : spec.fields)
         {
@@ -125,7 +43,32 @@ void RenderStudioData::ProcessLiveUpdates(SdfLayerHandle& layer)
         }
     }
 
+    mRemoteDeltas.clear();
+
+    // Also reset local deltas since SetField() modify them
+    mLocalDeltas = localDeltasCopy;
+}
+
+void
+RenderStudioData::AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas)
+{
+    std::unique_lock<std::mutex> lock(mRemoteMutex);
+
+    for (const auto& [path, spec] : deltas)
+    {
+        for (const auto& field : spec.fields)
+        {
+            mRemoteDeltas[path].fields.push_back(field);
+        }
+    }
+}
+
+RenderStudioApi::DeltaType
+RenderStudioData::FetchLocalDeltas()
+{
+    auto copy = mLocalDeltas;
     mLocalDeltas.clear();
+    return copy; 
 }
 
 bool

@@ -9,6 +9,7 @@
 
 #include <vector>
 #include "Data.h"
+#include "Networking/WebsocketClient.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -45,11 +46,13 @@ private:
     virtual ~RenderStudioFileFormat();
 
     void ProcessLiveUpdates();
+    void Connect(const std::string& url);
 
     friend class UsdUsdFileFormat;
     friend class RenderStudioResolver;
 
     mutable std::vector<SdfLayerHandle> mCreatedLayers;
+    std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

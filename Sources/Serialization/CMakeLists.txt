@@ -27,5 +27,5 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 SetMaxWarningLevel(${PROJECT_NAME})
 
 # Install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h ${CMAKE_CURRENT_SOURCE_DIR}/Api.h
     DESTINATION include/RenderStudioResolver/Serialization)

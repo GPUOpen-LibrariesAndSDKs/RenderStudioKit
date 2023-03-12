@@ -17,9 +17,12 @@ namespace RenderStudio::Networking
 
 struct WebsocketEndpoint
 {
+    std::string protocol;
     std::string host;
     std::string port;
     std::string path;
+
+    static WebsocketEndpoint FromString(const std::string& url);
 };
 
 class WebsocketClient : public std::enable_shared_from_this<WebsocketClient>

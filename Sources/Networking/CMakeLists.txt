@@ -14,6 +14,7 @@ find_package(Boost REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     RenderStudioLogger
+    uriparser
 )
 
 # Set compile options

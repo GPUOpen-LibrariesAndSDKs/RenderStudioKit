@@ -1,9 +1,11 @@
 #include "WebsocketClient.h"
 
 #include <iostream>
+#include <functional>
 #include <boost/asio/strand.hpp>
 
 #include <Logger/Logger.h>
+#include <uriparser/Uri.h>
 
 namespace RenderStudio::Networking
 {
@@ -25,6 +27,8 @@ WebsocketClient::~WebsocketClient()
 void WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
 {
     mEndpoint = endpoint;
+
+    LOG_INFO << "Connecting to: (" << endpoint.protocol << ", " << endpoint.host << ", " << endpoint.port << ", " << endpoint.path << ")";
 
     mTcpResolver.async_resolve(
         mEndpoint.host,
@@ -55,7 +59,7 @@ void WebsocketClient::SendMessageString(const std::string& message)
 
     if (!mConnected)
     {
-        LOG_WARNING << "[Networking SendMessage] Not connected yet\n";
+        LOG_WARNING << "[Networking]Not connected yet\n";
         return;
     }
 
@@ -69,7 +73,7 @@ void WebsocketClient::Ping(boost::beast::error_code ec)
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking Ping] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -83,7 +87,7 @@ void WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tc
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnResolve] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -99,7 +103,7 @@ void WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tc
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnConnect] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -116,9 +120,11 @@ void WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tc
         }
     ));
 
+    LOG_INFO << "[Networking] Connected";
+
     mWebsocketStream.async_handshake(
         mEndpoint.host + ":" + std::to_string(endpoint.port()),
-        mEndpoint.path,
+        "/" + mEndpoint.path + "/",
         boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this())
     );
 }
@@ -127,9 +133,11 @@ void WebsocketClient::OnHandshake(boost::beast::error_code ec)
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnHandshake] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
+
+    LOG_INFO << "[Networking] Handshake done";
 
     mConnected = true;
     OnPing({});
@@ -140,7 +148,7 @@ void WebsocketClient::OnPing(boost::beast::error_code ec)
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnPing] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -157,7 +165,7 @@ void WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferr
 
     if (ec)
     {
-        LOG_ERROR << "[Networking OnWrite] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -168,7 +176,7 @@ void WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferre
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnRead] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
 
@@ -188,9 +196,30 @@ void WebsocketClient::OnClose(boost::beast::error_code ec)
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking OnClose] " << ec.message();
+        LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
+}
+
+WebsocketEndpoint WebsocketEndpoint::FromString(const std::string& url)
+{
+    UriUriA uri;
+    const char* errorPos;
+
+    if (uriParseSingleUriA(&uri, url.c_str(), &errorPos) != URI_SUCCESS)
+    {
+        return {};
+    }
+
+    WebsocketEndpoint endpoint{};
+
+    endpoint.protocol = std::string(uri.scheme.first, uri.scheme.afterLast);
+    endpoint.host = std::string(uri.hostText.first, uri.hostText.afterLast);
+    endpoint.port = std::string(uri.portText.first, uri.portText.afterLast);
+    endpoint.path = std::string(uri.pathHead->text.first, uri.pathHead->text.afterLast);
+
+    uriFreeUriMembersA(&uri);
+    return endpoint;
 }
 
 }

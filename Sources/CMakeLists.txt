@@ -12,6 +12,11 @@ add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)
 
+set(URIPARSER_BUILD_TESTS OFF)
+set(URIPARSER_BUILD_TOOLS OFF)
+set(URIPARSER_BUILD_DOCS OFF)
+add_subdirectory(External/uriparser)
+
 # Link libraries
 add_library(External INTERFACE)
 target_include_directories(External SYSTEM INTERFACE

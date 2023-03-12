@@ -11,8 +11,8 @@
 #include <pxr/base/tf/token.h>
 #include <pxr/base/vt/value.h>
 #include <pxr/usd/usd/stage.h>
-#include "Networking/WebsocketClient.h"
 
+#include "Serialization/Api.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -122,7 +122,9 @@ protected:
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
-    void ProcessLiveUpdates(SdfLayerHandle& layer);
+    void ApplyRemoteDeltas(SdfLayerHandle& layer);
+    void AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas);
+    RenderStudioApi::DeltaType FetchLocalDeltas();
 
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path,
                                              const TfToken& field,
@@ -142,29 +144,13 @@ private:
 
 private:
     friend class RenderStudioFileFormat;
-
-    // Backing storage for a single "spec" -- prim, property, etc.
-    typedef std::pair<TfToken, VtValue> _FieldValuePair;
-    struct _SpecData {
-        _SpecData() : specType(SdfSpecTypeUnknown) {}
-        
-        SdfSpecType specType;
-        std::vector<_FieldValuePair> fields;
-    };
-
-    // Hashtable storing _SpecData.
-    typedef SdfPath _Key;
-    typedef SdfPath::Hash _KeyHash;
-    typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
+    using _HashTable = RenderStudioApi::_HashTable;
+    using _SpecData = RenderStudioApi::_SpecData;
 
     _HashTable mData;
     _HashTable mLocalDeltas;
     _HashTable mRemoteDeltas;
     std::mutex mRemoteMutex;
-    std::atomic_bool mShouldStop = false;
-    std::atomic_bool mRemoteDataRequested = false;
-
-    std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

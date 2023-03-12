@@ -1,3 +1,6 @@
 [submodule "Sources/External/fmt"]
 	path = Sources/External/fmt
 	url = git@github.com:fmtlib/fmt.git
+[submodule "Sources/External/uriparser"]
+	path = Sources/External/uriparser
+	url = git@github.com:uriparser/uriparser.git

@@ -58,6 +58,9 @@ RenderStudioResolver::ProcessLiveUpdates()
         SdfFileFormatConstPtr format = SdfFileFormat::FindByExtension(".studio");
         RenderStudioFileFormatConstPtr casted = TfDynamic_cast<RenderStudioFileFormatConstPtr>(format);
         sFileFormat = TfConst_cast<RenderStudioFileFormatPtr>(casted);
+
+        // Connect here for now
+        sFileFormat->Connect(sRemoteUrl);
     }
 
     sFileFormat->ProcessLiveUpdates();
