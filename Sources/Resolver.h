@@ -5,8 +5,8 @@
 
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
-#include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/ar/defaultResolver.h>
+#include <pxr/usd/ar/resolver.h>
 
 #include "Context.h"
 #include "FileFormat.h"
@@ -21,7 +21,7 @@ public:
 
     AR_API
     virtual ~RenderStudioResolver();
-    
+
     AR_API
     static void ProcessLiveUpdates();
 
@@ -40,9 +40,10 @@ protected:
 
     AR_API
     virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
-    
+
     AR_API
-    virtual ArTimestamp _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
+    virtual ArTimestamp
+    _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
 
 private:
     static std::filesystem::path GetDocumentsDirectory();

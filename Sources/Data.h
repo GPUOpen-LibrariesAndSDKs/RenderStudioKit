@@ -1,15 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <pxr/pxr.h>
-#include <pxr/usd/sdf/api.h>
-#include <pxr/usd/sdf/abstractData.h>
-#include <pxr/usd/sdf/data.h>
-#include <pxr/usd/sdf/path.h>
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/hashmap.h>
 #include <pxr/base/tf/token.h>
 #include <pxr/base/vt/value.h>
+#include <pxr/pxr.h>
+#include <pxr/usd/sdf/abstractData.h>
+#include <pxr/usd/sdf/api.h>
+#include <pxr/usd/sdf/data.h>
+#include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/stage.h>
 
 #include "Serialization/Api.h"
@@ -20,7 +19,7 @@ TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioData);
 
 class RenderStudioFileFormat;
 
-class RenderStudioData : public SdfData
+class RenderStudioData : public SdfAbstractData
 {
 public:
     RenderStudioData();
@@ -33,88 +32,66 @@ public:
     virtual bool StreamsData() const;
 
     SDF_API
-    virtual void CreateSpec(const SdfPath& path, 
-                            SdfSpecType specType);
+    virtual void CreateSpec(const SdfPath& path, SdfSpecType specType);
     SDF_API
     virtual bool HasSpec(const SdfPath& path) const;
     SDF_API
     virtual void EraseSpec(const SdfPath& path);
     SDF_API
-    virtual void MoveSpec(const SdfPath& oldPath, 
-                          const SdfPath& newPath);
+    virtual void MoveSpec(const SdfPath& oldPath, const SdfPath& newPath);
     SDF_API
     virtual SdfSpecType GetSpecType(const SdfPath& path) const;
 
     SDF_API
-    virtual bool Has(const SdfPath& path, const TfToken &fieldName,
-                     SdfAbstractDataValue* value) const;
+    virtual bool Has(const SdfPath& path, const TfToken& fieldName, SdfAbstractDataValue* value) const;
     SDF_API
-    virtual bool Has(const SdfPath& path, const TfToken& fieldName,
-                     VtValue *value = NULL) const;
+    virtual bool Has(const SdfPath& path, const TfToken& fieldName, VtValue* value = NULL) const;
     SDF_API
     virtual bool
-    HasSpecAndField(const SdfPath &path, const TfToken &fieldName,
-                    SdfAbstractDataValue *value, SdfSpecType *specType) const;
+    HasSpecAndField(const SdfPath& path, const TfToken& fieldName, SdfAbstractDataValue* value, SdfSpecType* specType)
+        const;
 
     SDF_API
     virtual bool
-    HasSpecAndField(const SdfPath &path, const TfToken &fieldName,
-                    VtValue *value, SdfSpecType *specType) const;
+    HasSpecAndField(const SdfPath& path, const TfToken& fieldName, VtValue* value, SdfSpecType* specType) const;
 
     SDF_API
-    virtual VtValue Get(const SdfPath& path, 
-                        const TfToken& fieldName) const;
+    virtual VtValue Get(const SdfPath& path, const TfToken& fieldName) const;
     SDF_API
-    virtual void Set(const SdfPath& path, const TfToken& fieldName,
-                     const VtValue & value);
+    virtual void Set(const SdfPath& path, const TfToken& fieldName, const VtValue& value);
     SDF_API
-    virtual void Set(const SdfPath& path, const TfToken& fieldName,
-                     const SdfAbstractDataConstValue& value);
+    virtual void Set(const SdfPath& path, const TfToken& fieldName, const SdfAbstractDataConstValue& value);
     SDF_API
-    virtual void Erase(const SdfPath& path, 
-                       const TfToken& fieldName);
+    virtual void Erase(const SdfPath& path, const TfToken& fieldName);
     SDF_API
     virtual std::vector<TfToken> List(const SdfPath& path) const;
 
     SDF_API
-    virtual std::set<double>
-    ListAllTimeSamples() const;
-    
+    virtual std::set<double> ListAllTimeSamples() const;
+
     SDF_API
-    virtual std::set<double>
-    ListTimeSamplesForPath(const SdfPath& path) const;
+    virtual std::set<double> ListTimeSamplesForPath(const SdfPath& path) const;
+
+    SDF_API
+    virtual bool GetBracketingTimeSamples(double time, double* tLower, double* tUpper) const;
+
+    SDF_API
+    virtual size_t GetNumTimeSamplesForPath(const SdfPath& path) const;
 
     SDF_API
     virtual bool
-    GetBracketingTimeSamples(double time, double* tLower, double* tUpper) const;
+    GetBracketingTimeSamplesForPath(const SdfPath& path, double time, double* tLower, double* tUpper) const;
 
     SDF_API
-    virtual size_t
-    GetNumTimeSamplesForPath(const SdfPath& path) const;
+    virtual bool QueryTimeSample(const SdfPath& path, double time, SdfAbstractDataValue* optionalValue) const;
+    SDF_API
+    virtual bool QueryTimeSample(const SdfPath& path, double time, VtValue* value) const;
 
     SDF_API
-    virtual bool
-    GetBracketingTimeSamplesForPath(const SdfPath& path, 
-                                    double time,
-                                    double* tLower, double* tUpper) const;
+    virtual void SetTimeSample(const SdfPath& path, double time, const VtValue& value);
 
     SDF_API
-    virtual bool
-    QueryTimeSample(const SdfPath& path, double time,
-                    SdfAbstractDataValue *optionalValue) const;
-    SDF_API
-    virtual bool
-    QueryTimeSample(const SdfPath& path, double time, 
-                    VtValue *value) const;
-
-    SDF_API
-    virtual void
-    SetTimeSample(const SdfPath& path, double time, 
-                  const VtValue & value);
-
-    SDF_API
-    virtual void
-    EraseTimeSample(const SdfPath& path, double time);
+    virtual void EraseTimeSample(const SdfPath& path, double time);
 
 protected:
     // SdfAbstractData overrides
@@ -126,21 +103,15 @@ private:
     void AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas);
     RenderStudioApi::DeltaType FetchLocalDeltas();
 
-    const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path,
-                                             const TfToken& field,
-                                             SdfSpecType* specType) const;
+    const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path, const TfToken& field, SdfSpecType* specType) const;
 
-    const VtValue* _GetFieldValue(const SdfPath& path,
-                                  const TfToken& field) const;
+    const VtValue* _GetFieldValue(const SdfPath& path, const TfToken& field) const;
 
-    VtValue* _GetMutableFieldValue(const SdfPath& path,
-                                   const TfToken& field);
+    VtValue* _GetMutableFieldValue(const SdfPath& path, const TfToken& field);
 
-    VtValue* _GetOrCreateFieldValue(const SdfPath& path,
-                                    const TfToken& field);
+    VtValue* _GetOrCreateFieldValue(const SdfPath& path, const TfToken& field);
 
-    VtValue* _GetOrCreateFieldValueDelta(const SdfPath& path,
-        const TfToken& field);
+    VtValue* _GetOrCreateFieldValueDelta(const SdfPath& path, const TfToken& field);
 
 private:
     friend class RenderStudioFileFormat;

@@ -1,10 +1,10 @@
 #include "WebsocketClient.h"
 
-#include <iostream>
 #include <functional>
-#include <boost/asio/strand.hpp>
+#include <iostream>
 
 #include <Logger/Logger.h>
+#include <boost/asio/strand.hpp>
 #include <uriparser/Uri.h>
 
 namespace RenderStudio::Networking
@@ -19,28 +19,27 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
 {
 }
 
-WebsocketClient::~WebsocketClient()
-{
-    Disconnect();
-}
+WebsocketClient::~WebsocketClient() { Disconnect(); }
 
-void WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
+void
+WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
 {
     mEndpoint = endpoint;
 
-    LOG_INFO << "Connecting to: (" << endpoint.protocol << ", " << endpoint.host << ", " << endpoint.port << ", " << endpoint.path << ")";
+    LOG_INFO << "Connecting to: (" << endpoint.protocol << ", " << endpoint.host << ", " << endpoint.port << ", "
+             << endpoint.path << ")";
 
     mTcpResolver.async_resolve(
         mEndpoint.host,
         mEndpoint.port,
-        boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this())
-    );
+        boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this()));
 
     mThread = std::thread([this]() { mIoContext.run(); });
     mThread.detach();
 }
 
-void WebsocketClient::Disconnect()
+void
+WebsocketClient::Disconnect()
 {
     if (mConnected)
     {
@@ -53,7 +52,8 @@ void WebsocketClient::Disconnect()
     mConnected = false;
 }
 
-void WebsocketClient::SendMessageString(const std::string& message)
+void
+WebsocketClient::SendMessageString(const std::string& message)
 {
     mWriteQueue.push(message);
 
@@ -65,11 +65,11 @@ void WebsocketClient::SendMessageString(const std::string& message)
 
     mWebsocketStream.async_write(
         boost::asio::buffer(mWriteQueue.back()),
-        boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this())
-    );
+        boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
 }
 
-void WebsocketClient::Ping(boost::beast::error_code ec)
+void
+WebsocketClient::Ping(boost::beast::error_code ec)
 {
     if (ec)
     {
@@ -77,13 +77,11 @@ void WebsocketClient::Ping(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    mWebsocketStream.async_ping(
-        "",
-        boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this())
-    );
+    mWebsocketStream.async_ping("", boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this()));
 }
 
-void WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results)
+void
+WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results)
 {
     if (ec)
     {
@@ -93,13 +91,12 @@ void WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tc
 
     boost::beast::get_lowest_layer(mWebsocketStream).expires_after(std::chrono::seconds(30));
 
-    boost::beast::get_lowest_layer(mWebsocketStream).async_connect(
-        results,
-        boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this())
-    );
+    boost::beast::get_lowest_layer(mWebsocketStream)
+        .async_connect(results, boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this()));
 }
 
-void WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint)
+void
+WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint)
 {
     if (ec)
     {
@@ -109,27 +106,23 @@ void WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tc
 
     boost::beast::get_lowest_layer(mWebsocketStream).expires_never();
 
-    mWebsocketStream.set_option(boost::beast::websocket::stream_base::timeout::suggested(
-        boost::beast::role_type::client
-    ));
+    mWebsocketStream.set_option(
+        boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
 
     mWebsocketStream.set_option(boost::beast::websocket::stream_base::decorator(
         [](boost::beast::websocket::request_type& request)
-        {
-            request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver"));
-        }
-    ));
+        { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
 
     LOG_INFO << "[Networking] Connected";
 
     mWebsocketStream.async_handshake(
         mEndpoint.host + ":" + std::to_string(endpoint.port()),
         "/" + mEndpoint.path + "/",
-        boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this())
-    );
+        boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
 }
 
-void WebsocketClient::OnHandshake(boost::beast::error_code ec)
+void
+WebsocketClient::OnHandshake(boost::beast::error_code ec)
 {
     if (ec)
     {
@@ -144,7 +137,8 @@ void WebsocketClient::OnHandshake(boost::beast::error_code ec)
     OnRead({}, 0);
 }
 
-void WebsocketClient::OnPing(boost::beast::error_code ec)
+void
+WebsocketClient::OnPing(boost::beast::error_code ec)
 {
     if (ec)
     {
@@ -154,12 +148,11 @@ void WebsocketClient::OnPing(boost::beast::error_code ec)
 
     mPingTimer.expires_from_now(boost::posix_time::seconds(5));
 
-    mPingTimer.async_wait(
-        boost::beast::bind_front_handler(&WebsocketClient::Ping, shared_from_this())
-    );
+    mPingTimer.async_wait(boost::beast::bind_front_handler(&WebsocketClient::Ping, shared_from_this()));
 }
 
-void WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
+void
+WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 {
     boost::ignore_unused(transferred);
 
@@ -172,7 +165,8 @@ void WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferr
     mWriteQueue.pop();
 }
 
-void WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
+void
+WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 {
     if (ec)
     {
@@ -187,12 +181,11 @@ void WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferre
     }
 
     mWebsocketStream.async_read(
-        mReadBuffer,
-        boost::beast::bind_front_handler(&WebsocketClient::OnRead, shared_from_this())
-    );
+        mReadBuffer, boost::beast::bind_front_handler(&WebsocketClient::OnRead, shared_from_this()));
 }
 
-void WebsocketClient::OnClose(boost::beast::error_code ec)
+void
+WebsocketClient::OnClose(boost::beast::error_code ec)
 {
     if (ec)
     {
@@ -201,7 +194,8 @@ void WebsocketClient::OnClose(boost::beast::error_code ec)
     }
 }
 
-WebsocketEndpoint WebsocketEndpoint::FromString(const std::string& url)
+WebsocketEndpoint
+WebsocketEndpoint::FromString(const std::string& url)
 {
     UriUriA uri;
     const char* errorPos;
@@ -211,7 +205,7 @@ WebsocketEndpoint WebsocketEndpoint::FromString(const std::string& url)
         return {};
     }
 
-    WebsocketEndpoint endpoint{};
+    WebsocketEndpoint endpoint {};
 
     endpoint.protocol = std::string(uri.scheme.first, uri.scheme.afterLast);
     endpoint.host = std::string(uri.hostText.first, uri.hostText.afterLast);
@@ -222,4 +216,4 @@ WebsocketEndpoint WebsocketEndpoint::FromString(const std::string& url)
     return endpoint;
 }
 
-}
+} // namespace RenderStudio::Networking

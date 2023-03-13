@@ -1,21 +1,18 @@
 #include "Asset.h"
 
 #include <stdexcept>
+
 #include <pxr/pxr.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
 RenderStudioAsset::RenderStudioAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize)
-    : mData(assetPtr) 
+    : mData(assetPtr)
     , mDataSize(assetSize)
 {
-
 }
 
-RenderStudioAsset::~RenderStudioAsset()
-{
-
-}
+RenderStudioAsset::~RenderStudioAsset() { }
 
 size_t
 RenderStudioAsset::GetSize() const
@@ -28,7 +25,7 @@ RenderStudioAsset::GetBuffer() const
 {
     return mData;
 }
-    
+
 size_t
 RenderStudioAsset::Read(void* buffer, size_t count, size_t offset) const
 {

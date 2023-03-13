@@ -1,9 +1,10 @@
 #pragma once
 
 #include <pxr/pxr.h>
-#include <boost/json.hpp>
-#include <pxr/usd/sdf/path.h>
 #include <pxr/usd/sdf/layer.h>
+#include <pxr/usd/sdf/path.h>
+
+#include <boost/json.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -62,7 +63,8 @@ GfMatrix4d tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json);
 
 // --- SdfListOp ---
 template <typename T>
-void tag_invoke(const value_from_tag&, value& json, const SdfListOp<T>& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfListOp<T>& v)
 {
     object result;
 
@@ -111,9 +113,9 @@ void tag_invoke(const value_from_tag&, value& json, const SdfListOp<T>& v)
     result["ordered"] = orderedItems;
 }
 
-
 template <typename T>
-SdfListOp<T> tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
+SdfListOp<T>
+tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
 {
     SdfListOp<T> result;
 
@@ -171,7 +173,8 @@ void tag_invoke(const value_from_tag&, value& json, const VtArray<int>& v)
 }*/
 
 template <typename T>
-VtArray<T> tag_invoke(const value_to_tag<VtArray<T>>&, const value& json)
+VtArray<T>
+tag_invoke(const value_to_tag<VtArray<T>>&, const value& json)
 {
     array jsonArray = json.as_array();
 

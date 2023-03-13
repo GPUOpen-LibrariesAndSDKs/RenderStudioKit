@@ -1,13 +1,13 @@
 #ifndef USD_REMOTE_ASSET_RESOLVER_CONTEXT_H
 #define USD_REMOTE_ASSET_RESOLVER_CONTEXT_H
 
+#include <map>
+#include <string>
+#include <vector>
+
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
 #include <pxr/usd/ar/defineResolverContext.h>
-
-#include <string>
-#include <vector>
-#include <map>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -15,21 +15,21 @@ class RenderStudioResolverContext
 {
 public:
     AR_API
-    RenderStudioResolverContext() = default;        
+    RenderStudioResolverContext() = default;
 
-    AR_API 
+    AR_API
     RenderStudioResolverContext(const std::string& value);
 
     AR_API
     std::string GetValue() const;
 
-    AR_API 
+    AR_API
     bool operator<(const RenderStudioResolverContext& rhs) const;
-    
-    AR_API 
+
+    AR_API
     bool operator==(const RenderStudioResolverContext& rhs) const;
-    
-    AR_API 
+
+    AR_API
     bool operator!=(const RenderStudioResolverContext& rhs) const;
 
 private:

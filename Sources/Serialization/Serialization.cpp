@@ -6,18 +6,21 @@ using namespace boost::json;
 
 // --- SdfPath ---
 
-void tag_invoke(const value_from_tag&, value& json, const SdfPath& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfPath& v)
 {
     json = v.GetString();
 }
 
-SdfPath tag_invoke(const value_to_tag<SdfPath>&, const value& json)
+SdfPath
+tag_invoke(const value_to_tag<SdfPath>&, const value& json)
 {
-    return SdfPath{ value_to<std::string>(json) };
+    return SdfPath { value_to<std::string>(json) };
 }
 
 // --- SdfAssetPath ---
-void tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v)
 {
     object result;
     result["asset"] = v.GetAssetPath();
@@ -25,38 +28,40 @@ void tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v)
     json = result;
 }
 
-SdfAssetPath tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
+SdfAssetPath
+tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
 {
     object jsonObject = json.as_object();
 
-    return SdfAssetPath{ 
-        value_to<std::string>(jsonObject["asset"]),
-        value_to<std::string>(jsonObject["resolved"])
-    };
+    return SdfAssetPath { value_to<std::string>(jsonObject["asset"]), value_to<std::string>(jsonObject["resolved"]) };
 }
 
 // --- SdfLayerHandle ---
 
-void tag_invoke(const value_from_tag&, value& json, const SdfLayerHandle& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfLayerHandle& v)
 {
     json = v->GetIdentifier();
 }
 
 // --- TfToken ---
 
-void tag_invoke(const value_from_tag&, value& json, const TfToken& v)
+void
+tag_invoke(const value_from_tag&, value& json, const TfToken& v)
 {
     json = v.GetString();
 }
 
-TfToken tag_invoke(const value_to_tag<TfToken>&, const value& json)
+TfToken
+tag_invoke(const value_to_tag<TfToken>&, const value& json)
 {
-    return TfToken{ value_to<std::string>(json) };
+    return TfToken { value_to<std::string>(json) };
 }
 
 // --- VtValue ---
 
-void tag_invoke(const value_from_tag&, value& json, const VtValue& v)
+void
+tag_invoke(const value_from_tag&, value& json, const VtValue& v)
 {
     object result;
     result["type"] = v.GetTypeName();
@@ -154,7 +159,8 @@ void tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     json = result;
 }
 
-VtValue tag_invoke(const value_to_tag<VtValue>&, const value& json)
+VtValue
+tag_invoke(const value_to_tag<VtValue>&, const value& json)
 {
     object jsonObject = json.as_object();
     std::string type = value_to<std::string>(jsonObject["type"]);
@@ -162,83 +168,83 @@ VtValue tag_invoke(const value_to_tag<VtValue>&, const value& json)
 
     if ("GfVec3d" == type)
     {
-        return VtValue{ value_to<GfVec3d>(data)};
+        return VtValue { value_to<GfVec3d>(data) };
     }
     if ("GfVec3f" == type)
     {
-        return VtValue{ value_to<GfVec3f>(data) };
+        return VtValue { value_to<GfVec3f>(data) };
     }
     else if ("bool" == type)
     {
-        return VtValue{ value_to<bool>(data) };
+        return VtValue { value_to<bool>(data) };
     }
     else if ("SdfSpecifier" == type)
     {
-        return VtValue{ value_to<SdfSpecifier>(data) };
+        return VtValue { value_to<SdfSpecifier>(data) };
     }
     else if ("TfToken" == type)
     {
-        return VtValue{ value_to<TfToken>(data) };
+        return VtValue { value_to<TfToken>(data) };
     }
     else if ("string" == type)
     {
-        return VtValue{ value_to<std::string>(data) };
+        return VtValue { value_to<std::string>(data) };
     }
     else if ("SdfVariability" == type)
     {
-        return VtValue{ value_to<SdfVariability>(data) };
+        return VtValue { value_to<SdfVariability>(data) };
     }
     else if ("VtArray<int>" == type)
     {
-        return VtValue{ value_to<VtArray<int>>(data) };
+        return VtValue { value_to<VtArray<int>>(data) };
     }
     else if ("VtArray<TfToken>" == type)
     {
-        return VtValue{ value_to<VtArray<TfToken>>(data) };
+        return VtValue { value_to<VtArray<TfToken>>(data) };
     }
     else if ("VtArray<GfVec2f>" == type)
     {
-        return VtValue{ value_to<VtArray<GfVec2f>>(data) };
+        return VtValue { value_to<VtArray<GfVec2f>>(data) };
     }
     else if ("VtArray<GfVec3f>" == type)
     {
-        return VtValue{ value_to<VtArray<GfVec3f>>(data) };
+        return VtValue { value_to<VtArray<GfVec3f>>(data) };
     }
     else if ("double" == type)
     {
-        return VtValue{ value_to<double>(data) };
+        return VtValue { value_to<double>(data) };
     }
     else if ("vector<TfToken,allocator<TfToken> >" == type)
     {
-        return VtValue{ value_to<std::vector<TfToken>>(data) };
+        return VtValue { value_to<std::vector<TfToken>>(data) };
     }
     else if ("vector<SdfPath,allocator<SdfPath> >" == type)
     {
-        return VtValue{ value_to<std::vector<SdfPath>>(data) };
+        return VtValue { value_to<std::vector<SdfPath>>(data) };
     }
     else if ("GfMatrix4d" == type)
     {
-        return VtValue{ value_to<GfMatrix4d>(data) };
+        return VtValue { value_to<GfMatrix4d>(data) };
     }
     else if ("float" == type)
     {
-        return VtValue{ value_to<float>(data) };
+        return VtValue { value_to<float>(data) };
     }
     else if ("int" == type)
     {
-        return VtValue{ value_to<int>(data) };
+        return VtValue { value_to<int>(data) };
     }
     else if ("VtArray<float>" == type)
     {
-        return VtValue{ value_to<VtArray<float>>(data) };
+        return VtValue { value_to<VtArray<float>>(data) };
     }
     else if ("VtDictionary" == type)
     {
-        return VtValue{ value_to<VtDictionary>(data) };
+        return VtValue { value_to<VtDictionary>(data) };
     }
     else if ("SdfAssetPath" == type)
     {
-        return VtValue{ value_to<SdfAssetPath>(data) };
+        return VtValue { value_to<SdfAssetPath>(data) };
     }
     else
     {
@@ -248,7 +254,8 @@ VtValue tag_invoke(const value_to_tag<VtValue>&, const value& json)
 
 // --- GfVec3d ---
 
-void tag_invoke(const value_from_tag&, value& json, const GfVec3d& v)
+void
+tag_invoke(const value_from_tag&, value& json, const GfVec3d& v)
 {
     array result;
 
@@ -260,19 +267,19 @@ void tag_invoke(const value_from_tag&, value& json, const GfVec3d& v)
     json = result;
 }
 
-GfVec3d tag_invoke(const value_to_tag<GfVec3d>&, const value& json)
+GfVec3d
+tag_invoke(const value_to_tag<GfVec3d>&, const value& json)
 {
     array jsonArray = json.as_array();
-    return GfVec3d{
-        value_to<GfVec3d::ScalarType>(jsonArray.at(0)),
-        value_to<GfVec3d::ScalarType>(jsonArray.at(1)),
-        value_to<GfVec3d::ScalarType>(jsonArray.at(2))
-    };
+    return GfVec3d { value_to<GfVec3d::ScalarType>(jsonArray.at(0)),
+                     value_to<GfVec3d::ScalarType>(jsonArray.at(1)),
+                     value_to<GfVec3d::ScalarType>(jsonArray.at(2)) };
 }
 
 // --- GfVec2f ---
 
-void tag_invoke(const value_from_tag&, value& json, const GfVec2f& v)
+void
+tag_invoke(const value_from_tag&, value& json, const GfVec2f& v)
 {
     array result;
 
@@ -284,19 +291,18 @@ void tag_invoke(const value_from_tag&, value& json, const GfVec2f& v)
     json = result;
 }
 
-GfVec2f tag_invoke(const value_to_tag<GfVec2f>&, const value& json)
+GfVec2f
+tag_invoke(const value_to_tag<GfVec2f>&, const value& json)
 {
     array jsonArray = json.as_array();
 
-    return GfVec2f{
-        value_to<GfVec2f::ScalarType>(jsonArray.at(0)),
-        value_to<GfVec2f::ScalarType>(jsonArray.at(1))
-    };
+    return GfVec2f { value_to<GfVec2f::ScalarType>(jsonArray.at(0)), value_to<GfVec2f::ScalarType>(jsonArray.at(1)) };
 }
 
 // --- GfVec3f ---
 
-void tag_invoke(const value_from_tag&, value& json, const GfVec3f& v)
+void
+tag_invoke(const value_from_tag&, value& json, const GfVec3f& v)
 {
     array result;
 
@@ -308,55 +314,61 @@ void tag_invoke(const value_from_tag&, value& json, const GfVec3f& v)
     json = result;
 }
 
-GfVec3f tag_invoke(const value_to_tag<GfVec3f>&, const value& json)
+GfVec3f
+tag_invoke(const value_to_tag<GfVec3f>&, const value& json)
 {
     array jsonArray = json.as_array();
-    return GfVec3f{
-        value_to<GfVec3f::ScalarType>(jsonArray.at(0)),
-        value_to<GfVec3f::ScalarType>(jsonArray.at(1)),
-        value_to<GfVec3f::ScalarType>(jsonArray.at(2))
-    };
+    return GfVec3f { value_to<GfVec3f::ScalarType>(jsonArray.at(0)),
+                     value_to<GfVec3f::ScalarType>(jsonArray.at(1)),
+                     value_to<GfVec3f::ScalarType>(jsonArray.at(2)) };
 }
 
 // --- SdfSpecifier ---
 
-void tag_invoke(const value_from_tag&, value& json, const SdfSpecifier& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfSpecifier& v)
 {
     json = static_cast<std::int32_t>(v);
 }
 
-SdfSpecifier tag_invoke(const value_to_tag<SdfSpecifier>&, const value& json)
+SdfSpecifier
+tag_invoke(const value_to_tag<SdfSpecifier>&, const value& json)
 {
     return SdfSpecifier(value_to<std::int32_t>(json));
 }
 
 // --- SdfSpecType ---
 
-void tag_invoke(const value_from_tag&, value& json, const SdfSpecType& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfSpecType& v)
 {
     json = static_cast<std::int32_t>(v);
 }
 
-SdfSpecType tag_invoke(const value_to_tag<SdfSpecType>&, const value& json)
+SdfSpecType
+tag_invoke(const value_to_tag<SdfSpecType>&, const value& json)
 {
     return SdfSpecType(value_to<std::int32_t>(json));
 }
 
 // --- SdfVariability ---
 
-void tag_invoke(const value_from_tag&, value& json, const SdfVariability& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfVariability& v)
 {
     json = v;
 }
 
-SdfVariability tag_invoke(const value_to_tag<SdfVariability>&, const value& json)
+SdfVariability
+tag_invoke(const value_to_tag<SdfVariability>&, const value& json)
 {
     return SdfVariability(value_to<std::int32_t>(json));
 }
 
 // --- GfMatrix4d ---
 
-void tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
+void
+tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
 {
     array result;
 
@@ -368,7 +380,8 @@ void tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
     json = result;
 }
 
-GfMatrix4d tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
+GfMatrix4d
+tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
 {
     GfMatrix4d result;
     array jsonArray = json.as_array();
@@ -381,6 +394,4 @@ GfMatrix4d tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
     return result;
 }
 
-
 PXR_NAMESPACE_CLOSE_SCOPE
-

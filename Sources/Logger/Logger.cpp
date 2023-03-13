@@ -1,19 +1,19 @@
 #include "Logger.h"
 
-#include <boost/log/utility/setup/console.hpp>
-#include <boost/log/support/date_time.hpp>
 #include <boost/log/attributes/attribute_value.hpp>
 #include <boost/log/sinks/async_frontend.hpp>
-#include <boost/log/sinks/unbounded_fifo_queue.hpp>
-#include <boost/log/sinks/unbounded_ordering_queue.hpp>
+#include <boost/log/sinks/block_on_overflow.hpp>
 #include <boost/log/sinks/bounded_fifo_queue.hpp>
 #include <boost/log/sinks/bounded_ordering_queue.hpp>
 #include <boost/log/sinks/drop_on_overflow.hpp>
-#include <boost/log/sinks/block_on_overflow.hpp>
+#include <boost/log/sinks/unbounded_fifo_queue.hpp>
+#include <boost/log/sinks/unbounded_ordering_queue.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/utility/setup/console.hpp>
 
 #define FMT_HEADER_ONLY
-#include <fmt/format-inl.h>
 #include <fmt/color.h>
+#include <fmt/format-inl.h>
 
 namespace logging = boost::log;
 namespace expr = boost::log::expressions;
@@ -22,7 +22,8 @@ namespace sinks = boost::log::sinks;
 namespace RenderStudio
 {
 
-void coloring_formatter(logging::record_view const& rec, logging::formatting_ostream& strm)
+void
+coloring_formatter(logging::record_view const& rec, logging::formatting_ostream& strm)
 {
     // Serverity section
     auto severity = rec[logging::trivial::severity];
@@ -56,18 +57,11 @@ void coloring_formatter(logging::record_view const& rec, logging::formatting_ost
     }
 
     // Message section
-    strm 
-        << " | " 
-        << rec[expr::smessage] << " ";
+    strm << " | " << rec[expr::smessage] << " ";
     // Function and line section
-    strm 
-        << "("
-        << logging::extract<std::string>("Function", rec).get()
-        << ":"
-        << std::to_string(logging::extract<unsigned long>("Line", rec).get())
-        << ")";
+    strm << "(" << logging::extract<std::string>("Function", rec).get() << ":"
+         << std::to_string(logging::extract<unsigned long>("Line", rec).get()) << ")";
 }
-
 
 BOOST_LOG_GLOBAL_LOGGER_INIT(logger, RenderStudioLogger)
 {
@@ -85,4 +79,4 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(logger, RenderStudioLogger)
     return logger;
 }
 
-}
+} // namespace RenderStudio

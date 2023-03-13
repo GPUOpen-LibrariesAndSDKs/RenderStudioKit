@@ -1,10 +1,12 @@
 #include "Api.h"
+
 #include "Serialization.h"
 
 namespace RenderStudioApi
 {
 
-boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas)
+boost::json::object
+SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas)
 {
     boost::json::object jsonRoot;
     jsonRoot["layer"] = boost::json::value_from(layer);
@@ -31,19 +33,20 @@ boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& delta
     return jsonRoot;
 }
 
-std::pair<std::string, DeltaType> DeserializeDeltas(const std::string message)
+std::pair<std::string, DeltaType>
+DeserializeDeltas(const std::string message)
 {
     boost::json::value jsonRoot = boost::json::parse(message);
     boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
     std::string layerName = boost::json::value_to<std::string>(jsonRoot.at("layer"));
- 
-    DeltaType deltas; 
+
+    DeltaType deltas;
 
     for (const auto& jsonUpdate : jsonUpdates)
     {
         SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
         boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
-        
+
         for (const auto& jsonField : jsonFields)
         {
             TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
@@ -57,4 +60,4 @@ std::pair<std::string, DeltaType> DeserializeDeltas(const std::string message)
     return { layerName, deltas };
 }
 
-}
+} // namespace RenderStudioApi

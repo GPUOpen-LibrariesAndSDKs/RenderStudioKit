@@ -1,15 +1,16 @@
 #include "FileFormat.h"
-#include "Data.h"
-#include "Logger/Logger.h"
-#include "Serialization/Api.h"
 
+#include <pxr/base/tf/registryManager.h>
 #include <pxr/pxr.h>
+#include <pxr/usd/ar/asset.h>
+#include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdaFileFormat.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
-#include <pxr/base/tf/registryManager.h>
-#include <pxr/usd/ar/resolver.h>
-#include <pxr/usd/ar/asset.h>
+
+#include "Data.h"
+#include "Logger/Logger.h"
+#include "Serialization/Api.h"
 
 #include <boost/json/src.hpp>
 
@@ -17,31 +18,25 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, RENDER_STUDIO_FILE_FORMAT_TOKENS);
 
-TF_REGISTRY_FUNCTION(TfType)
-{
-    SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, SdfFileFormat);
-}
+TF_REGISTRY_FUNCTION(TfType) { SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, SdfFileFormat); }
 
 namespace
 {
-    static
-        SdfFileFormatConstPtr
-        _GetFileFormat(const TfToken& formatId)
-    {
-        const SdfFileFormatConstPtr fileFormat = SdfFileFormat::FindById(formatId);
-        TF_VERIFY(fileFormat);
-        return fileFormat;
-    }
-
-    static
-        const UsdUsdFileFormatConstPtr&
-        _GetUsdFileFormat()
-    {
-        static const auto usdFormat = TfDynamic_cast<UsdUsdFileFormatConstPtr>(
-            _GetFileFormat(UsdUsdFileFormatTokens->Id));
-        return usdFormat;
-    }
+static SdfFileFormatConstPtr
+_GetFileFormat(const TfToken& formatId)
+{
+    const SdfFileFormatConstPtr fileFormat = SdfFileFormat::FindById(formatId);
+    TF_VERIFY(fileFormat);
+    return fileFormat;
 }
+
+static const UsdUsdFileFormatConstPtr&
+_GetUsdFileFormat()
+{
+    static const auto usdFormat = TfDynamic_cast<UsdUsdFileFormatConstPtr>(_GetFileFormat(UsdUsdFileFormatTokens->Id));
+    return usdFormat;
+}
+} // namespace
 
 void
 RenderStudioFileFormat::ProcessLiveUpdates()
@@ -49,50 +44,54 @@ RenderStudioFileFormat::ProcessLiveUpdates()
     static bool firstLaunch = true;
 
     // Remove expired layers
-    mCreatedLayers.erase(std::remove_if(mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer)
-    {
-        return layer.IsExpired();
-    }), mCreatedLayers.end());
+    mCreatedLayers.erase(
+        std::remove_if(
+            mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer) { return layer.IsExpired(); }),
+        mCreatedLayers.end());
 
     // Update each layer (incoming + outcoming deltas)
-    std::for_each(mCreatedLayers.begin(), mCreatedLayers.end(), [this](SdfLayerHandle& layer)
-    {
-        // Cast data
-        SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
-        RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
-        RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
-
-        // Send local deltas
-        auto deltas = data->FetchLocalDeltas();
-
-        if (!deltas.empty() && !firstLaunch)
+    std::for_each(
+        mCreatedLayers.begin(),
+        mCreatedLayers.end(),
+        [this](SdfLayerHandle& layer)
         {
-            try
-            {
-                boost::json::object deltasJson = RenderStudioApi::SerializeDeltas(layer, deltas);
-                mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
-            }
-            catch (const std::exception& ex)
-            {
-                LOG_WARNING << ex.what();
-            }
-        }
+            // Cast data
+            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
+            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
+            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
 
-        // Apply remote deltas
-        data->ApplyRemoteDeltas(layer);
-    });
+            // Send local deltas
+            auto deltas = data->FetchLocalDeltas();
+
+            if (!deltas.empty() && !firstLaunch)
+            {
+                try
+                {
+                    boost::json::object deltasJson = RenderStudioApi::SerializeDeltas(layer, deltas);
+                    mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
+                }
+                catch (const std::exception& ex)
+                {
+                    LOG_WARNING << ex.what();
+                }
+            }
+
+            // Apply remote deltas
+            data->ApplyRemoteDeltas(layer);
+        });
 
     firstLaunch = false;
 }
 
-void RenderStudioFileFormat::Connect(const std::string& url)
+void
+RenderStudioFileFormat::Connect(const std::string& url)
 {
     auto endpoint = RenderStudio::Networking::WebsocketEndpoint::FromString(url);
     mWebsocketClient->Connect(endpoint);
 }
 
 SdfAbstractDataRefPtr
-RenderStudioFileFormat::InitData(const FileFormatArguments &args) const
+RenderStudioFileFormat::InitData(const FileFormatArguments& args) const
 {
     // Copy-pasted from USD. By default USD requires at least pseudo root spec.
     RenderStudioData* metadata = new RenderStudioData;
@@ -102,13 +101,15 @@ RenderStudioFileFormat::InitData(const FileFormatArguments &args) const
 
 SdfLayer*
 RenderStudioFileFormat::_InstantiateNewLayer(
-    const SdfFileFormatConstPtr& fileFormat, 
-    const std::string& identifier, const std::string& realPath, 
-    const ArAssetInfo& assetInfo, const FileFormatArguments& args) const
+    const SdfFileFormatConstPtr& fileFormat,
+    const std::string& identifier,
+    const std::string& realPath,
+    const ArAssetInfo& assetInfo,
+    const FileFormatArguments& args) const
 {
     // During creation of layer save it for further usage
     SdfLayer* layer = SdfFileFormat::_InstantiateNewLayer(fileFormat, identifier, realPath, assetInfo, args);
-    mCreatedLayers.push_back(SdfLayerHandle{ layer });
+    mCreatedLayers.push_back(SdfLayerHandle { layer });
     return layer;
 }
 
@@ -135,7 +136,8 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
 }
 
 RenderStudioFileFormat::RenderStudioFileFormat()
-    : SdfFileFormat(RenderStudioFileFormatTokens->Id,
+    : SdfFileFormat(
+        RenderStudioFileFormatTokens->Id,
         RenderStudioFileFormatTokens->Version,
         RenderStudioFileFormatTokens->Target,
         RenderStudioFileFormatTokens->Id)
@@ -157,10 +159,10 @@ RenderStudioFileFormat::RenderStudioFileFormat()
             }
 
             // Get layer by name
-            auto it = std::find_if(mCreatedLayers.begin(), mCreatedLayers.end(), [&](SdfLayerHandle layer)
-            { 
-                return layer->GetIdentifier() == identifier;
-            });
+            auto it = std::find_if(
+                mCreatedLayers.begin(),
+                mCreatedLayers.end(),
+                [&](SdfLayerHandle layer) { return layer->GetIdentifier() == identifier; });
 
             if (it == mCreatedLayers.end())
             {
@@ -174,14 +176,9 @@ RenderStudioFileFormat::RenderStudioFileFormat()
             RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
             RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
             data->AppendRemoteDeltas(layer, deltas);
-        }
-    );
+        });
 }
 
-RenderStudioFileFormat::~RenderStudioFileFormat()
-{
-    mWebsocketClient->Disconnect();
-}
+RenderStudioFileFormat::~RenderStudioFileFormat() { mWebsocketClient->Disconnect(); }
 
 PXR_NAMESPACE_CLOSE_SCOPE
-

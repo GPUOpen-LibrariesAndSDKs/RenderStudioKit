@@ -1,16 +1,16 @@
 #pragma once
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/websocket.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/deadline_timer.hpp>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <queue>
+#include <string>
 
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/strand.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/websocket.hpp>
 
 namespace RenderStudio::Networking
 {
@@ -60,4 +60,4 @@ private:
     std::queue<std::string> mWriteQueue;
 };
 
-}
+} // namespace RenderStudio::Networking
