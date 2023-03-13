@@ -8,7 +8,7 @@
                     "primary": true
                 },
                 "RenderStudioFileFormat": {
-                    "bases": [ "SdfTextFileFormat" ],
+                    "bases": [ "SdfFileFormat" ],
                     "displayName": "AMD RenderStudio file format",
                     "extensions": [ "studio" ],
                     "formatId": "studio",

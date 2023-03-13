@@ -6,14 +6,12 @@
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdaFileFormat.h>
+#include <pxr/usd/usd/usdcFileFormat.h>
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/ar/asset.h>
 
 #include <boost/json/src.hpp>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -21,18 +19,42 @@ TF_DEFINE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, RENDER_STUDIO_FILE_FORMAT_
 
 TF_REGISTRY_FUNCTION(TfType)
 {
-    SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, SdfTextFileFormat);
+    SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, SdfFileFormat);
+}
+
+namespace
+{
+    static
+        SdfFileFormatConstPtr
+        _GetFileFormat(const TfToken& formatId)
+    {
+        const SdfFileFormatConstPtr fileFormat = SdfFileFormat::FindById(formatId);
+        TF_VERIFY(fileFormat);
+        return fileFormat;
+    }
+
+    static
+        const UsdUsdFileFormatConstPtr&
+        _GetUsdFileFormat()
+    {
+        static const auto usdFormat = TfDynamic_cast<UsdUsdFileFormatConstPtr>(
+            _GetFileFormat(UsdUsdFileFormatTokens->Id));
+        return usdFormat;
+    }
 }
 
 void
 RenderStudioFileFormat::ProcessLiveUpdates()
 {
+    static bool firstLaunch = true;
+
     // Remove expired layers
     mCreatedLayers.erase(std::remove_if(mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer)
     {
         return layer.IsExpired();
     }), mCreatedLayers.end());
 
+    // Update each layer (incoming + outcoming deltas)
     std::for_each(mCreatedLayers.begin(), mCreatedLayers.end(), [this](SdfLayerHandle& layer)
     {
         // Cast data
@@ -42,7 +64,6 @@ RenderStudioFileFormat::ProcessLiveUpdates()
 
         // Send local deltas
         auto deltas = data->FetchLocalDeltas();
-        static bool firstLaunch = true;
 
         if (!deltas.empty() && !firstLaunch)
         {
@@ -55,28 +76,25 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             {
                 LOG_WARNING << ex.what();
             }
-            catch (...)
-            {
-                LOG_FATAL << "Unknown error";
-            }
         }
-
-        firstLaunch = false;
 
         // Apply remote deltas
         data->ApplyRemoteDeltas(layer);
     });
+
+    firstLaunch = false;
 }
 
 void RenderStudioFileFormat::Connect(const std::string& url)
 {
-    std::string uuid = boost::uuids::to_string(boost::uuids::random_generator()());
-    mWebsocketClient->Connect(RenderStudio::Networking::WebsocketEndpoint::FromString(url));
+    auto endpoint = RenderStudio::Networking::WebsocketEndpoint::FromString(url);
+    mWebsocketClient->Connect(endpoint);
 }
 
 SdfAbstractDataRefPtr
 RenderStudioFileFormat::InitData(const FileFormatArguments &args) const
 {
+    // Copy-pasted from USD. By default USD requires at least pseudo root spec.
     RenderStudioData* metadata = new RenderStudioData;
     metadata->CreateSpec(SdfPath::AbsoluteRootPath(), SdfSpecTypePseudoRoot);
     return TfCreateRefPtr(metadata);
@@ -88,15 +106,39 @@ RenderStudioFileFormat::_InstantiateNewLayer(
     const std::string& identifier, const std::string& realPath, 
     const ArAssetInfo& assetInfo, const FileFormatArguments& args) const
 {
+    // During creation of layer save it for further usage
     SdfLayer* layer = SdfFileFormat::_InstantiateNewLayer(fileFormat, identifier, realPath, assetInfo, args);
     mCreatedLayers.push_back(SdfLayerHandle{ layer });
     return layer;
 }
 
+bool
+RenderStudioFileFormat::CanRead(const std::string& file) const
+{
+    // Delegate reading to USD
+    return _GetUsdFileFormat()->CanRead(file);
+}
+
+bool
+RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const
+{
+    // Delegate reading to USD
+    bool result = _GetUsdFileFormat()->Read(layer, resolvedPath, metadataOnly);
+
+    // USD uses own format of data. Current approach is to copy it into RenderStudioData
+    SdfAbstractDataConstPtr abstractData = SdfFileFormat::_GetLayerData(*layer);
+    SdfAbstractDataRefPtr renderStudioData = InitData(GetDefaultFileFormatArguments());
+    renderStudioData->CopyFrom(abstractData);
+    SdfFileFormat::_SetLayerData(layer, renderStudioData);
+
+    return result;
+}
+
 RenderStudioFileFormat::RenderStudioFileFormat()
-    : SdfTextFileFormat(RenderStudioFileFormatTokens->Id,
-                        RenderStudioFileFormatTokens->Version,
-                        UsdUsdFileFormatTokens->Target)
+    : SdfFileFormat(RenderStudioFileFormatTokens->Id,
+        RenderStudioFileFormatTokens->Version,
+        RenderStudioFileFormatTokens->Target,
+        RenderStudioFileFormatTokens->Id)
 {
     mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
         [this](const std::string& message)

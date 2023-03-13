@@ -2,6 +2,7 @@
  
 #include <pxr/pxr.h>
 #include <pxr/usd/usd/api.h>
+#include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/sdf/textFileFormat.h>
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/staticTokens.h>
@@ -24,7 +25,7 @@ TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
 
 class ArAsset;
 
-class RenderStudioFileFormat : public SdfTextFileFormat
+class RenderStudioFileFormat : public SdfFileFormat
 {
 public:
     SDF_API
@@ -38,6 +39,15 @@ public:
         const std::string& realPath,
         const ArAssetInfo& assetInfo,
         const FileFormatArguments& args) const override;
+ 
+    SDF_API
+    virtual bool CanRead(const std::string& file) const override;
+
+    SDF_API
+    virtual bool Read(
+        SdfLayer* layer,
+        const std::string& resolvedPath,
+        bool metadataOnly) const override;
 
 private:
     SDF_FILE_FORMAT_FACTORY_ACCESS;
@@ -48,7 +58,6 @@ private:
     void ProcessLiveUpdates();
     void Connect(const std::string& url);
 
-    friend class UsdUsdFileFormat;
     friend class RenderStudioResolver;
 
     mutable std::vector<SdfLayerHandle> mCreatedLayers;
