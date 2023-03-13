@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
@@ -15,6 +16,7 @@ add_subdirectory(Serialization)
 set(URIPARSER_BUILD_TESTS OFF)
 set(URIPARSER_BUILD_TOOLS OFF)
 set(URIPARSER_BUILD_DOCS OFF)
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(External/uriparser)
 
 # Link libraries
