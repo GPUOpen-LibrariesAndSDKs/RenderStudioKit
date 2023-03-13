@@ -39,6 +39,13 @@ void RenderStudioData::ApplyRemoteDeltas(SdfLayerHandle& layer)
     {
         for (const auto& field : spec.fields)
         {
+            // Create field if not exist
+            if (layer->GetSpecType(path) == SdfSpecTypeUnknown)
+            {
+                layer->GetStateDelegate()->CreateSpec(path, spec.specType, false);
+            }
+
+            // Update field
             layer->GetStateDelegate()->SetField(path, field.first, field.second);
         }
     }
@@ -60,6 +67,8 @@ RenderStudioData::AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioAp
         {
             mRemoteDeltas[path].fields.push_back(field);
         }
+
+        mRemoteDeltas[path].specType = spec.specType;
     }
 }
 

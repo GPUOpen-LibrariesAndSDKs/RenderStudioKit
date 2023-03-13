@@ -46,8 +46,19 @@ RenderStudioFileFormat::ProcessLiveUpdates()
 
         if (!deltas.empty() && !firstLaunch)
         {
-            boost::json::object deltasJson = RenderStudioApi::SerializeDeltas(layer, deltas);
-            mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
+            try
+            {
+                boost::json::object deltasJson = RenderStudioApi::SerializeDeltas(layer, deltas);
+                mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
+            }
+            catch (const std::exception& ex)
+            {
+                LOG_WARNING << ex.what();
+            }
+            catch (...)
+            {
+                LOG_FATAL << "Unknown error";
+            }
         }
 
         firstLaunch = false;

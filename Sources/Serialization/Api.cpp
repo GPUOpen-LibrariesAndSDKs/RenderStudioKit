@@ -14,6 +14,7 @@ boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& delta
     {
         boost::json::object jsonUpdate;
         jsonUpdate["path"] = boost::json::value_from(path);
+        jsonUpdate["spec"] = boost::json::value_from(spec.specType);
         auto& jsonFields = jsonUpdate["fields"].emplace_array();
 
         for (const auto& field : spec.fields)
@@ -49,6 +50,8 @@ std::pair<std::string, DeltaType> DeserializeDeltas(const std::string message)
             VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
             deltas[path].fields.push_back({ key, value });
         }
+
+        deltas[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
     }
 
     return { layerName, deltas };

@@ -208,11 +208,11 @@ VtValue tag_invoke(const value_to_tag<VtValue>&, const value& json)
     {
         return VtValue{ value_to<double>(data) };
     }
-    else if ("vector<TfToken>" == type)
+    else if ("vector<TfToken,allocator<TfToken> >" == type)
     {
         return VtValue{ value_to<std::vector<TfToken>>(data) };
     }
-    else if ("vector<SdfPath>" == type)
+    else if ("vector<SdfPath,allocator<SdfPath> >" == type)
     {
         return VtValue{ value_to<std::vector<SdfPath>>(data) };
     }
@@ -322,12 +322,24 @@ GfVec3f tag_invoke(const value_to_tag<GfVec3f>&, const value& json)
 
 void tag_invoke(const value_from_tag&, value& json, const SdfSpecifier& v)
 {
-    json = v;
+    json = static_cast<std::int32_t>(v);
 }
 
 SdfSpecifier tag_invoke(const value_to_tag<SdfSpecifier>&, const value& json)
 {
     return SdfSpecifier(value_to<std::int32_t>(json));
+}
+
+// --- SdfSpecType ---
+
+void tag_invoke(const value_from_tag&, value& json, const SdfSpecType& v)
+{
+    json = static_cast<std::int32_t>(v);
+}
+
+SdfSpecType tag_invoke(const value_to_tag<SdfSpecType>&, const value& json)
+{
+    return SdfSpecType(value_to<std::int32_t>(json));
 }
 
 // --- SdfVariability ---

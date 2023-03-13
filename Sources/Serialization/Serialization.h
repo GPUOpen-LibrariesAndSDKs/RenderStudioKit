@@ -44,6 +44,10 @@ GfVec3f tag_invoke(const value_to_tag<GfVec3f>&, const value& json);
 void tag_invoke(const value_from_tag&, value& json, const SdfSpecifier& v);
 SdfSpecifier tag_invoke(const value_to_tag<SdfSpecifier>&, const value& json);
 
+// --- SdfSpecType ---
+void tag_invoke(const value_from_tag&, value& json, const SdfSpecType& v);
+SdfSpecType tag_invoke(const value_to_tag<SdfSpecType>&, const value& json);
+
 // --- SdfVariability ---
 void tag_invoke(const value_from_tag&, value& json, const SdfVariability& v);
 SdfVariability tag_invoke(const value_to_tag<SdfVariability>&, const value& json);
