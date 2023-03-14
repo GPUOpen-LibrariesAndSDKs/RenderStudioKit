@@ -75,6 +75,7 @@ RenderStudioResolver::SetRemoteServerAddress(const std::string& url)
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
+    // Not resolving here since USD stop using our resolver when sees regular .usd files
     return ArResolvedPath(path);
 }
 
