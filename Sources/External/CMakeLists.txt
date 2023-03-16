@@ -1,20 +1,26 @@
 cmake_minimum_required(VERSION 3.12)
 project(RenderStudioExternal)
 
+# Add targets
 set(URIPARSER_BUILD_TESTS OFF)
 set(URIPARSER_BUILD_TOOLS OFF)
 set(URIPARSER_BUILD_DOCS OFF)
 set(BUILD_SHARED_LIBS OFF)
 
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)
 add_subdirectory(fmt)
 add_subdirectory(uriparser)
 add_subdirectory(zip)
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/Empty.cpp "int main() { return 0; }")
-add_library(${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/Empty.cpp)
-target_link_libraries(${PROJECT_NAME} fmt uriparser zip)
+# Create static library
+add_library(${PROJECT_NAME} INTERFACE)
+target_link_libraries(${PROJECT_NAME} INTERFACE fmt uriparser zip)
+
 set_target_properties(${PROJECT_NAME} fmt uriparser zip uninstall PROPERTIES FOLDER HiddenTargets)
 
+# Export targets
 set_target_properties(${PROJECT_NAME} PROPERTIES
     EXPORT_NAME External
 )

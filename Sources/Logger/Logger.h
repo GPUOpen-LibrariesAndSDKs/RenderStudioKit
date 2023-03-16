@@ -1,12 +1,14 @@
 #pragma once
 
 #define _FUNCTION_NAME __FUNCTION__
+#pragma warning(push, 0)
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sources/global_logger_storage.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/utility/manipulators/add_value.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
+#pragma warning(pop)
 
 namespace RenderStudio
 {

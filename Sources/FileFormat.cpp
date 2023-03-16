@@ -1,5 +1,6 @@
 #include "FileFormat.h"
 
+#pragma warning(push, 0)
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/asset.h>
@@ -7,12 +8,13 @@
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdaFileFormat.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
+#include <boost/json/src.hpp>
+#pragma warning(pop)
 
 #include "Data.h"
-#include "Logger/Logger.h"
-#include "Serialization/Api.h"
+#include <Logger/Logger.h>
+#include <Serialization/Api.h>
 
-#include <boost/json/src.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 

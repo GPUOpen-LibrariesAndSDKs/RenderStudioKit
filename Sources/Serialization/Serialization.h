@@ -1,12 +1,13 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <pxr/pxr.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/sdf/reference.h>
-
+#include <pxr/base/vt/value.h>
 #include <boost/json.hpp>
-#include <iostream>
+#pragma warning(pop)
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -129,12 +130,12 @@ template <typename T>
 SdfListOp<T>
 tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
 {
-    SdfListOp<T>::ItemVector explicitItems;
-    SdfListOp<T>::ItemVector addedItems;
-    SdfListOp<T>::ItemVector prependedItems;
-    SdfListOp<T>::ItemVector appendedItems;
-    SdfListOp<T>::ItemVector deletedItems;
-    SdfListOp<T>::ItemVector orderedItems;
+    typename SdfListOp<T>::ItemVector explicitItems {};
+    typename SdfListOp<T>::ItemVector addedItems {};
+    typename SdfListOp<T>::ItemVector prependedItems {};
+    typename SdfListOp<T>::ItemVector appendedItems {};
+    typename SdfListOp<T>::ItemVector deletedItems {};
+    typename SdfListOp<T>::ItemVector orderedItems {};
 
     for (const auto& item : json.as_object().at("explicit").as_array())
     {

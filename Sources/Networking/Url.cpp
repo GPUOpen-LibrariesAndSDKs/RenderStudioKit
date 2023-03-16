@@ -1,6 +1,8 @@
 #include "Url.h"
 
+#pragma warning(push, 0)
 #include <uriparser/Uri.h>
+#pragma warning(pop)
 
 namespace RenderStudio::Networking
 {

@@ -14,14 +14,11 @@ find_package(Boost REQUIRED COMPONENTS log)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     Boost::log
+    RenderStudioExternal
 )
 
 target_link_libraries(${PROJECT_NAME} INTERFACE
     Boost::log
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../External/fmt/include    
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE

@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/hashmap.h>
 #include <pxr/base/tf/token.h>
@@ -10,6 +11,7 @@
 #include <pxr/usd/sdf/data.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/usd/stage.h>
+#pragma warning(pop)
 
 #include "Serialization/Api.h"
 

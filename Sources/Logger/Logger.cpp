@@ -1,5 +1,6 @@
 #include "Logger.h"
 
+#pragma warning(push, 0)
 #include <boost/log/attributes/attribute_value.hpp>
 #include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/block_on_overflow.hpp>
@@ -10,10 +11,9 @@
 #include <boost/log/sinks/unbounded_ordering_queue.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/console.hpp>
-
-#define FMT_HEADER_ONLY
 #include <fmt/color.h>
-#include <fmt/format-inl.h>
+#include <fmt/format.h>
+#pragma warning(pop)
 
 namespace logging = boost::log;
 namespace expr = boost::log::expressions;

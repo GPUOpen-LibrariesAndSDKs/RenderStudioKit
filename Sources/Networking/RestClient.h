@@ -1,7 +1,9 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <boost/asio/io_context.hpp>
 #include <boost/beast/http.hpp>
+#pragma warning(pop)
 
 #include "Url.h"
 

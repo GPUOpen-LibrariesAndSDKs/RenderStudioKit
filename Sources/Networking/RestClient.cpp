@@ -1,19 +1,19 @@
 #include "RestClient.h"
 
+#pragma warning(push, 0)
 #include <set>
-
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/beast/http.hpp>
-
-#include <Logger/Logger.h>
-
 #ifdef _WIN32
 #include <wincrypt.h>
 #elif __linux__
 #error "Linux certificate loading not implemented"
 #endif
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/beast/http.hpp>
+#pragma warning(pop)
+
+#include <Logger/Logger.h>
 
 namespace RenderStudio::Networking
 {

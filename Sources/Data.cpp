@@ -1,7 +1,7 @@
 #include "Data.h"
 
+#pragma warning(push, 0)
 #include <iostream>
-
 #include <pxr/base/trace/trace.h>
 #include <pxr/base/work/utils.h>
 #include <pxr/pxr.h>
@@ -9,6 +9,7 @@
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/sdf/layerStateDelegate.h>
 #include <pxr/usd/usd/notice.h>
+#pragma warning(pop)
 
 #include "Logger/Logger.h"
 #include "Serialization/Serialization.h"

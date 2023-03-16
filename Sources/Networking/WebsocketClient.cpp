@@ -1,11 +1,12 @@
 #include "WebsocketClient.h"
 
+#pragma warning(push, 0)
 #include <functional>
-#include <iostream>
-
-#include <Logger/Logger.h>
 #include <boost/asio/strand.hpp>
 #include <uriparser/Uri.h>
+#pragma warning(pop)
+
+#include <Logger/Logger.h>
 
 namespace RenderStudio::Networking
 {
@@ -59,7 +60,7 @@ WebsocketClient::SendMessageString(const std::string& message)
 
     if (!mConnected)
     {
-        LOG_WARNING << "[Networking]Not connected yet\n";
+        LOG_WARNING << "[Networking] Not connected yet\n";
         return;
     }
 
@@ -113,8 +114,6 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         [](boost::beast::websocket::request_type& request)
         { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
 
-    LOG_INFO << "[Networking] Connected";
-
     mWebsocketStream.async_handshake(
         mEndpoint.host + ":" + std::to_string(endpoint.port()),
         "/" + mEndpoint.path + "/",
@@ -130,7 +129,7 @@ WebsocketClient::OnHandshake(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    LOG_INFO << "[Networking] Handshake done";
+    LOG_INFO << "[Networking] Connected to " << mEndpoint.host;
 
     mConnected = true;
     OnPing({});

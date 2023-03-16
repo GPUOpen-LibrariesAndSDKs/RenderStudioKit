@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <utility>
 
 #include <pxr/base/tf/declarePtrs.h>
@@ -14,6 +15,7 @@
 #include <pxr/usd/usd/stage.h>
 
 #include <boost/json.hpp>
+#pragma warning(pop)
 
 namespace RenderStudioApi
 {

@@ -1,17 +1,11 @@
 #include "Resolver.h"
 
-#include <iostream>
-#include <regex>
-
+#pragma warning(push, 0)
 #include <pxr/base/tf/diagnostic.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/usd/ar/defineResolver.h>
 #include <pxr/usd/sdf/fileFormat.h>
 
-#include "Asset.h"
-#include "Logger/Logger.h"
-
-#include <base64.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -29,10 +23,11 @@
 
 #include <sys/types.h>
 #endif
+#pragma warning(pop)
 
-#include <Networking/RestClient.h>
+#include <Logger/Logger.h>
 #include <Networking/MaterialLibraryApi.h>
-
+#include <Networking/RestClient.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 

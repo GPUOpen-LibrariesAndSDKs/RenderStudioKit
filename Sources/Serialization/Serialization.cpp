@@ -432,7 +432,7 @@ tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
 GfMatrix4d
 tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
 {
-    GfMatrix4d result;
+    GfMatrix4d result {};
     array jsonArray = json.as_array();
 
     for (auto i = 0; i < jsonArray.size(); i++)

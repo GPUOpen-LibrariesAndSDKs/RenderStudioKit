@@ -1,12 +1,13 @@
 #ifndef USD_REMOTE_ASSET_RESOLVER_H
 #define USD_REMOTE_ASSET_RESOLVER_H
 
+#pragma warning(push, 0)
 #include <filesystem>
-
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
 #include <pxr/usd/ar/defaultResolver.h>
 #include <pxr/usd/ar/resolver.h>
+#pragma warning(pop)
 
 #include "Context.h"
 #include "FileFormat.h"

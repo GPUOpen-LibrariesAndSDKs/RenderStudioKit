@@ -1,8 +1,10 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <vector>
 #include <filesystem>
 #include <boost/json.hpp>
+#pragma warning(pop)
 
 namespace RenderStudio::Networking::MaterialLibraryAPI {
 

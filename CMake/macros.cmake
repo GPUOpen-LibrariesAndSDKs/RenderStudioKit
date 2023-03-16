@@ -1,29 +1,13 @@
 function(SetMaxWarningLevel Project)
     if(MSVC)
-        target_compile_options(${Project} PRIVATE /W0 /WX)
+        target_compile_options(${Project} PRIVATE 
+            /WX
+            /W4
+            /permissive-
+            /w14640
+            /wd4506)
     else()
         target_compile_options(${Project} PRIVATE
-        #[[ Interesting
-            -Wall 
-            -Wextra 
-            -Wshadow 
-            -Wnon-virtual-dtor 
-            -Wpedantic 
-            -Wconversion 
-            -Wpedantic 
-            -Werror
-            -pedantic
-            -Wold-style-cast
-            -Wcast-align
-            -Wunused
-            -Woverloaded-virtual
-            -Wsign-conversion
-            -Wmisleading-indentation
-            -Wnull-dereference
-            -Wdouble-promotion
-            -Wformat=2
-            -Wimplicit-fallthrough
-        ]]#
             -Werror
             -Weverything
             -Wno-pre-c++17-compat

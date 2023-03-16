@@ -1,5 +1,6 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -11,6 +12,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
+#pragma warning(pop)
 
 namespace RenderStudio::Networking
 {

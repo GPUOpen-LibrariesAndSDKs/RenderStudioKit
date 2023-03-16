@@ -1,7 +1,7 @@
 #pragma once
 
+#pragma warning(push, 0)
 #include <vector>
-
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/staticTokens.h>
 #include <pxr/pxr.h>
@@ -9,6 +9,7 @@
 #include <pxr/usd/sdf/textFileFormat.h>
 #include <pxr/usd/usd/api.h>
 #include <pxr/usd/usd/usdFileFormat.h>
+#pragma warning(pop)
 
 #include "Data.h"
 #include "Networking/WebsocketClient.h"
@@ -17,7 +18,9 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 #define RENDER_STUDIO_FILE_FORMAT_TOKENS ((Id, "studio"))((Version, "1.0"))((Target, "usd"))
 
-TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, USD_API, RENDER_STUDIO_FILE_FORMAT_TOKENS);
+#pragma warning(push, 0)
+TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, SDF_API, RENDER_STUDIO_FILE_FORMAT_TOKENS);
+#pragma warning(pop)
 
 TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
 

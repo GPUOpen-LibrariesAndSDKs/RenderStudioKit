@@ -1,10 +1,13 @@
 #include "MaterialLibraryApi.h"
 
+#pragma warning(push, 0)
 #include <fstream>
 #include <boost/algorithm/string.hpp>
+#include <zip.h>
+#pragma warning(pop)
+
 #include "RestClient.h"
 #include <Logger/Logger.h>
-#include <zip.h>
 
 namespace RenderStudio::Networking::MaterialLibraryAPI
 {
