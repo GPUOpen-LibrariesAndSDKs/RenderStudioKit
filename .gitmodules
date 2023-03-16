@@ -4,3 +4,6 @@
 [submodule "Sources/External/uriparser"]
 	path = Sources/External/uriparser
 	url = git@github.com:uriparser/uriparser.git
+[submodule "Sources/External/zip"]
+	path = Sources/External/zip
+	url = git@github.com:kuba--/zip.git

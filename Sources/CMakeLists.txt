@@ -9,6 +9,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 find_package(USDMonolithic REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python random)
 
+add_subdirectory(External/zip)
 add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)

@@ -11,6 +11,7 @@
 #include "Context.h"
 #include "FileFormat.h"
 
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class RenderStudioResolver : public ArDefaultResolver

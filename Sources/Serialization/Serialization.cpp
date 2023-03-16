@@ -36,6 +36,43 @@ tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
     return SdfAssetPath { value_to<std::string>(jsonObject["asset"]), value_to<std::string>(jsonObject["resolved"]) };
 }
 
+// --- SdfReference ---
+void
+tag_invoke(const value_from_tag&, value& json, const SdfReference& v)
+{
+    object result;
+    result["asset"] = v.GetAssetPath();
+    result["prim"] = value_from(v.GetPrimPath());
+    result["offset"] = value_from(v.GetLayerOffset());
+    json = result;
+}
+
+SdfReference
+tag_invoke(const value_to_tag<SdfReference>&, const value& json)
+{
+    object jsonObject = json.as_object();
+    return SdfReference { 
+        value_to<std::string>(jsonObject["asset"]), 
+        value_to<SdfPath>(jsonObject["prim"]),
+        value_to<SdfLayerOffset>(jsonObject["offset"])
+    };
+}
+
+// --- SdfLayerOffset ---
+void tag_invoke(const value_from_tag&, value& json, const SdfLayerOffset& v)
+{
+    object result;
+    result["offset"] = v.GetOffset();
+    result["scale"] = v.GetScale();
+    json = result;
+}
+
+SdfLayerOffset tag_invoke(const value_to_tag<SdfLayerOffset>&, const value& json)
+{
+    object jsonObject = json.as_object();
+    return SdfLayerOffset { value_to<double>(jsonObject["offset"]), value_to<double>(jsonObject["scale"]) };
+}
+
 // --- SdfLayerHandle ---
 
 void
@@ -134,6 +171,10 @@ tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     else if (v.IsHolding<SdfListOp<SdfPath>>())
     {
         data = value_from(v.Get<SdfListOp<SdfPath>>());
+    }
+    else if (v.IsHolding<SdfListOp<SdfReference>>())
+    {
+        data = value_from(v.Get<SdfListOp<SdfReference>>());
     }
     else if (v.IsHolding<std::vector<SdfPath>>())
     {
@@ -245,6 +286,14 @@ tag_invoke(const value_to_tag<VtValue>&, const value& json)
     else if ("SdfAssetPath" == type)
     {
         return VtValue { value_to<SdfAssetPath>(data) };
+    }
+    else if ("SdfListOp<SdfPath>" == type)
+    {
+        return VtValue { value_to<SdfListOp<SdfPath>>(data) };
+    }
+    else if ("SdfListOp<SdfReference>" == type)
+    {
+        return VtValue { value_to<SdfListOp<SdfReference>>(data) };
     }
     else
     {

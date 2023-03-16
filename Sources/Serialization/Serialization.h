@@ -3,8 +3,10 @@
 #include <pxr/pxr.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/sdf/path.h>
+#include <pxr/usd/sdf/reference.h>
 
 #include <boost/json.hpp>
+#include <iostream>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -17,6 +19,14 @@ SdfPath tag_invoke(const value_to_tag<SdfPath>&, const value& json);
 // --- SdfAssetPath ---
 void tag_invoke(const value_from_tag&, value& json, const SdfAssetPath& v);
 SdfAssetPath tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json);
+
+// --- SdfReference ---
+void tag_invoke(const value_from_tag&, value& json, const SdfReference& v);
+SdfReference tag_invoke(const value_to_tag<SdfReference>&, const value& json);
+
+// --- SdfLayerOffset ---
+void tag_invoke(const value_from_tag&, value& json, const SdfLayerOffset& v);
+SdfLayerOffset tag_invoke(const value_to_tag<SdfLayerOffset>&, const value& json);
 
 // --- SdfLayerHandle ---
 void tag_invoke(const value_from_tag&, value& json, const SdfLayerHandle& v);
@@ -107,18 +117,18 @@ tag_invoke(const value_from_tag&, value& json, const SdfListOp<T>& v)
 
     result["explicit"] = explicitItems;
     result["added"] = addedItems;
-    result["prepended"] = appendedItems;
+    result["prepended"] = prependedItems;
     result["appended"] = appendedItems;
     result["deleted"] = deletedItems;
     result["ordered"] = orderedItems;
+
+    json = result;
 }
 
 template <typename T>
 SdfListOp<T>
 tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
 {
-    SdfListOp<T> result;
-
     SdfListOp<T>::ItemVector explicitItems;
     SdfListOp<T>::ItemVector addedItems;
     SdfListOp<T>::ItemVector prependedItems;
@@ -126,51 +136,63 @@ tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
     SdfListOp<T>::ItemVector deletedItems;
     SdfListOp<T>::ItemVector orderedItems;
 
-    for (const auto& item : json["explicit"].as_array())
+    for (const auto& item : json.as_object().at("explicit").as_array())
     {
         explicitItems.push_back(value_to<T>(item));
     }
 
-    for (const auto& item : json["added"].as_array())
+    for (const auto& item : json.as_object().at("added").as_array())
     {
         addedItems.push_back(value_to<T>(item));
     }
 
-    for (const auto& item : json["prepended"].as_array())
+    for (const auto& item : json.as_object().at("prepended").as_array())
     {
         prependedItems.push_back(value_to<T>(item));
     }
 
-    for (const auto& item : json["appended"].as_array())
+    for (const auto& item : json.as_object().at("appended").as_array())
     {
         appendedItems.push_back(value_to<T>(item));
     }
 
-    for (const auto& item : json["deleted"].as_array())
+    for (const auto& item : json.as_object().at("deleted").as_array())
     {
         deletedItems.push_back(value_to<T>(item));
     }
 
-    for (const auto& item : json["ordered"].as_array())
+    for (const auto& item : json.as_object().at("ordered").as_array())
     {
         orderedItems.push_back(value_to<T>(item));
+    }
+
+    // Documentation says do not use 'ordered' or 'added' item lists, so skip
+    // https://openusd.org/release/api/class_sdf_list_op.html#a9dc4cbc201d40b0e55948f251fbf65f0
+
+    if (!explicitItems.empty())
+    {
+        return SdfListOp<T>::CreateExplicit(explicitItems);
+    }
+    else
+    {
+        return SdfListOp<T>::Create(prependedItems, appendedItems, deletedItems);
     }
 }
 
 // --- VtArray<T> ---
-
-/*
-void tag_invoke(const value_from_tag&, value& json, const VtArray<int>& v)
+template <typename T>
+void 
+tag_invoke(const value_from_tag&, value& json, const VtArray<T>& v)
 {
     array result;
 
     for (const auto& item : v)
     {
-        result.push_back(item);
+        result.push_back(value_from(item));
     }
 
     json = result;
-}*/
+}
 
 template <typename T>
 VtArray<T>

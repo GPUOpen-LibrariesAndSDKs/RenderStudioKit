@@ -378,7 +378,6 @@ RenderStudioData::_GetOrCreateFieldValueDelta(const SdfPath& path, const TfToken
     }
 
     spec.fields.emplace_back(std::piecewise_construct, std::forward_as_tuple(field), std::forward_as_tuple());
-
     return &spec.fields.back().second;
 }
 

@@ -30,6 +30,10 @@
 #include <sys/types.h>
 #endif
 
+#include <Networking/RestClient.h>
+#include <Networking/MaterialLibraryApi.h>
+
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
@@ -75,7 +79,25 @@ RenderStudioResolver::SetRemoteServerAddress(const std::string& url)
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
-    // Not resolving here since USD stop using our resolver when sees regular .usd files
+    if (path.rfind("gpuopen:/", 0) == 0)
+    {
+        // Extract UUID
+        std::string _path = path;
+        _path.erase(0, std::string("gpuopen:/").size());
+
+        // Download material
+        auto package = RenderStudio::Networking::MaterialLibraryAPI::GetMaterialPackage(_path);
+        auto material = *std::min_element(
+            package.results.begin(),
+            package.results.end(),
+            [](const auto& a, const auto& b) { return a.size_mb < b.size_mb; });
+
+        auto saveFolder = mRootPath / "Materials" / material.id;
+        auto resolved = RenderStudio::Networking::MaterialLibraryAPI::Download(material, saveFolder);
+
+        return ArResolvedPath(resolved.string());
+    }
+
     return ArResolvedPath(path);
 }
 
@@ -111,6 +133,16 @@ RenderStudioResolver::_CreateIdentifier(const std::string& assetPath, const ArRe
         return TfNormPath(assetPath);
     }
 
+    if (assetPath.rfind("studio:/", 0) == 0)
+    {
+        return TfNormPath(assetPath);
+    }
+
+    if (assetPath.rfind("gpuopen:/", 0) == 0)
+    {
+        return TfNormPath(assetPath);
+    }
+
     const std::string anchoredAssetPath = _AnchorRelativePathForStudioProtocol(anchorAssetPath, assetPath);
 
     return TfNormPath(anchoredAssetPath);
@@ -119,17 +151,16 @@ RenderStudioResolver::_CreateIdentifier(const std::string& assetPath, const ArRe
 std::shared_ptr<ArAsset>
 RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
-    std::string path = resolvedPath.GetPathString();
-    if (path.rfind("studio:/", 0) == 0)
+    std::string _path = resolvedPath.GetPathString();
+
+    if (_path.rfind("studio:/", 0) == 0)
     {
-        path.erase(0, std::string("studio:/").size());
-        std::filesystem::path resolved = mRootPath / path;
+        _path.erase(0, std::string("studio:/").size());
+        std::filesystem::path resolved = mRootPath / _path;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolved.string() });
     }
-    else
-    {
-        ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });
-    }
+
+    return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });
 }
 
 std::string

@@ -1,26 +1,37 @@
 {
-    "Plugins": [{
-        "Info": {
-            "Types": {
-                "RenderStudioResolver": {
-                    "bases": [ "ArResolver" ],
-                    "uriSchemes": ["studio"],
-                    "primary": true
-                },
-                "RenderStudioFileFormat": {
-                    "bases": [ "SdfFileFormat" ],
-                    "displayName": "AMD RenderStudio file format",
-                    "extensions": [ "studio" ],
-                    "formatId": "studio",
-                    "primary": true,
-                    "target": "usd"
+    "Plugins": [
+        {
+            "Info": {
+                "Types": {
+                    "RenderStudioResolver": {
+                        "bases": [
+                            "ArResolver"
+                        ],
+                        "uriSchemes": [
+                            "studio",
+                            "gpuopen"
+                        ],
+                        "primary": true
+                    },
+                    "RenderStudioFileFormat": {
+                        "bases": [
+                            "SdfFileFormat"
+                        ],
+                        "displayName": "AMD RenderStudio file format",
+                        "extensions": [
+                            "studio"
+                        ],
+                        "formatId": "studio",
+                        "primary": true,
+                        "target": "usd"
+                    }
                 }
-            }
-        },
-        "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
-        "ResourcePath": "resources",
-        "Root": "..",
-        "Name": "AMD RenderStudio asset resolver plugin",
-        "Type": "library"
-    }]
+            },
+            "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
+            "ResourcePath": "resources",
+            "Root": "..",
+            "Name": "AMD RenderStudio asset resolver plugin",
+            "Type": "library"
+        }
+    ]
 }

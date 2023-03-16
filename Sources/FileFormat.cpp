@@ -36,6 +36,13 @@ _GetUsdFileFormat()
     static const auto usdFormat = TfDynamic_cast<UsdUsdFileFormatConstPtr>(_GetFileFormat(UsdUsdFileFormatTokens->Id));
     return usdFormat;
 }
+
+static const SdfFileFormatConstPtr&
+_GetMtlxFileFormat()
+{
+    static const auto mtlxFormat = _GetFileFormat(TfToken { "mtlx" });
+    return mtlxFormat;
+}
 } // namespace
 
 void
@@ -123,8 +130,17 @@ RenderStudioFileFormat::CanRead(const std::string& file) const
 bool
 RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const
 {
+    bool result = false;
+
     // Delegate reading to USD
-    bool result = _GetUsdFileFormat()->Read(layer, resolvedPath, metadataOnly);
+    if (resolvedPath.rfind("gpuopen:/", 0) == 0)
+    {
+        result = _GetMtlxFileFormat()->Read(layer, resolvedPath, metadataOnly);
+    }
+    else
+    {
+        result = _GetUsdFileFormat()->Read(layer, resolvedPath, metadataOnly);
+    }
 
     // USD uses own format of data. Current approach is to copy it into RenderStudioData
     SdfAbstractDataConstPtr abstractData = SdfFileFormat::_GetLayerData(*layer);

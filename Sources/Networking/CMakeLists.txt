@@ -9,13 +9,20 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # Find packages
 find_package(Boost REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     RenderStudioLogger
     uriparser
+    OpenSSL::SSL
+    zip::zip
 )
+
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Crypt32)
+endif()
 
 # Set compile options
 target_compile_definitions(${PROJECT_NAME} PRIVATE 
@@ -28,7 +35,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 SetMaxWarningLevel(${PROJECT_NAME})
 
 # Install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/WebsocketClient.h
+install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h
     DESTINATION include/RenderStudioResolver/Networking)
 
 # Export CMake target
