@@ -14,10 +14,9 @@ find_package(OpenSSL REQUIRED)
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
-    RenderStudioLogger
-    uriparser
     OpenSSL::SSL
-    zip::zip
+    RenderStudioLogger
+    RenderStudioExternal
 )
 
 if (WIN32)

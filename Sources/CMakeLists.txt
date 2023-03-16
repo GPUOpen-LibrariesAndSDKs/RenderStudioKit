@@ -9,32 +9,18 @@ add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 find_package(USDMonolithic REQUIRED)
 find_package(Boost REQUIRED COMPONENTS python random)
 
-add_subdirectory(External/zip)
+add_subdirectory(External)
 add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)
 
-set(URIPARSER_BUILD_TESTS OFF)
-set(URIPARSER_BUILD_TOOLS OFF)
-set(URIPARSER_BUILD_DOCS OFF)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(External/uriparser)
-
 # Link libraries
-add_library(External INTERFACE)
-target_include_directories(External SYSTEM INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/External
-    ${CMAKE_CURRENT_SOURCE_DIR}/External/websocketpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/External/fmt/include
-)
-
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     Boost::boost
     Boost::python
     Boost::random
     ar
     sdf
-    External
     RenderStudioNetworking
     RenderStudioLogger
     RenderStudioSerialization
