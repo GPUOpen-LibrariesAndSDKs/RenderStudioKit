@@ -50,8 +50,6 @@ _GetMtlxFileFormat()
 void
 RenderStudioFileFormat::ProcessLiveUpdates()
 {
-    static bool firstLaunch = true;
-
     // Remove expired layers
     mCreatedLayers.erase(
         std::remove_if(
@@ -72,7 +70,7 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             // Send local deltas
             auto deltas = data->FetchLocalDeltas();
 
-            if (!deltas.empty() && !firstLaunch)
+            if (!deltas.empty())
             {
                 try
                 {
@@ -88,13 +86,31 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             // Apply remote deltas
             data->ApplyRemoteDeltas(layer);
         });
-
-    firstLaunch = false;
 }
 
-void
-RenderStudioFileFormat::Connect(const std::string& url)
-{
+void RenderStudioFileFormat::Connect(const std::string& url) {
+    // Remove expired layers
+    mCreatedLayers.erase(
+        std::remove_if(
+            mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer) { return layer.IsExpired(); }),
+        mCreatedLayers.end());
+
+    // Clear all the local deltas
+    std::for_each(
+        mCreatedLayers.begin(),
+        mCreatedLayers.end(),
+        [this](SdfLayerHandle& layer)
+        {
+            // Cast data
+            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
+            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
+            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
+
+            auto deltas = data->FetchLocalDeltas();
+            (void)deltas;
+        });
+
+    // Connect to endpoint
     auto endpoint = RenderStudio::Networking::WebsocketEndpoint::FromString(url);
     mWebsocketClient->Connect(endpoint);
 }

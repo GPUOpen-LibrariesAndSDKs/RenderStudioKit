@@ -27,9 +27,6 @@ WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
 {
     mEndpoint = endpoint;
 
-    LOG_INFO << "Connecting to: (" << endpoint.protocol << ", " << endpoint.host << ", " << endpoint.port << ", "
-             << endpoint.path << ")";
-
     mTcpResolver.async_resolve(
         mEndpoint.host,
         mEndpoint.port,

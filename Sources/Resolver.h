@@ -28,6 +28,9 @@ public:
     static void ProcessLiveUpdates();
 
     AR_API
+    static void StartLiveMode();
+
+    AR_API
     static void SetRemoteServerAddress(const std::string& url);
 
     AR_API

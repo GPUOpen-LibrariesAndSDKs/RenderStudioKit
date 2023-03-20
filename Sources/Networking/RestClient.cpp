@@ -124,7 +124,6 @@ std::string
 GetImpl(boost::asio::io_context& context, const std::string& request)
 {
     const Url url = Url::Parse(request);
-    LOG_INFO << "Url: " << url;
 
     // Resolve
     boost::asio::ip::tcp::resolver resolver { context };

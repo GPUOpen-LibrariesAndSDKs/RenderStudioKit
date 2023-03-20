@@ -28,10 +28,27 @@
 #include <Logger/Logger.h>
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
+#include "Asset.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
+
+static bool
+IsRenderStudioPath(const std::string& path)
+{
+    if (path.rfind("studio:/", 0) == 0)
+    {
+        return true;
+    }
+
+    if (path.rfind("gpuopen:/", 0) == 0)
+    {
+        return true;
+    }
+
+    return false;
+}
 
 RenderStudioResolver::RenderStudioResolver()
 {
@@ -50,17 +67,26 @@ RenderStudioResolver::~RenderStudioResolver() { LOG_INFO << "Destroyed"; }
 void
 RenderStudioResolver::ProcessLiveUpdates()
 {
+    sFileFormat->ProcessLiveUpdates();
+}
+
+void
+RenderStudioResolver::StartLiveMode()
+{
+    if (sRemoteUrl.empty())
+    {
+        throw std::runtime_error("Remote URL wasn't set")
+    }
+
     if (!sFileFormat)
     {
         SdfFileFormatConstPtr format = SdfFileFormat::FindByExtension(".studio");
         RenderStudioFileFormatConstPtr casted = TfDynamic_cast<RenderStudioFileFormatConstPtr>(format);
         sFileFormat = TfConst_cast<RenderStudioFileFormatPtr>(casted);
-
-        // Connect here for now
-        sFileFormat->Connect(sRemoteUrl);
     }
 
-    sFileFormat->ProcessLiveUpdates();
+    // Connect here for now
+    sFileFormat->Connect(sRemoteUrl);
 }
 
 void
@@ -74,32 +100,33 @@ RenderStudioResolver::SetRemoteServerAddress(const std::string& url)
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
+    // If it's texture from GPUOpen asset, resolve to physical location here
     if (path.rfind("gpuopen:/", 0) == 0)
     {
-        // Extract UUID
-        std::string _path = path;
-        _path.erase(0, std::string("gpuopen:/").size());
-
-        // Download material
-        auto package = RenderStudio::Networking::MaterialLibraryAPI::GetMaterialPackage(_path);
-        auto material = *std::min_element(
-            package.results.begin(),
-            package.results.end(),
-            [](const auto& a, const auto& b) { return a.size_mb < b.size_mb; });
-
-        auto saveFolder = mRootPath / "Materials" / material.id;
-        auto resolved = RenderStudio::Networking::MaterialLibraryAPI::Download(material, saveFolder);
-
-        return ArResolvedPath(resolved.string());
+        // If we have more than two tokens it means USD looking for already downloaded texture
+        // For example: gpuopen://uuid/texture/path.png, so resolve to physical location
+        auto tokens = TfStringTokenize(path, "/");
+        if (tokens.size() > 2)
+        {
+            std::string uuid = tokens.at(1);
+            std::filesystem::path location = mRootPath / "Materials";
+            for (auto i = 1; i < tokens.size(); i++)
+            {
+                location /= tokens.at(i);
+            }
+            return ArResolvedPath(location.string());
+        }
     }
 
+    // If it's RenderStudio path or GpuOpen root material, do not resolve here
+    // In case of resolving here, USD would use own SdfFileFormat instead of ours
     return ArResolvedPath(path);
 }
 
 static std::string
 _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::string& path)
 {
-    if (anchorPath.rfind("studio:/", 0) != 0 && (TfIsRelativePath(anchorPath) || !TfIsRelativePath(path)))
+    if (!IsRenderStudioPath(anchorPath) != 0 && (TfIsRelativePath(anchorPath) || !TfIsRelativePath(path)))
     {
         return path;
     }
@@ -108,10 +135,20 @@ _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::s
     std::string forwardPath = anchorPath;
     std::replace(forwardPath.begin(), forwardPath.end(), '\\', '/');
 
-    // If anchorPath does not end with a '/', we assume it is specifying
-    // a file, strip off the last component, and anchor the path to that
-    // directory.
-    const std::string anchoredPath = TfStringCatPaths(TfStringGetBeforeSuffix(forwardPath, '/'), path);
+    std::string anchoredPath;
+
+    // Render Studio paths would be relative to current asset, so take parent folder name and add path
+    if (anchorPath.rfind("studio:/", 0) == 0)
+    {
+        anchoredPath = TfStringCatPaths(TfStringGetBeforeSuffix(forwardPath, '/'), path);
+    }
+
+    // GPUOpen paths would be global, so we need to persist current asset name (with uuid) in identifier
+    if (anchorPath.rfind("gpuopen:/", 0) == 0)
+    {
+        anchoredPath = TfStringCatPaths(forwardPath, path);
+    }
+
     return TfNormPath(anchoredPath);
 }
 
@@ -128,18 +165,12 @@ RenderStudioResolver::_CreateIdentifier(const std::string& assetPath, const ArRe
         return TfNormPath(assetPath);
     }
 
-    if (assetPath.rfind("studio:/", 0) == 0)
-    {
-        return TfNormPath(assetPath);
-    }
-
-    if (assetPath.rfind("gpuopen:/", 0) == 0)
+    if (IsRenderStudioPath(assetPath))
     {
         return TfNormPath(assetPath);
     }
 
     const std::string anchoredAssetPath = _AnchorRelativePathForStudioProtocol(anchorAssetPath, assetPath);
-
     return TfNormPath(anchoredAssetPath);
 }
 
@@ -148,11 +179,19 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 {
     std::string _path = resolvedPath.GetPathString();
 
-    if (_path.rfind("studio:/", 0) == 0)
+    if (resolvedPath.GetPathString().rfind("studio:/", 0) == 0)
     {
         _path.erase(0, std::string("studio:/").size());
         std::filesystem::path resolved = mRootPath / _path;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolved.string() });
+    }
+
+    if (resolvedPath.GetPathString().rfind("gpuopen:/", 0) == 0)
+    {
+        std::string uuid = resolvedPath.GetPathString();
+        uuid.erase(0, std::string("gpuopen:/").size());
+        std::filesystem::path saveLocation = mRootPath / "Materials" / uuid;
+        return GpuOpenAsset::Open(uuid, saveLocation);
     }
 
     return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });
