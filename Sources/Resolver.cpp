@@ -75,7 +75,7 @@ RenderStudioResolver::StartLiveMode()
 {
     if (sRemoteUrl.empty())
     {
-        throw std::runtime_error("Remote URL wasn't set")
+        throw std::runtime_error("Remote URL wasn't set");
     }
 
     if (!sFileFormat)
