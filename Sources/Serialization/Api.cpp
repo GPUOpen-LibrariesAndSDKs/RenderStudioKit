@@ -33,31 +33,35 @@ SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas)
     return jsonRoot;
 }
 
-std::pair<std::string, DeltaType>
+std::tuple<std::string, DeltaType, std::size_t>
 DeserializeDeltas(const std::string message)
 {
-    boost::json::value jsonRoot = boost::json::parse(message);
-    boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
-    std::string layerName = boost::json::value_to<std::string>(jsonRoot.at("layer"));
-
     DeltaType deltas;
 
-    for (const auto& jsonUpdate : jsonUpdates)
+    boost::json::value jsonRoot = boost::json::parse(message);
+    std::size_t sequence = boost::json::value_to<std::size_t>(jsonRoot.at("sequence"));
+    std::string layerName = boost::json::value_to<std::string>(jsonRoot.at("layer"));
+
+    if (jsonRoot.as_object().if_contains("updates"))
     {
-        SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
-        boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
-
-        for (const auto& jsonField : jsonFields)
+        boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
+        for (const auto& jsonUpdate : jsonUpdates)
         {
-            TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
-            VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
-            deltas[path].fields.push_back({ key, value });
-        }
+            SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
+            boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
 
-        deltas[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
+            for (const auto& jsonField : jsonFields)
+            {
+                TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
+                VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
+                deltas[path].fields.push_back({ key, value });
+            }
+
+            deltas[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
+        }
     }
 
-    return { layerName, deltas };
+    return { layerName, deltas, sequence };
 }
 
 } // namespace RenderStudioApi

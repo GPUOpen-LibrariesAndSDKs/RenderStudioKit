@@ -1,7 +1,9 @@
 #include "Asset.h"
 
 #include <Networking/MaterialLibraryApi.h>
+#include <Networking/LocalStorageApi.h>
 #include <Logger/Logger.h>
+#include <Resolver.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -77,6 +79,25 @@ std::pair<FILE*, std::size_t>
 GpuOpenAsset::GetFileUnsafe() const
 {
     return std::make_pair(mFileMapping, 0);
+}
+
+std::shared_ptr<LocalStorageAsset>
+LocalStorageAsset::Open(const std::string& uuid, const std::filesystem::path& location)
+{
+    return std::make_shared<LocalStorageAsset>(uuid, location);
+}
+
+LocalStorageAsset::LocalStorageAsset(const std::string& uuid, const std::filesystem::path& location)
+{
+    mUuid = uuid;
+
+    // Download light
+    auto package
+        = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(uuid, RenderStudioResolver::GetLocalStorageUrl());
+
+    auto usdaLocation = RenderStudio::Networking::LocalStorageAPI::Download(
+        package, location, RenderStudioResolver::GetLocalStorageUrl());
+    mFileMapping = ArchOpenFile(usdaLocation.string().c_str(), "rb");
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

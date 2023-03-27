@@ -102,7 +102,7 @@ protected:
 
 private:
     void ApplyRemoteDeltas(SdfLayerHandle& layer);
-    void AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas);
+    void AddRemoteSequence(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
     RenderStudioApi::DeltaType FetchLocalDeltas();
 
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path, const TfToken& field, SdfSpecType* specType) const;
@@ -122,8 +122,10 @@ private:
 
     _HashTable mData;
     _HashTable mLocalDeltas;
-    _HashTable mRemoteDeltas;
     std::mutex mRemoteMutex;
+    std::size_t mLatestAppliedSequence = 0;
+    std::map<std::size_t, RenderStudioApi::DeltaType> mRemoteDeltasQueue;
+    bool mFirstFetch = true;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

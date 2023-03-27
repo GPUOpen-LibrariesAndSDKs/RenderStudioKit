@@ -20,7 +20,11 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
 {
 }
 
-WebsocketClient::~WebsocketClient() { Disconnect(); }
+WebsocketClient::~WebsocketClient()
+{ 
+    Disconnect(); 
+    LOG_DEBUG << "Websocket client destroyed";
+}
 
 void
 WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
@@ -32,7 +36,11 @@ WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
         mEndpoint.port,
         boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this()));
 
-    mThread = std::thread([this]() { mIoContext.run(); });
+    mThread = std::thread([this]() 
+    {
+        mIoContext.run();
+        LOG_DEBUG << "Websocket thread finished";
+    });
     mThread.detach();
 }
 
@@ -44,6 +52,8 @@ WebsocketClient::Disconnect()
         mWebsocketStream.async_close(
             boost::beast::websocket::close_code::normal,
             boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this()));
+
+        LOG_DEBUG << "Websocket disconnected";
     }
 
     mPingTimer.cancel();
@@ -69,6 +79,11 @@ WebsocketClient::SendMessageString(const std::string& message)
 void
 WebsocketClient::Ping(boost::beast::error_code ec)
 {
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
@@ -136,6 +151,11 @@ WebsocketClient::OnHandshake(boost::beast::error_code ec)
 void
 WebsocketClient::OnPing(boost::beast::error_code ec)
 {
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
@@ -164,6 +184,11 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 void
 WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 {
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
@@ -183,6 +208,11 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 void
 WebsocketClient::OnClose(boost::beast::error_code ec)
 {
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();

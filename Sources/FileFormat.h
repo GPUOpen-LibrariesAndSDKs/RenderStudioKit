@@ -54,6 +54,7 @@ private:
 
     void ProcessLiveUpdates();
     void Connect(const std::string& url);
+    void Disconnect();
 
     friend class RenderStudioResolver;
 

@@ -9,7 +9,8 @@
                         ],
                         "uriSchemes": [
                             "studio",
-                            "gpuopen"
+                            "gpuopen",
+                            "storage"
                         ],
                         "primary": true
                     },

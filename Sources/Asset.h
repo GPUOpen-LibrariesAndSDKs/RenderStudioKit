@@ -23,6 +23,9 @@ public:
     explicit GpuOpenAsset(const std::string& uuid, const std::filesystem::path& location);
 
     AR_API
+    explicit GpuOpenAsset() = default;
+
+    AR_API
     virtual ~GpuOpenAsset();
 
     AR_API
@@ -37,9 +40,19 @@ public:
     AR_API
     virtual std::pair<FILE*, std::size_t> GetFileUnsafe() const override;
 
-private:
-    const std::string mUuid;
+protected:
+    std::string mUuid;
     FILE* mFileMapping;
+};
+
+class LocalStorageAsset : public GpuOpenAsset
+{
+public:
+    AR_API
+    static std::shared_ptr<LocalStorageAsset> Open(const std::string& uuid, const std::filesystem::path& location);
+
+    AR_API
+    explicit LocalStorageAsset(const std::string& uuid, const std::filesystem::path& location);
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

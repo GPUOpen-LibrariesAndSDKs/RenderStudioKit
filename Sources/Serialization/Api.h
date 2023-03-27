@@ -40,6 +40,6 @@ typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
 using DeltaType = _HashTable;
 
 boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas);
-std::pair<std::string, DeltaType> DeserializeDeltas(const std::string message);
+std::tuple<std::string, DeltaType, std::size_t> DeserializeDeltas(const std::string message);
 
 } // namespace RenderStudioApi

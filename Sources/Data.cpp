@@ -30,53 +30,66 @@ RenderStudioData::~RenderStudioData()
 void
 RenderStudioData::ApplyRemoteDeltas(SdfLayerHandle& layer)
 {
-    SdfChangeBlock block;
+    // Change block should gain performance
+    // SdfChangeBlock block;
 
-    // Store state of local deltas
-    auto localDeltasCopy = mLocalDeltas;
+    // Store state of local deltas because SetField() modify them
+    RenderStudioApi::DeltaType localDeltasCopy = mLocalDeltas;
 
+    // Synchronize updates
     std::unique_lock<std::mutex> lock(mRemoteMutex);
 
-    for (const auto& [path, spec] : mRemoteDeltas)
+    // Apply all the deltas (in sequence order)
+    std::size_t nextRequestedSequence = mLatestAppliedSequence + 1;
+
+    // if (mRemoteDeltasQueue.find(nextRequestedSequence) != mRemoteDeltasQueue.end())
+    // {
+    for (const auto& [seq, deltasToApply] : mRemoteDeltasQueue)
     {
-        for (const auto& field : spec.fields)
+        //RenderStudioApi::DeltaType& deltasToApply = mRemoteDeltasQueue.at(nextRequestedSequence);
+
+        for (const auto& [path, spec] : deltasToApply)
         {
-            // Create field if not exist
-            if (layer->GetSpecType(path) == SdfSpecTypeUnknown)
+            for (const auto& field : spec.fields)
             {
-                layer->GetStateDelegate()->CreateSpec(path, spec.specType, false);
+                // Create field if not exist
+                if (layer->GetSpecType(path) == SdfSpecTypeUnknown)
+                {
+                    layer->GetStateDelegate()->CreateSpec(path, spec.specType, false);
+                }
+
+                // Update field
+                layer->GetStateDelegate()->SetField(path, field.first, field.second);
             }
-
-            // Update field
-            layer->GetStateDelegate()->SetField(path, field.first, field.second);
         }
+
+        mLatestAppliedSequence = nextRequestedSequence;
+        // mRemoteDeltasQueue.erase(nextRequestedSequence);
+        nextRequestedSequence += 1;
     }
+    mRemoteDeltasQueue.clear();
+    // }
 
-    mRemoteDeltas.clear();
-
-    // Also reset local deltas since SetField() modify them
+    // Reset local deltas back since SetField() modify them
     mLocalDeltas = localDeltasCopy;
 }
 
 void
-RenderStudioData::AppendRemoteDeltas(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas)
+RenderStudioData::AddRemoteSequence(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence)
 {
     std::unique_lock<std::mutex> lock(mRemoteMutex);
-
-    for (const auto& [path, spec] : deltas)
-    {
-        for (const auto& field : spec.fields)
-        {
-            mRemoteDeltas[path].fields.push_back(field);
-        }
-
-        mRemoteDeltas[path].specType = spec.specType;
-    }
+    mRemoteDeltasQueue[sequence] = deltas;
 }
 
 RenderStudioApi::DeltaType
 RenderStudioData::FetchLocalDeltas()
 {
+    if (mFirstFetch)
+    {
+        mFirstFetch = false;
+        mLocalDeltas.clear();
+    }
+
     auto copy = mLocalDeltas;
     mLocalDeltas.clear();
     return copy;

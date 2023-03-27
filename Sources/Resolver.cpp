@@ -29,6 +29,7 @@
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
 #include "Asset.h"
+#include <Networking/LocalStorageApi.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -43,6 +44,11 @@ IsRenderStudioPath(const std::string& path)
     }
 
     if (path.rfind("gpuopen:/", 0) == 0)
+    {
+        return true;
+    }
+
+    if (path.rfind("storage:/", 0) == 0)
     {
         return true;
     }
@@ -73,7 +79,7 @@ RenderStudioResolver::ProcessLiveUpdates()
 void
 RenderStudioResolver::StartLiveMode()
 {
-    if (sRemoteUrl.empty())
+    if (sLiveUrl.empty())
     {
         throw std::runtime_error("Remote URL wasn't set");
     }
@@ -86,21 +92,28 @@ RenderStudioResolver::StartLiveMode()
     }
 
     // Connect here for now
-    sFileFormat->Connect(sRemoteUrl);
+    sFileFormat->Connect(sLiveUrl);
 }
 
 void
-RenderStudioResolver::SetRemoteServerAddress(const std::string& url)
+RenderStudioResolver::StopLiveMode()
 {
-    sRemoteUrl = url;
+    sFileFormat->Disconnect();
+}
 
-    LOG_INFO << "Set remote server address to " << url;
+void
+RenderStudioResolver::SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl)
+{
+    sLiveUrl = liveUrl;
+    sStorageUrl = storageUrl;
+
+    LOG_INFO << "Set remote server address to " << liveUrl << ", " << storageUrl;
 }
 
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
-    // If it's texture from GPUOpen asset, resolve to physical location here
+    // If it's texture from GpuOpen asset, resolve to physical location here
     if (path.rfind("gpuopen:/", 0) == 0)
     {
         // If we have more than two tokens it means USD looking for already downloaded texture
@@ -118,9 +131,33 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         }
     }
 
+    // If it's texture from LocalStorage asset, resolve to physical location here
+    if (path.rfind("storage:/", 0) == 0)
+    {
+        // If we have more than two tokens it means USD looking for already downloaded texture
+        // For example: storage://uuid/light/path.png, so resolve to physical location
+        auto tokens = TfStringTokenize(path, "/");
+        if (tokens.size() > 2)
+        {
+            std::string uuid = tokens.at(1);
+            std::filesystem::path location = mRootPath / "Storage";
+            for (auto i = 1; i < tokens.size(); i++)
+            {
+                location /= tokens.at(i);
+            }
+            return ArResolvedPath(location.string());
+        }
+    }
+
     // If it's RenderStudio path or GpuOpen root material, do not resolve here
     // In case of resolving here, USD would use own SdfFileFormat instead of ours
     return ArResolvedPath(path);
+}
+
+std::string
+RenderStudioResolver::GetLocalStorageUrl()
+{
+    return sStorageUrl;
 }
 
 static std::string
@@ -145,6 +182,12 @@ _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::s
 
     // GPUOpen paths would be global, so we need to persist current asset name (with uuid) in identifier
     if (anchorPath.rfind("gpuopen:/", 0) == 0)
+    {
+        anchoredPath = TfStringCatPaths(forwardPath, path);
+    }
+
+    // LocalStorage paths would be global, so we need to persist current asset name (with uuid) in identifier
+    if (anchorPath.rfind("storage:/", 0) == 0)
     {
         anchoredPath = TfStringCatPaths(forwardPath, path);
     }
@@ -192,6 +235,15 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         uuid.erase(0, std::string("gpuopen:/").size());
         std::filesystem::path saveLocation = mRootPath / "Materials" / uuid;
         return GpuOpenAsset::Open(uuid, saveLocation);
+    }
+
+    if (resolvedPath.GetPathString().rfind("storage:/", 0) == 0)
+    {
+        std::string name = resolvedPath.GetPathString();
+        name.erase(0, std::string("storage:/").size());
+        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackageByName(name, RenderStudioResolver::GetLocalStorageUrl());
+        std::filesystem::path saveLocation = mRootPath / "Storage" / package.name;
+        return LocalStorageAsset::Open(package.id, saveLocation);
     }
 
     return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });

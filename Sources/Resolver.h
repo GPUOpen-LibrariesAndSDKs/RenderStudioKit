@@ -31,13 +31,19 @@ public:
     static void StartLiveMode();
 
     AR_API
-    static void SetRemoteServerAddress(const std::string& url);
+    static void StopLiveMode();
+
+    AR_API
+    static void SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl);
 
     AR_API
     virtual std::string _GetExtension(const std::string& path) const override;
 
     AR_API
     virtual ArResolvedPath _Resolve(const std::string& path) const override;
+
+    AR_API
+    static std::string GetLocalStorageUrl();
 
 protected:
     AR_API
@@ -53,7 +59,8 @@ protected:
 private:
     static std::filesystem::path GetDocumentsDirectory();
 
-    static inline std::string sRemoteUrl;
+    static inline std::string sLiveUrl;
+    static inline std::string sStorageUrl;
     static inline RenderStudioFileFormatPtr sFileFormat;
 
     std::filesystem::path mRootPath;

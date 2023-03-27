@@ -68,6 +68,7 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
 
             // Send local deltas
+            // First fetch would just clear them, because they already stored on clients PC's - no need to sync
             auto deltas = data->FetchLocalDeltas();
 
             if (!deltas.empty())
@@ -89,30 +90,62 @@ RenderStudioFileFormat::ProcessLiveUpdates()
 }
 
 void RenderStudioFileFormat::Connect(const std::string& url) {
+    // Create client
+    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
+        [this](const std::string& message)
+        {
+            LOG_DEBUG << "Received message: " << message;
+
+            // Receive deltas
+            std::string identifier;
+            RenderStudioApi::DeltaType deltas;
+            std::size_t sequence = 0;
+
+            try
+            {
+                std::tie(identifier, deltas, sequence) = RenderStudioApi::DeserializeDeltas(message);
+            }
+            catch (const std::exception& ex)
+            {
+                LOG_WARNING << "Can't parse: " << message;
+            }
+
+            // Get layer by name
+            auto it = std::find_if(
+                mCreatedLayers.begin(),
+                mCreatedLayers.end(),
+                [&](SdfLayerHandle layer) { return layer->GetIdentifier() == identifier; });
+
+            if (it == mCreatedLayers.end())
+            {
+                LOG_WARNING << "Can't find layer with id: " << identifier;
+                return;
+            }
+
+            // Cast data and append deltas
+            SdfLayerHandle layer = *it;
+            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
+            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
+            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
+            data->AddRemoteSequence(layer, deltas, sequence);
+        });
+
     // Remove expired layers
     mCreatedLayers.erase(
         std::remove_if(
             mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer) { return layer.IsExpired(); }),
         mCreatedLayers.end());
 
-    // Clear all the local deltas
-    std::for_each(
-        mCreatedLayers.begin(),
-        mCreatedLayers.end(),
-        [this](SdfLayerHandle& layer)
-        {
-            // Cast data
-            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
-            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
-            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
-
-            auto deltas = data->FetchLocalDeltas();
-            (void)deltas;
-        });
-
     // Connect to endpoint
     auto endpoint = RenderStudio::Networking::WebsocketEndpoint::FromString(url);
     mWebsocketClient->Connect(endpoint);
+}
+
+void
+RenderStudioFileFormat::Disconnect()
+{
+    mWebsocketClient->Disconnect();
+    mWebsocketClient = nullptr;
 }
 
 SdfAbstractDataRefPtr
@@ -176,41 +209,7 @@ RenderStudioFileFormat::RenderStudioFileFormat()
         RenderStudioFileFormatTokens->Target,
         RenderStudioFileFormatTokens->Id)
 {
-    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
-        [this](const std::string& message)
-        {
-            // Receive deltas
-            std::string identifier;
-            RenderStudioApi::DeltaType deltas;
 
-            try
-            {
-                std::tie(identifier, deltas) = RenderStudioApi::DeserializeDeltas(message);
-            }
-            catch (const std::exception& ex)
-            {
-                LOG_WARNING << "Can't parse: " << message;
-            }
-
-            // Get layer by name
-            auto it = std::find_if(
-                mCreatedLayers.begin(),
-                mCreatedLayers.end(),
-                [&](SdfLayerHandle layer) { return layer->GetIdentifier() == identifier; });
-
-            if (it == mCreatedLayers.end())
-            {
-                LOG_WARNING << "Can't find layer with id: " << identifier;
-                return;
-            }
-
-            // Cast data and append deltas
-            SdfLayerHandle layer = *it;
-            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
-            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
-            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
-            data->AppendRemoteDeltas(layer, deltas);
-        });
 }
 
 RenderStudioFileFormat::~RenderStudioFileFormat() { mWebsocketClient->Disconnect(); }
