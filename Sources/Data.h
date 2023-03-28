@@ -101,8 +101,8 @@ protected:
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
-    void ApplyRemoteDeltas(SdfLayerHandle& layer);
-    void AddRemoteSequence(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
+    void ProcessRemoteUpdates(SdfLayerHandle& layer);
+    void AccumulateRemoteUpdate(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
     RenderStudioApi::DeltaType FetchLocalDeltas();
 
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path, const TfToken& field, SdfSpecType* specType) const;
@@ -126,6 +126,7 @@ private:
     std::size_t mLatestAppliedSequence = 0;
     std::map<std::size_t, RenderStudioApi::DeltaType> mRemoteDeltasQueue;
     bool mFirstFetch = true;
+    bool mIsProcessingRemoteUpdates = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

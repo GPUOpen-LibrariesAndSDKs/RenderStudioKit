@@ -83,7 +83,7 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
 
     // Append deltas to the data
     SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(identifier);
-    _GetRenderStudioData(layer)->AddRemoteSequence(layer, deltas, sequence);
+    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(layer, deltas, sequence);
 }
 
 void
@@ -110,7 +110,7 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             }
 
             // Apply remote deltas
-            data->ApplyRemoteDeltas(layer);
+            data->ProcessRemoteUpdates(layer);
         });
 }
 
@@ -123,8 +123,15 @@ void RenderStudioFileFormat::Connect(const std::string& url)
                                                                                    { OnMessage(message); });
 
     // Connect to endpoint
-    auto endpoint = RenderStudio::Networking::Url::Parse(url);
-    mWebsocketClient->Connect(endpoint);
+    try
+    {
+        auto endpoint = RenderStudio::Networking::Url::Parse(url);
+        mWebsocketClient->Connect(endpoint);
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_ERROR << "Can't connect to remote " + url + ": " << ex.what();
+    }
 }
 
 void

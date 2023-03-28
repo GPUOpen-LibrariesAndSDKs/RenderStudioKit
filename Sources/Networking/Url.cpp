@@ -14,7 +14,7 @@ Url Url::Parse(const std::string& request)
 
     if (uriParseSingleUriA(&uri, request.c_str(), &errorPos) != URI_SUCCESS)
     {
-        return {};
+        throw std::runtime_error("Can't parse URL: " + request);
     }
 
     Url result {};

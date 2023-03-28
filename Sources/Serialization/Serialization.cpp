@@ -1,5 +1,7 @@
 #include "Serialization.h"
 
+#include <iostream>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 using namespace boost::json;
@@ -15,6 +17,12 @@ tag_invoke(const value_from_tag&, value& json, const SdfPath& v)
 SdfPath
 tag_invoke(const value_to_tag<SdfPath>&, const value& json)
 {
+    if (value_to<std::string>(json).empty())
+    {
+        int a = 5;
+        (void)a;
+        std::cout << a;
+    }
     return SdfPath { value_to<std::string>(json) };
 }
 
