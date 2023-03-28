@@ -17,13 +17,8 @@ tag_invoke(const value_from_tag&, value& json, const SdfPath& v)
 SdfPath
 tag_invoke(const value_to_tag<SdfPath>&, const value& json)
 {
-    if (value_to<std::string>(json).empty())
-    {
-        int a = 5;
-        (void)a;
-        std::cout << a;
-    }
-    return SdfPath { value_to<std::string>(json) };
+    std::string path = value_to<std::string>(json);
+    return path.empty() ? SdfPath{} : SdfPath{ path };
 }
 
 // --- SdfAssetPath ---
@@ -48,6 +43,8 @@ tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
 void
 tag_invoke(const value_from_tag&, value& json, const SdfReference& v)
 {
+    std::string s =  v.GetPrimPath().GetString();
+
     object result;
     result["asset"] = v.GetAssetPath();
     result["prim"] = value_from(v.GetPrimPath());
@@ -59,6 +56,7 @@ SdfReference
 tag_invoke(const value_to_tag<SdfReference>&, const value& json)
 {
     object jsonObject = json.as_object();
+
     return SdfReference { 
         value_to<std::string>(jsonObject["asset"]), 
         value_to<SdfPath>(jsonObject["prim"]),

@@ -34,7 +34,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 SetMaxWarningLevel(${PROJECT_NAME})
 
 # Install headers
-install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h
+install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h
     DESTINATION include/RenderStudioResolver/Networking)
 
 # Export CMake target

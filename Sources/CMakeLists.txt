@@ -74,7 +74,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${CMAKE_PROJECT_NAME}/resources)
 
 # Install headers
-install(FILES Resolver.h Data.h FileFormat.h
+install(FILES Resolver.h Data.h FileFormat.h Registry.h
     DESTINATION include/RenderStudioResolver)
 
 # Export CMake target
