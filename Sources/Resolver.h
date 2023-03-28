@@ -1,5 +1,4 @@
-#ifndef USD_REMOTE_ASSET_RESOLVER_H
-#define USD_REMOTE_ASSET_RESOLVER_H
+#pragma once
 
 #pragma warning(push, 0)
 #include <filesystem>
@@ -67,5 +66,3 @@ private:
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
-
-#endif

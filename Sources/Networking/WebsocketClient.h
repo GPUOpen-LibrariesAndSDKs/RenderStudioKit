@@ -14,18 +14,10 @@
 #include <boost/beast/websocket.hpp>
 #pragma warning(pop)
 
+#include "Url.h"
+
 namespace RenderStudio::Networking
 {
-
-struct WebsocketEndpoint
-{
-    std::string protocol;
-    std::string host;
-    std::string port;
-    std::string path;
-
-    static WebsocketEndpoint FromString(const std::string& url);
-};
 
 class WebsocketClient : public std::enable_shared_from_this<WebsocketClient>
 {
@@ -34,7 +26,7 @@ public:
     explicit WebsocketClient(const OnMessageFn& fn);
     ~WebsocketClient();
 
-    void Connect(const WebsocketEndpoint& endpoint);
+    void Connect(const Url& endpoint);
     void Disconnect();
     void SendMessageString(const std::string& message);
 
@@ -49,7 +41,7 @@ private:
     void OnClose(boost::beast::error_code ec);
 
 private:
-    WebsocketEndpoint mEndpoint;
+    Url mEndpoint;
     boost::asio::io_context mIoContext;
     boost::asio::ip::tcp::resolver mTcpResolver;
     boost::beast::websocket::stream<boost::beast::tcp_stream> mWebsocketStream;

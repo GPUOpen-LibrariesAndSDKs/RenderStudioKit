@@ -45,32 +45,57 @@ _GetMtlxFileFormat()
     static const auto mtlxFormat = _GetFileFormat(TfToken { "mtlx" });
     return mtlxFormat;
 }
+
 } // namespace
+
+RenderStudioDataPtr
+RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer)
+{
+    SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
+    RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
+
+    if (casted == nullptr)
+    {
+        throw std::runtime_error("Layer has no RenderStudio data");
+    }
+
+    return TfConst_cast<RenderStudioDataPtr>(casted);
+}
+
+void
+RenderStudioFileFormat::OnMessage(const std::string& message)
+{
+    LOG_DEBUG << "Received message: " << message;
+
+    // Receive deltas
+    std::string identifier;
+    RenderStudioApi::DeltaType deltas;
+    std::size_t sequence = 0;
+
+    try
+    {
+        std::tie(identifier, deltas, sequence) = RenderStudioApi::DeserializeDeltas(message);
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_WARNING << "Can't parse: " << message;
+    }
+
+    // Append deltas to the data
+    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(identifier);
+    _GetRenderStudioData(layer)->AddRemoteSequence(layer, deltas, sequence);
+}
 
 void
 RenderStudioFileFormat::ProcessLiveUpdates()
 {
-    // Remove expired layers
-    mCreatedLayers.erase(
-        std::remove_if(
-            mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer) { return layer.IsExpired(); }),
-        mCreatedLayers.end());
-
-    // Update each layer (incoming + outcoming deltas)
-    std::for_each(
-        mCreatedLayers.begin(),
-        mCreatedLayers.end(),
-        [this](SdfLayerHandle& layer)
+    mLayerRegistry.ForEachLayer(
+        [this](SdfLayerHandle layer)
         {
-            // Cast data
-            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
-            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
-            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
+            RenderStudioDataPtr data = _GetRenderStudioData(layer);
 
             // Send local deltas
-            // First fetch would just clear them, because they already stored on clients PC's - no need to sync
             auto deltas = data->FetchLocalDeltas();
-
             if (!deltas.empty())
             {
                 try
@@ -89,55 +114,16 @@ RenderStudioFileFormat::ProcessLiveUpdates()
         });
 }
 
-void RenderStudioFileFormat::Connect(const std::string& url) {
+void RenderStudioFileFormat::Connect(const std::string& url)
+{
+    mLayerRegistry.RemoveExpiredLayers();
+
     // Create client
-    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>(
-        [this](const std::string& message)
-        {
-            LOG_DEBUG << "Received message: " << message;
-
-            // Receive deltas
-            std::string identifier;
-            RenderStudioApi::DeltaType deltas;
-            std::size_t sequence = 0;
-
-            try
-            {
-                std::tie(identifier, deltas, sequence) = RenderStudioApi::DeserializeDeltas(message);
-            }
-            catch (const std::exception& ex)
-            {
-                LOG_WARNING << "Can't parse: " << message;
-            }
-
-            // Get layer by name
-            auto it = std::find_if(
-                mCreatedLayers.begin(),
-                mCreatedLayers.end(),
-                [&](SdfLayerHandle layer) { return layer->GetIdentifier() == identifier; });
-
-            if (it == mCreatedLayers.end())
-            {
-                LOG_WARNING << "Can't find layer with id: " << identifier;
-                return;
-            }
-
-            // Cast data and append deltas
-            SdfLayerHandle layer = *it;
-            SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
-            RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
-            RenderStudioDataPtr data = TfConst_cast<RenderStudioDataPtr>(casted);
-            data->AddRemoteSequence(layer, deltas, sequence);
-        });
-
-    // Remove expired layers
-    mCreatedLayers.erase(
-        std::remove_if(
-            mCreatedLayers.begin(), mCreatedLayers.end(), [](SdfLayerHandle& layer) { return layer.IsExpired(); }),
-        mCreatedLayers.end());
+    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>([this](const std::string& message)
+                                                                                   { OnMessage(message); });
 
     // Connect to endpoint
-    auto endpoint = RenderStudio::Networking::WebsocketEndpoint::FromString(url);
+    auto endpoint = RenderStudio::Networking::Url::Parse(url);
     mWebsocketClient->Connect(endpoint);
 }
 
@@ -145,7 +131,7 @@ void
 RenderStudioFileFormat::Disconnect()
 {
     mWebsocketClient->Disconnect();
-    mWebsocketClient = nullptr;
+    mWebsocketClient.reset();
 }
 
 SdfAbstractDataRefPtr
@@ -167,7 +153,7 @@ RenderStudioFileFormat::_InstantiateNewLayer(
 {
     // During creation of layer save it for further usage
     SdfLayer* layer = SdfFileFormat::_InstantiateNewLayer(fileFormat, identifier, realPath, assetInfo, args);
-    mCreatedLayers.push_back(SdfLayerHandle { layer });
+    mLayerRegistry.AddLayer(SdfLayerHandle { layer });
     return layer;
 }
 

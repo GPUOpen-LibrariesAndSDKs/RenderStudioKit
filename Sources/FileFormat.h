@@ -13,6 +13,7 @@
 
 #include "Data.h"
 #include "Networking/WebsocketClient.h"
+#include "Registry.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -55,10 +56,11 @@ private:
     void ProcessLiveUpdates();
     void Connect(const std::string& url);
     void Disconnect();
+    RenderStudioDataPtr _GetRenderStudioData(SdfLayerHandle layer);
+    void OnMessage(const std::string& message);
 
     friend class RenderStudioResolver;
-
-    mutable std::vector<SdfLayerHandle> mCreatedLayers;
+    mutable RenderStudioLayerRegistry mLayerRegistry;
     std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
 };
 

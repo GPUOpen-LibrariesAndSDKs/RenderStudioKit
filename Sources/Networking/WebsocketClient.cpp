@@ -27,13 +27,13 @@ WebsocketClient::~WebsocketClient()
 }
 
 void
-WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
+WebsocketClient::Connect(const Url& endpoint)
 {
     mEndpoint = endpoint;
 
     mTcpResolver.async_resolve(
-        mEndpoint.host,
-        mEndpoint.port,
+        mEndpoint.Host(),
+        mEndpoint.Port(),
         boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this()));
 
     mThread = std::thread([this]() 
@@ -41,6 +41,7 @@ WebsocketClient::Connect(const WebsocketEndpoint& endpoint)
         mIoContext.run();
         LOG_DEBUG << "Websocket thread finished";
     });
+
     mThread.detach();
 }
 
@@ -67,7 +68,6 @@ WebsocketClient::SendMessageString(const std::string& message)
 
     if (!mConnected)
     {
-        LOG_WARNING << "[Networking] Not connected yet\n";
         return;
     }
 
@@ -127,8 +127,7 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
 
     mWebsocketStream.async_handshake(
-        mEndpoint.host + ":" + std::to_string(endpoint.port()),
-        "/" + mEndpoint.path + "/",
+        mEndpoint.Host() + ":" + std::to_string(endpoint.port()), mEndpoint.Target(),
         boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
 }
 
@@ -141,7 +140,7 @@ WebsocketClient::OnHandshake(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    LOG_INFO << "[Networking] Connected to " << mEndpoint.host;
+    LOG_INFO << "[Networking] Connected to " << mEndpoint.Host();
 
     mConnected = true;
     OnPing({});
@@ -179,6 +178,13 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
     }
 
     mWriteQueue.pop();
+
+    if (!mWriteQueue.empty())
+    {
+        mWebsocketStream.async_write(
+            boost::asio::buffer(mWriteQueue.back()),
+            boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
+    }
 }
 
 void
@@ -218,28 +224,6 @@ WebsocketClient::OnClose(boost::beast::error_code ec)
         LOG_ERROR << "[Networking] " << ec.message();
         return Disconnect();
     }
-}
-
-WebsocketEndpoint
-WebsocketEndpoint::FromString(const std::string& url)
-{
-    UriUriA uri;
-    const char* errorPos;
-
-    if (uriParseSingleUriA(&uri, url.c_str(), &errorPos) != URI_SUCCESS)
-    {
-        return {};
-    }
-
-    WebsocketEndpoint endpoint {};
-
-    endpoint.protocol = std::string(uri.scheme.first, uri.scheme.afterLast);
-    endpoint.host = std::string(uri.hostText.first, uri.hostText.afterLast);
-    endpoint.port = std::string(uri.portText.first, uri.portText.afterLast);
-    endpoint.path = std::string(uri.pathHead->text.first, uri.pathHead->text.afterLast);
-
-    uriFreeUriMembersA(&uri);
-    return endpoint;
 }
 
 } // namespace RenderStudio::Networking

@@ -31,7 +31,7 @@ void
 RenderStudioData::ApplyRemoteDeltas(SdfLayerHandle& layer)
 {
     // Change block should gain performance
-    // SdfChangeBlock block;
+    SdfChangeBlock block;
 
     // Store state of local deltas because SetField() modify them
     RenderStudioApi::DeltaType localDeltasCopy = mLocalDeltas;
