@@ -13,6 +13,8 @@
 
 #include "Logger/Logger.h"
 #include "Serialization/Serialization.h"
+#include "Resolver.h"
+#include "Notice.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -56,7 +58,10 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
                 // Update field
                 layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
+
             }
+
+            RenderStudioNotice(delta.first).Send();
         }
 
         mLatestAppliedSequence = nextRequestedSequence;

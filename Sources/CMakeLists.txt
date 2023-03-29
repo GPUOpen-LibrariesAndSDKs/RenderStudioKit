@@ -74,8 +74,8 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Plugin/plugInfo.json
     DESTINATION plugin/usd/${CMAKE_PROJECT_NAME}/resources)
 
 # Install headers
-install(FILES Resolver.h Data.h FileFormat.h Registry.h
-    DESTINATION include/RenderStudioResolver)
+file(GLOB HEADERS *.h)
+install(FILES ${HEADERS} DESTINATION include/RenderStudioResolver)
 
 # Export CMake target
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
