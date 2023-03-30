@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 project(RenderStudioNetworking)
 
 set(CMAKE_CXX_STANDARD 20)
+set(OPENSSL_USE_STATIC_LIBS TRUE)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
