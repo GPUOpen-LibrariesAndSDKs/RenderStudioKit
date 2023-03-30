@@ -83,7 +83,11 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
 
     // Append deltas to the data
     SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(identifier);
-    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(layer, deltas, sequence);
+
+    if (layer != nullptr)
+    {
+        _GetRenderStudioData(layer)->AccumulateRemoteUpdate(layer, deltas, sequence);
+    }
 }
 
 void
