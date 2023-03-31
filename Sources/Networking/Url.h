@@ -18,6 +18,8 @@ public:
     bool Ssl() const { return mSsl; }
     friend std::ostream& operator<<(std::ostream& os, const Url& url);
 
+    static std::string Encode(const std::string& url);
+
 private:
     std::string mProtocol;
     std::string mHost;

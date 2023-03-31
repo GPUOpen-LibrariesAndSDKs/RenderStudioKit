@@ -81,28 +81,6 @@ GetLightPackage(const std::string& lightId, const std::string& storageUrl)
     return boost::json::value_to<LocalStorageAPI::PackageResponse::Item>(json);
 }
 
-PackageResponse::Item
-GetLightPackageByName(const std::string& lightName, const std::string& storageUrl)
-{
-    std::string response
-        = RenderStudio::Networking::RestClient().Get(fmt::format("{}/api/lights/", storageUrl));
-
-    boost::json::error_code ec;
-    boost::json::value json = boost::json::parse(response, ec);
-
-    auto results = boost::json::value_to<LocalStorageAPI::PackageResponse>(json).results;
-    auto it = std::find_if(
-        results.begin(), results.end(), [&lightName](const auto& package) { return lightName == package.name;
-        });
-
-    if (it == results.end())
-    {
-        throw std::runtime_error("Can't find material package with name " + lightName);
-    }
-
-    return *it;
-}
-
 std::filesystem::path
 Download(const PackageResponse::Item& package, const std::filesystem::path& path, const std::string& storageUrl)
 {

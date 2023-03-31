@@ -43,7 +43,6 @@ PackageResponse::Item tag_invoke(boost::json::value_to_tag<PackageResponse::Item
 ///
 
 PackageResponse::Item GetLightPackage(const std::string& lightId, const std::string& storageUrl);
-PackageResponse::Item GetLightPackageByName(const std::string& lightName, const std::string& storageUrl);
 std::filesystem::path Download(const PackageResponse::Item& package, const std::filesystem::path& path, const std::string& storageUrl);
 
 }

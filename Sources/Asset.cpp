@@ -1,9 +1,10 @@
 #include "Asset.h"
 
-#include <Networking/MaterialLibraryApi.h>
-#include <Networking/LocalStorageApi.h>
-#include <Logger/Logger.h>
 #include <Resolver.h>
+
+#include <Logger/Logger.h>
+#include <Networking/LocalStorageApi.h>
+#include <Networking/MaterialLibraryApi.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -17,20 +18,24 @@ GpuOpenAsset::GpuOpenAsset(const std::string& uuid, const std::filesystem::path&
     : mUuid(uuid)
 {
     // Download material
-    auto package = RenderStudio::Networking::MaterialLibraryAPI::GetMaterialPackage(uuid);
-    auto material = *std::min_element(
-        package.results.begin(),
-        package.results.end(),
-        [](const auto& a, const auto& b) { return a.size_mb < b.size_mb; });
+    try
+    {
+        auto package = RenderStudio::Networking::MaterialLibraryAPI::GetMaterialPackage(uuid);
+        auto material = *std::min_element(
+            package.results.begin(),
+            package.results.end(),
+            [](const auto& a, const auto& b) { return a.size_mb < b.size_mb; });
 
-    auto mtlxRootLocation = RenderStudio::Networking::MaterialLibraryAPI::Download(material, location);
-    mFileMapping = ArchOpenFile(mtlxRootLocation.string().c_str(), "rb");
+        auto mtlxRootLocation = RenderStudio::Networking::MaterialLibraryAPI::Download(material, location);
+        mFileMapping = ArchOpenFile(mtlxRootLocation.string().c_str(), "rb");
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_FATAL << ex.what();
+    }
 }
 
-GpuOpenAsset::~GpuOpenAsset()
-{ 
-    fclose(mFileMapping);
-}
+GpuOpenAsset::~GpuOpenAsset() { fclose(mFileMapping); }
 
 std::size_t
 GpuOpenAsset::GetSize() const

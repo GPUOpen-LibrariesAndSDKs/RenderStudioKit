@@ -1,13 +1,18 @@
 #include "Url.h"
 
 #pragma warning(push, 0)
+#include <iomanip>
+#include <sstream>
+
+#include <boost/algorithm/string/replace.hpp>
 #include <uriparser/Uri.h>
 #pragma warning(pop)
 
 namespace RenderStudio::Networking
 {
 
-Url Url::Parse(const std::string& request)
+Url
+Url::Parse(const std::string& request)
 {
     UriUriA uri;
     const char* errorPos;
@@ -43,6 +48,14 @@ Url Url::Parse(const std::string& request)
     return result;
 }
 
+std::string
+Url::Encode(const std::string& url)
+{
+    std::string result = url;
+    boost::replace_all(result, " ", "%20");
+    return result;
+}
+
 std::ostream&
 operator<<(std::ostream& os, const Url& url)
 {
@@ -51,4 +64,4 @@ operator<<(std::ostream& os, const Url& url)
     return os;
 }
 
-}
+} // namespace RenderStudio::Networking
