@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <iostream>
+
 #include <pxr/base/trace/trace.h>
 #include <pxr/base/work/utils.h>
 #include <pxr/pxr.h>
@@ -12,9 +13,9 @@
 #pragma warning(pop)
 
 #include "Logger/Logger.h"
-#include "Serialization/Serialization.h"
-#include "Resolver.h"
 #include "Notice.h"
+#include "Resolver.h"
+#include "Serialization/Serialization.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -35,7 +36,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
     // Synchronize updates
     std::unique_lock<std::mutex> lock(mRemoteMutex);
     mIsProcessingRemoteUpdates = true;
-    
+
     // Change block should gain performance
     SdfChangeBlock block;
 
@@ -58,7 +59,6 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
                 // Update field
                 layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
-
             }
 
             RenderStudioNotice(delta.first).Send();
@@ -73,7 +73,10 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 }
 
 void
-RenderStudioData::AccumulateRemoteUpdate(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence)
+RenderStudioData::AccumulateRemoteUpdate(
+    SdfLayerHandle& layer,
+    const RenderStudioApi::DeltaType& deltas,
+    std::size_t sequence)
 {
     std::unique_lock<std::mutex> lock(mRemoteMutex);
     mRemoteDeltasQueue[sequence] = deltas;
