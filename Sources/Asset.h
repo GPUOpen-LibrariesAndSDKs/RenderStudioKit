@@ -1,14 +1,14 @@
 #pragma once
 
 #pragma warning(push, 0)
+#include <filesystem>
+#include <string>
+
+#include <pxr/base/arch/errno.h>
+#include <pxr/base/arch/fileSystem.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
 #include <pxr/usd/ar/asset.h>
-#include <pxr/base/arch/fileSystem.h>
-#include <pxr/base/arch/errno.h>
-
-#include <string>
-#include <filesystem>
 #pragma warning(pop)
 
 PXR_NAMESPACE_OPEN_SCOPE

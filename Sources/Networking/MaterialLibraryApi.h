@@ -1,12 +1,14 @@
 #pragma once
 
 #pragma warning(push, 0)
-#include <vector>
 #include <filesystem>
+#include <vector>
+
 #include <boost/json.hpp>
 #pragma warning(pop)
 
-namespace RenderStudio::Networking::MaterialLibraryAPI {
+namespace RenderStudio::Networking::MaterialLibraryAPI
+{
 
 ///
 /// Structures
@@ -44,4 +46,4 @@ PackageResponse::Item tag_invoke(boost::json::value_to_tag<PackageResponse::Item
 PackageResponse GetMaterialPackage(const std::string& materialId);
 std::filesystem::path Download(const PackageResponse::Item& material, const std::filesystem::path& path);
 
-}
+} // namespace RenderStudio::Networking::MaterialLibraryAPI

@@ -19,5 +19,4 @@ private:
     boost::asio::io_context mIoContext;
 };
 
-
-}
+} // namespace RenderStudio::Networking

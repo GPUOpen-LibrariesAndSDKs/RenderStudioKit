@@ -28,4 +28,4 @@ private:
     bool mSsl;
 };
 
-}
+} // namespace RenderStudio::Networking

@@ -18,7 +18,7 @@ SdfPath
 tag_invoke(const value_to_tag<SdfPath>&, const value& json)
 {
     std::string path = value_to<std::string>(json);
-    return path.empty() ? SdfPath{} : SdfPath{ path };
+    return path.empty() ? SdfPath {} : SdfPath { path };
 }
 
 // --- SdfAssetPath ---
@@ -43,7 +43,7 @@ tag_invoke(const value_to_tag<SdfAssetPath>&, const value& json)
 void
 tag_invoke(const value_from_tag&, value& json, const SdfReference& v)
 {
-    std::string s =  v.GetPrimPath().GetString();
+    std::string s = v.GetPrimPath().GetString();
 
     object result;
     result["asset"] = v.GetAssetPath();
@@ -57,15 +57,14 @@ tag_invoke(const value_to_tag<SdfReference>&, const value& json)
 {
     object jsonObject = json.as_object();
 
-    return SdfReference { 
-        value_to<std::string>(jsonObject["asset"]), 
-        value_to<SdfPath>(jsonObject["prim"]),
-        value_to<SdfLayerOffset>(jsonObject["offset"])
-    };
+    return SdfReference { value_to<std::string>(jsonObject["asset"]),
+                          value_to<SdfPath>(jsonObject["prim"]),
+                          value_to<SdfLayerOffset>(jsonObject["offset"]) };
 }
 
 // --- SdfLayerOffset ---
-void tag_invoke(const value_from_tag&, value& json, const SdfLayerOffset& v)
+void
+tag_invoke(const value_from_tag&, value& json, const SdfLayerOffset& v)
 {
     object result;
     result["offset"] = v.GetOffset();
@@ -73,7 +72,8 @@ void tag_invoke(const value_from_tag&, value& json, const SdfLayerOffset& v)
     json = result;
 }
 
-SdfLayerOffset tag_invoke(const value_to_tag<SdfLayerOffset>&, const value& json)
+SdfLayerOffset
+tag_invoke(const value_to_tag<SdfLayerOffset>&, const value& json)
 {
     object jsonObject = json.as_object();
     return SdfLayerOffset { value_to<double>(jsonObject["offset"]), value_to<double>(jsonObject["scale"]) };

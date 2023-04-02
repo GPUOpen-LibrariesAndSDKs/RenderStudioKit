@@ -8,13 +8,14 @@
 #include <pxr/usd/usd/usdFileFormat.h>
 #include <pxr/usd/usd/usdaFileFormat.h>
 #include <pxr/usd/usd/usdcFileFormat.h>
+
 #include <boost/json/src.hpp>
 #pragma warning(pop)
 
 #include "Data.h"
+
 #include <Logger/Logger.h>
 #include <Serialization/Api.h>
-
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -118,7 +119,8 @@ RenderStudioFileFormat::ProcessLiveUpdates()
         });
 }
 
-void RenderStudioFileFormat::Connect(const std::string& url)
+void
+RenderStudioFileFormat::Connect(const std::string& url)
 {
     mLayerRegistry.RemoveExpiredLayers();
 
@@ -206,7 +208,6 @@ RenderStudioFileFormat::RenderStudioFileFormat()
         RenderStudioFileFormatTokens->Target,
         RenderStudioFileFormatTokens->Id)
 {
-
 }
 
 RenderStudioFileFormat::~RenderStudioFileFormat() { mWebsocketClient->Disconnect(); }

@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <filesystem>
+
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
 #include <pxr/usd/ar/defaultResolver.h>
@@ -10,7 +11,6 @@
 
 #include "Context.h"
 #include "FileFormat.h"
-
 
 PXR_NAMESPACE_OPEN_SCOPE
 

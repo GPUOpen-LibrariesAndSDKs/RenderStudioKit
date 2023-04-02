@@ -2,14 +2,17 @@
 
 #pragma warning(push, 0)
 #include <fstream>
-#include <boost/algorithm/string.hpp>
+
 #include <zip.h>
+
+#include <boost/algorithm/string.hpp>
 #include <fmt/format.h>
 #pragma warning(pop)
 
-#include "RestClient.h"
-#include <Logger/Logger.h>
 #include "LocalStorageApi.h"
+#include "RestClient.h"
+
+#include <Logger/Logger.h>
 
 namespace RenderStudio::Networking::LocalStorageAPI
 {
@@ -114,7 +117,8 @@ Download(const PackageResponse::Item& package, const std::filesystem::path& path
 
     // Download light USDA file
     std::filesystem::path usdaPath = path / package.file;
-    std::string usdaData = RenderStudio::Networking::RestClient().Get(storageUrl + "/api/lights/" + package.id + "/file");
+    std::string usdaData
+        = RenderStudio::Networking::RestClient().Get(storageUrl + "/api/lights/" + package.id + "/file");
     std::ofstream usdaOut(usdaPath, std::ios::binary);
     usdaOut << usdaData;
     usdaOut.close();

@@ -25,11 +25,12 @@
 #endif
 #pragma warning(pop)
 
+#include "Asset.h"
+
 #include <Logger/Logger.h>
+#include <Networking/LocalStorageApi.h>
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
-#include "Asset.h"
-#include <Networking/LocalStorageApi.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -241,7 +242,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
     {
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
-        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(name, RenderStudioResolver::GetLocalStorageUrl());
+        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(
+            name, RenderStudioResolver::GetLocalStorageUrl());
         std::filesystem::path saveLocation = mRootPath / "Storage" / package.name;
         return LocalStorageAsset::Open(package.id, saveLocation);
     }

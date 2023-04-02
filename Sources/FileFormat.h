@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <vector>
+
 #include <pxr/base/tf/declarePtrs.h>
 #include <pxr/base/tf/staticTokens.h>
 #include <pxr/pxr.h>

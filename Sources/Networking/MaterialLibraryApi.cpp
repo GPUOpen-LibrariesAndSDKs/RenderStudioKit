@@ -2,11 +2,14 @@
 
 #pragma warning(push, 0)
 #include <fstream>
-#include <boost/algorithm/string.hpp>
+
 #include <zip.h>
+
+#include <boost/algorithm/string.hpp>
 #pragma warning(pop)
 
 #include "RestClient.h"
+
 #include <Logger/Logger.h>
 
 namespace RenderStudio::Networking::MaterialLibraryAPI
@@ -19,7 +22,8 @@ namespace RenderStudio::Networking::MaterialLibraryAPI
 PackageResponse
 GetMaterialPackage(const std::string& materialId)
 {
-    std::string response = RenderStudio::Networking::RestClient().Get("https://api.matlib.gpuopen.com/api/packages/?material=" + materialId);
+    std::string response = RenderStudio::Networking::RestClient().Get(
+        "https://api.matlib.gpuopen.com/api/packages/?material=" + materialId);
 
     boost::json::error_code ec;
     boost::json::value json = boost::json::parse(response, ec);
@@ -30,7 +34,8 @@ GetMaterialPackage(const std::string& materialId)
 std::filesystem::path
 Download(const PackageResponse::Item& material, const std::filesystem::path& path)
 {
-    auto getMtlxRoot = [&]() {
+    auto getMtlxRoot = [&]()
+    {
         for (auto const& entry : std::filesystem::recursive_directory_iterator(path))
         {
             if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".mtlx")
@@ -82,13 +87,15 @@ Download(const PackageResponse::Item& material, const std::filesystem::path& pat
 /// Structure parsing
 ///
 
-template<class T>
-void Extract(boost::json::object const& json, T& t, boost::json::string_view key)
+template <class T>
+void
+Extract(boost::json::object const& json, T& t, boost::json::string_view key)
 {
     t = boost::json::value_to<T>(json.at(key));
 }
 
-PackageResponse tag_invoke(boost::json::value_to_tag<PackageResponse>, boost::json::value const& json)
+PackageResponse
+tag_invoke(boost::json::value_to_tag<PackageResponse>, boost::json::value const& json)
 {
     PackageResponse r;
     const boost::json::object& root = json.as_object();
@@ -99,7 +106,8 @@ PackageResponse tag_invoke(boost::json::value_to_tag<PackageResponse>, boost::js
     return r;
 }
 
-PackageResponse::Item tag_invoke(boost::json::value_to_tag<PackageResponse::Item>, boost::json::value const& json)
+PackageResponse::Item
+tag_invoke(boost::json::value_to_tag<PackageResponse::Item>, boost::json::value const& json)
 {
     PackageResponse::Item r;
     const boost::json::object& root = json.as_object();
@@ -117,19 +125,27 @@ PackageResponse::Item tag_invoke(boost::json::value_to_tag<PackageResponse::Item
     std::vector<std::string> tokens;
     boost::split(tokens, size_in, boost::is_any_of(" "));
 
-    if (tokens.size() != 2) {
+    if (tokens.size() != 2)
+    {
         throw std::runtime_error("Wrong tokens count in deserializing size");
     }
 
     float size = std::stof(tokens.at(0));
 
-    if (tokens.at(1) == "MB") {
+    if (tokens.at(1) == "MB")
+    {
         size *= 1;
-    } else if (tokens.at(1) == "KB") {
+    }
+    else if (tokens.at(1) == "KB")
+    {
         size /= 1024;
-    } else if (tokens.at(1) == "GB") {
+    }
+    else if (tokens.at(1) == "GB")
+    {
         size *= 1024;
-    } else {
+    }
+    else
+    {
         throw std::runtime_error("Wrong size token in deserializing size");
     }
 

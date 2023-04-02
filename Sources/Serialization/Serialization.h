@@ -1,11 +1,12 @@
 #pragma once
 
 #pragma warning(push, 0)
+#include <pxr/base/vt/value.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/sdf/path.h>
 #include <pxr/usd/sdf/reference.h>
-#include <pxr/base/vt/value.h>
+
 #include <boost/json.hpp>
 #pragma warning(pop)
 
@@ -182,7 +183,7 @@ tag_invoke(const value_to_tag<SdfListOp<T>>&, const value& json)
 
 // --- VtArray<T> ---
 template <typename T>
-void 
+void
 tag_invoke(const value_from_tag&, value& json, const VtArray<T>& v)
 {
     array result;

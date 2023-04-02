@@ -1,13 +1,15 @@
 #pragma once
 
 #pragma warning(push, 0)
-#include <vector>
 #include <filesystem>
-#include <boost/json.hpp>
 #include <optional>
+#include <vector>
+
+#include <boost/json.hpp>
 #pragma warning(pop)
 
-namespace RenderStudio::Networking::LocalStorageAPI {
+namespace RenderStudio::Networking::LocalStorageAPI
+{
 
 ///
 /// Structures
@@ -43,6 +45,7 @@ PackageResponse::Item tag_invoke(boost::json::value_to_tag<PackageResponse::Item
 ///
 
 PackageResponse::Item GetLightPackage(const std::string& lightId, const std::string& storageUrl);
-std::filesystem::path Download(const PackageResponse::Item& package, const std::filesystem::path& path, const std::string& storageUrl);
+std::filesystem::path
+Download(const PackageResponse::Item& package, const std::filesystem::path& path, const std::string& storageUrl);
 
-}
+} // namespace RenderStudio::Networking::LocalStorageAPI

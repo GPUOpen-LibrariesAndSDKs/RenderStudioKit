@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <functional>
+
 #include <boost/asio/strand.hpp>
 #include <uriparser/Uri.h>
 #pragma warning(pop)
@@ -21,8 +22,8 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
 }
 
 WebsocketClient::~WebsocketClient()
-{ 
-    Disconnect(); 
+{
+    Disconnect();
     LOG_DEBUG << "Websocket client destroyed";
 }
 
@@ -36,11 +37,12 @@ WebsocketClient::Connect(const Url& endpoint)
         mEndpoint.Port(),
         boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this()));
 
-    mThread = std::thread([this]() 
-    {
-        mIoContext.run();
-        LOG_DEBUG << "Websocket thread finished";
-    });
+    mThread = std::thread(
+        [this]()
+        {
+            mIoContext.run();
+            LOG_DEBUG << "Websocket thread finished";
+        });
 
     mThread.detach();
 }
@@ -127,7 +129,8 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
 
     mWebsocketStream.async_handshake(
-        mEndpoint.Host() + ":" + std::to_string(endpoint.port()), mEndpoint.Target(),
+        mEndpoint.Host() + ":" + std::to_string(endpoint.port()),
+        mEndpoint.Target(),
         boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
 }
 

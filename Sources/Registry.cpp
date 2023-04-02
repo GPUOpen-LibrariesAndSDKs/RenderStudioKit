@@ -17,17 +17,14 @@ RenderStudioLayerRegistry::AddLayer(SdfLayerHandle layer)
 void
 RenderStudioLayerRegistry::RemoveExpiredLayers()
 {
-    std::experimental::erase_if(mCreatedLayers, [](const auto& pair) 
-        { 
-            return pair.second.IsExpired(); 
-        });
+    std::experimental::erase_if(mCreatedLayers, [](const auto& pair) { return pair.second.IsExpired(); });
 }
 
 void
 RenderStudioLayerRegistry::ForEachLayer(const std::function<void(SdfLayerHandle)>& fn)
 {
     RemoveExpiredLayers();
- 
+
     for (const auto& [identifier, layer] : mCreatedLayers)
     {
         fn(layer);
