@@ -59,6 +59,11 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
                 // Update field
                 layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
+
+                if (field.first == SdfFieldKeys->Active)
+                {
+                    RenderStudioNotice(delta.first, true).Send();
+                }
             }
 
             RenderStudioNotice(delta.first).Send();

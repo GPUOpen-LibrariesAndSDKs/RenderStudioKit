@@ -13,13 +13,17 @@ class RenderStudioNotice : public TfNotice
 {
 public:
     AR_API
-    RenderStudioNotice(const SdfPath& path);
+    RenderStudioNotice(const SdfPath& path, bool deleted = false);
 
     AR_API
     SdfPath GetChangedPrim() const;
 
+    AR_API
+    bool WasDeleted() const;
+
 private:
     SdfPath mChangedPrim;
+    bool mWasDeleted = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
