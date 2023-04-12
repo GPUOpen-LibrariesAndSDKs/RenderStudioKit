@@ -12,6 +12,8 @@
 #include <boost/json/src.hpp>
 #pragma warning(pop)
 
+#include <Resolver.h>
+
 #include "Data.h"
 
 #include <Logger/Logger.h>
@@ -105,7 +107,8 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             {
                 try
                 {
-                    boost::json::object deltasJson = RenderStudioApi::SerializeDeltas(layer, deltas);
+                    boost::json::object deltasJson
+                        = RenderStudioApi::SerializeDeltas(layer, deltas, RenderStudioResolver::GetCurrentUserId());
                     mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
                 }
                 catch (const std::exception& ex)

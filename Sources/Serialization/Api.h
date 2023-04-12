@@ -32,6 +32,7 @@ struct _SpecData
 
     SdfSpecType specType;
     std::vector<_FieldValuePair> fields;
+    std::vector<TfToken> deletedFields;
 };
 
 typedef SdfPath _Key;
@@ -39,7 +40,7 @@ typedef SdfPath::Hash _KeyHash;
 typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
 using DeltaType = _HashTable;
 
-boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas);
+boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas, const std::string& user);
 std::tuple<std::string, DeltaType, std::size_t> DeserializeDeltas(const std::string message);
 
 } // namespace RenderStudioApi

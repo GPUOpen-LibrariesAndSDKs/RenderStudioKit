@@ -6,10 +6,11 @@ namespace RenderStudioApi
 {
 
 boost::json::object
-SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas)
+SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas, const std::string& user)
 {
     boost::json::object jsonRoot;
     jsonRoot["layer"] = boost::json::value_from(layer);
+    jsonRoot["user"] = boost::json::value_from(user);
     auto& jsonUpdates = jsonRoot["updates"].emplace_array();
 
     for (auto& [path, spec] : deltas)

@@ -111,6 +111,12 @@ RenderStudioResolver::SetRemoteServerAddress(const std::string& liveUrl, const s
     LOG_INFO << "Set remote server address to " << liveUrl << ", " << storageUrl;
 }
 
+void
+RenderStudioResolver::SetCurrentUserId(const std::string& id)
+{
+    sUserId = id;
+}
+
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
@@ -159,6 +165,12 @@ std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
     return sStorageUrl;
+}
+
+std::string
+RenderStudioResolver::GetCurrentUserId()
+{
+    return sUserId;
 }
 
 static std::string

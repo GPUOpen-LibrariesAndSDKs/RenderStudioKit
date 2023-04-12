@@ -36,6 +36,9 @@ public:
     static void SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl);
 
     AR_API
+    static void SetCurrentUserId(const std::string& name);
+
+    AR_API
     virtual std::string _GetExtension(const std::string& path) const override;
 
     AR_API
@@ -43,6 +46,9 @@ public:
 
     AR_API
     static std::string GetLocalStorageUrl();
+
+    AR_API
+    static std::string GetCurrentUserId();
 
 protected:
     AR_API
@@ -60,6 +66,7 @@ private:
 
     static inline std::string sLiveUrl;
     static inline std::string sStorageUrl;
+    static inline std::string sUserId;
     static inline RenderStudioFileFormatPtr sFileFormat;
 
     std::filesystem::path mRootPath;
