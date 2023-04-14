@@ -36,8 +36,8 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
 
-static bool
-IsRenderStudioPath(const std::string& path)
+bool
+RenderStudioResolver::IsRenderStudioPath(const std::string& path)
 {
     if (path.rfind("studio:/", 0) == 0)
     {
@@ -176,7 +176,8 @@ RenderStudioResolver::GetCurrentUserId()
 static std::string
 _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::string& path)
 {
-    if (!IsRenderStudioPath(anchorPath) != 0 && (TfIsRelativePath(anchorPath) || !TfIsRelativePath(path)))
+    if (!RenderStudioResolver::IsRenderStudioPath(anchorPath) != 0
+        && (TfIsRelativePath(anchorPath) || !TfIsRelativePath(path)))
     {
         return path;
     }

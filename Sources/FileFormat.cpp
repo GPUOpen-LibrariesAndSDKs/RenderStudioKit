@@ -81,7 +81,7 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
     }
     catch (const std::exception& ex)
     {
-        LOG_WARNING << "Can't parse: " << message;
+        LOG_WARNING << "Can't parse: " << message << "[" << ex.what() << "]";
     }
 
     // Append deltas to the data

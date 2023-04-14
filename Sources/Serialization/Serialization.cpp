@@ -449,4 +449,33 @@ tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
     return result;
 }
 
+// --- VtDictionary ---
+
+void
+tag_invoke(const value_from_tag&, value& json, const VtDictionary& v)
+{
+    object result;
+
+    for (const auto& item : v)
+    {
+        result[item.first] = value_from(item.second);
+    }
+
+    json = result;
+}
+
+VtDictionary
+tag_invoke(const value_to_tag<VtDictionary>&, const value& json)
+{
+    VtDictionary result {};
+    object jsonObject = json.as_object();
+
+    for (const auto& item : jsonObject)
+    {
+        result[item.key().to_string()] = value_to<VtValue>(item.value());
+    }
+
+    return result;
+}
+
 PXR_NAMESPACE_CLOSE_SCOPE

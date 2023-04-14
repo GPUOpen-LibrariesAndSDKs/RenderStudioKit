@@ -50,6 +50,9 @@ public:
     AR_API
     static std::string GetCurrentUserId();
 
+    AR_API
+    static bool IsRenderStudioPath(const std::string& path);
+
 protected:
     AR_API
     std::string _CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const override;
