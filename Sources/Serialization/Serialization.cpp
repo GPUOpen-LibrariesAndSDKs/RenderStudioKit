@@ -198,6 +198,10 @@ tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     {
         data = value_from(v.Get<SdfAssetPath>());
     }
+    else if (v.IsHolding<SdfValueBlock>())
+    {
+        data = value_from(v.Get<SdfValueBlock>());
+    }
     else
     {
         throw std::runtime_error("Can't serialize type: " + v.GetTypeName());
@@ -300,6 +304,10 @@ tag_invoke(const value_to_tag<VtValue>&, const value& json)
     else if ("SdfListOp<SdfReference>" == type)
     {
         return VtValue { value_to<SdfListOp<SdfReference>>(data) };
+    }
+    else if ("SdfValueBlock" == type)
+    {
+        return VtValue { value_to<SdfValueBlock>(data) };
     }
     else
     {
@@ -476,6 +484,20 @@ tag_invoke(const value_to_tag<VtDictionary>&, const value& json)
     }
 
     return result;
+}
+
+void
+tag_invoke(const value_from_tag&, value& json, const SdfValueBlock& v)
+{
+    (void)v;
+    json = {};
+}
+
+SdfValueBlock
+tag_invoke(const value_to_tag<SdfValueBlock>&, const value& json)
+{
+    (void)json;
+    return {};
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

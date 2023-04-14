@@ -216,4 +216,8 @@ tag_invoke(const value_to_tag<VtArray<T>>&, const value& json)
 void tag_invoke(const value_from_tag&, value& json, const VtDictionary& v);
 VtDictionary tag_invoke(const value_to_tag<VtDictionary>&, const value& json);
 
+// --- SdfValueBlock ---
+void tag_invoke(const value_from_tag&, value& json, const SdfValueBlock& v);
+SdfValueBlock tag_invoke(const value_to_tag<SdfValueBlock>&, const value& json);
+
 PXR_NAMESPACE_CLOSE_SCOPE
