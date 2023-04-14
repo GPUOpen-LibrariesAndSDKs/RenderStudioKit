@@ -27,7 +27,10 @@ RenderStudioLayerRegistry::ForEachLayer(const std::function<void(SdfLayerHandle)
 
     for (const auto& [identifier, layer] : mCreatedLayers)
     {
-        fn(layer);
+        if (!layer.IsExpired())
+        {
+            fn(layer);
+        }
     }
 }
 

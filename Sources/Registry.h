@@ -15,7 +15,7 @@ public:
     SdfLayerHandle GetByIdentifier(const std::string& identifier);
 
 private:
-    mutable std::map<std::string, SdfLayerHandle> mCreatedLayers;
+    std::map<std::string, SdfLayerHandle> mCreatedLayers;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
