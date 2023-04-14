@@ -156,6 +156,14 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         }
     }
 
+    // Special case for asset files that already been in scene
+    if (std::filesystem::path(path).extension().string().find(".usd") == std::string::npos)
+    {
+        std::string copy = path;
+        copy.replace(copy.find("studio:"), sizeof("studio:") - 1, mRootPath.string());
+        return ArResolvedPath(copy);
+    }
+
     // If it's RenderStudio path or GpuOpen root material, do not resolve here
     // In case of resolving here, USD would use own SdfFileFormat instead of ours
     return ArResolvedPath(path);
