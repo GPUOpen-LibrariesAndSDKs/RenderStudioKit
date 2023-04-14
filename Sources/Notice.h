@@ -13,7 +13,7 @@ class RenderStudioNotice : public TfNotice
 {
 public:
     AR_API
-    RenderStudioNotice(const SdfPath& path, bool deleted = false);
+    RenderStudioNotice(const SdfPath& path, bool deleted = false, bool appended = false);
 
     AR_API
     SdfPath GetChangedPrim() const;
@@ -21,9 +21,13 @@ public:
     AR_API
     bool WasDeleted() const;
 
+    AR_API
+    bool WasAppended() const;
+
 private:
     SdfPath mChangedPrim;
     bool mWasDeleted = false;
+    bool mWasAppended = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

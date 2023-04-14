@@ -4,9 +4,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_INSTANTIATE_TYPE(RenderStudioNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
 
-RenderStudioNotice::RenderStudioNotice(const SdfPath& path, bool deleted)
+RenderStudioNotice::RenderStudioNotice(const SdfPath& path, bool deleted, bool appended)
     : mChangedPrim(path)
     , mWasDeleted(deleted)
+    , mWasAppended(appended)
 {
 }
 
@@ -20,6 +21,12 @@ bool
 RenderStudioNotice::WasDeleted() const
 {
     return mWasDeleted;
+}
+
+bool
+RenderStudioNotice::WasAppended() const
+{
+    return mWasAppended;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

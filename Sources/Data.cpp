@@ -38,7 +38,8 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
     mIsProcessingRemoteUpdates = true;
 
     // Change block should gain performance
-    SdfChangeBlock block;
+    std::unique_ptr<SdfChangeBlock> block = std::make_unique<SdfChangeBlock>();
+    std::vector<RenderStudioNotice> notices;
 
     // Apply all the deltas (in sequence order)
     std::size_t nextRequestedSequence = mLatestAppliedSequence + 1;
@@ -55,6 +56,10 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                 if (layer->GetSpecType(delta.first) == SdfSpecTypeUnknown)
                 {
                     layer->GetStateDelegate()->CreateSpec(delta.first, delta.second.specType, false);
+                    if (delta.first.IsPrimPath())
+                    {
+                        notices.push_back(RenderStudioNotice(delta.first, false, true));
+                    }
                 }
 
                 // Update field
@@ -62,16 +67,23 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
                 if (field.first == SdfFieldKeys->Active)
                 {
-                    RenderStudioNotice(delta.first, true).Send();
+                    notices.push_back(RenderStudioNotice(delta.first, true, false));
                 }
             }
 
-            RenderStudioNotice(delta.first).Send();
+            notices.push_back(RenderStudioNotice(delta.first, false, false));
         }
 
         mLatestAppliedSequence = nextRequestedSequence;
         mRemoteDeltasQueue.erase(nextRequestedSequence);
         nextRequestedSequence += 1;
+    }
+
+    block.reset();
+
+    for (const auto& notice : notices)
+    {
+        notice.Send();
     }
 
     mIsProcessingRemoteUpdates = false;

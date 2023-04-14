@@ -120,6 +120,10 @@ RenderStudioResolver::SetCurrentUserId(const std::string& id)
 ArResolvedPath
 RenderStudioResolver::_Resolve(const std::string& path) const
 {
+    // If it's RenderStudio path or GpuOpen root material, do not resolve here
+    // In case of resolving here, USD would use own SdfFileFormat instead of ours
+    // Exception is .mtlx or .hdr that already stored in scene
+
     // If it's texture from GpuOpen asset, resolve to physical location here
     if (path.rfind("gpuopen:/", 0) == 0)
     {
@@ -136,6 +140,8 @@ RenderStudioResolver::_Resolve(const std::string& path) const
             }
             return ArResolvedPath(location.string());
         }
+
+        return ArResolvedPath(path);
     }
 
     // If it's texture from LocalStorage asset, resolve to physical location here
@@ -154,6 +160,8 @@ RenderStudioResolver::_Resolve(const std::string& path) const
             }
             return ArResolvedPath(location.string());
         }
+
+        return ArResolvedPath(path);
     }
 
     // Special case for asset files that already been in scene
@@ -164,8 +172,6 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         return ArResolvedPath(copy);
     }
 
-    // If it's RenderStudio path or GpuOpen root material, do not resolve here
-    // In case of resolving here, USD would use own SdfFileFormat instead of ours
     return ArResolvedPath(path);
 }
 
