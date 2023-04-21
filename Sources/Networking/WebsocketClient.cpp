@@ -3,9 +3,14 @@
 #pragma warning(push, 0)
 #include <functional>
 
+#include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/websocket/ssl.hpp>
 #include <uriparser/Uri.h>
 #pragma warning(pop)
+
+#include "Certificates.h"
 
 #include <Logger/Logger.h>
 
@@ -14,11 +19,15 @@ namespace RenderStudio::Networking
 
 WebsocketClient::WebsocketClient(const OnMessageFn& fn)
     : mTcpResolver(boost::asio::make_strand(mIoContext))
-    , mWebsocketStream(boost::asio::make_strand(mIoContext))
     , mPingTimer(mIoContext)
     , mOnMessageFn(fn)
     , mConnected(false)
 {
+    mSslContext = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12_client);
+    AddWindowsRootCertificates(*mSslContext.get());
+    mWebsocketStream
+        = std::make_shared<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>(
+            boost::asio::make_strand(mIoContext), *mSslContext.get());
 }
 
 WebsocketClient::~WebsocketClient()
@@ -52,7 +61,7 @@ WebsocketClient::Disconnect()
 {
     if (mConnected)
     {
-        mWebsocketStream.async_close(
+        mWebsocketStream->async_close(
             boost::beast::websocket::close_code::normal,
             boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this()));
 
@@ -73,7 +82,7 @@ WebsocketClient::SendMessageString(const std::string& message)
         return;
     }
 
-    mWebsocketStream.async_write(
+    mWebsocketStream->async_write(
         boost::asio::buffer(mWriteQueue.back()),
         boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
 }
@@ -92,7 +101,7 @@ WebsocketClient::Ping(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    mWebsocketStream.async_ping("", boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this()));
+    mWebsocketStream->async_ping("", boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this()));
 }
 
 void
@@ -104,9 +113,9 @@ WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::re
         return Disconnect();
     }
 
-    boost::beast::get_lowest_layer(mWebsocketStream).expires_after(std::chrono::seconds(30));
+    boost::beast::get_lowest_layer(*mWebsocketStream.get()).expires_after(std::chrono::seconds(30));
 
-    boost::beast::get_lowest_layer(mWebsocketStream)
+    boost::beast::get_lowest_layer(*mWebsocketStream.get())
         .async_connect(results, boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this()));
 }
 
@@ -119,17 +128,39 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         return Disconnect();
     }
 
-    boost::beast::get_lowest_layer(mWebsocketStream).expires_never();
+    boost::beast::get_lowest_layer(*mWebsocketStream.get()).expires_never();
 
-    mWebsocketStream.set_option(
+    mWebsocketStream->set_option(
         boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
 
-    mWebsocketStream.set_option(boost::beast::websocket::stream_base::decorator(
+    mWebsocketStream->set_option(boost::beast::websocket::stream_base::decorator(
         [](boost::beast::websocket::request_type& request)
         { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
 
-    mWebsocketStream.async_handshake(
-        mEndpoint.Host() + ":" + std::to_string(endpoint.port()),
+    if (!SSL_set_tlsext_host_name(mWebsocketStream->next_layer().native_handle(), mEndpoint.Host().c_str()))
+    {
+        boost::beast::error_code ec { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
+        throw boost::beast::system_error { ec };
+    }
+
+    mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
+
+    mWebsocketStream->next_layer().async_handshake(
+        boost::asio::ssl::stream_base::client,
+        boost::beast::bind_front_handler(&WebsocketClient::OnSslHandshake, shared_from_this()));
+}
+
+void
+WebsocketClient::OnSslHandshake(boost::beast::error_code ec)
+{
+    if (ec)
+    {
+        LOG_ERROR << "[Networking] " << ec.message();
+        return Disconnect();
+    }
+
+    mWebsocketStream->async_handshake(
+        mSslHost,
         mEndpoint.Target(),
         boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
 }
@@ -184,7 +215,7 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 
     if (!mWriteQueue.empty())
     {
-        mWebsocketStream.async_write(
+        mWebsocketStream->async_write(
             boost::asio::buffer(mWriteQueue.back()),
             boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
     }
@@ -210,7 +241,7 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
         mReadBuffer.clear();
     }
 
-    mWebsocketStream.async_read(
+    mWebsocketStream->async_read(
         mReadBuffer, boost::beast::bind_front_handler(&WebsocketClient::OnRead, shared_from_this()));
 }
 

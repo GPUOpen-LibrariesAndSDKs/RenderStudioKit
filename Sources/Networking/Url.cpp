@@ -41,7 +41,18 @@ Url::Parse(const std::string& request)
 
     if (result.mPort.empty())
     {
-        result.mPort = result.mProtocol == "https" ? "443" : "80";
+        if (result.mProtocol == "https" || result.mProtocol == "wss")
+        {
+            result.mPort = "443";
+        }
+        else if (result.mProtocol == "http" || result.mProtocol == "ws")
+        {
+            result.mPort = "80";
+        }
+        else
+        {
+            throw std::runtime_error("Unsupported protocol");
+        }
     }
 
     uriFreeUriMembersA(&uri);

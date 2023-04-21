@@ -15,7 +15,7 @@ find_package(BinaryOpenSSL REQUIRED)
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     Boost::boost 
-    OpenSSL::SSL 
+    OpenSSL::SSL
     RenderStudioLogger
     RenderStudioExternal)
 
@@ -29,10 +29,14 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     WIN32_LEAN_AND_MEAN NOMINMAX
     _WIN32_WINNT=0x0601)
 
-setmaxwarninglevel(${PROJECT_NAME})
+SetMaxWarningLevel(${PROJECT_NAME})
+
+if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
+endif()
 
 # Install headers
-install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h
+install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
     DESTINATION include/RenderStudioResolver/Networking)
 
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
