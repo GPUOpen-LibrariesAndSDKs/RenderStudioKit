@@ -7,7 +7,7 @@ TF_INSTANTIATE_TYPE(RenderStudioNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 RenderStudioNotice::RenderStudioNotice(const SdfPath& path, bool deleted, bool appended)
     : mChangedPrim(path)
     , mWasDeleted(deleted)
-    , mWasAppended(appended)
+    , mSpecWasCreated(appended)
 {
 }
 
@@ -24,9 +24,9 @@ RenderStudioNotice::WasDeleted() const
 }
 
 bool
-RenderStudioNotice::WasAppended() const
+RenderStudioNotice::SpecWasCreated() const
 {
-    return mWasAppended;
+    return mSpecWasCreated;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

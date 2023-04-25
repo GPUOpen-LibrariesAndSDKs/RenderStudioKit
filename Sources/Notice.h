@@ -22,12 +22,12 @@ public:
     bool WasDeleted() const;
 
     AR_API
-    bool WasAppended() const;
+    bool SpecWasCreated() const;
 
 private:
     SdfPath mChangedPrim;
     bool mWasDeleted = false;
-    bool mWasAppended = false;
+    bool mSpecWasCreated = false;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
