@@ -83,7 +83,10 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     for (const auto& notice : notices)
     {
-        notice.Send();
+        if (notice.IsValid())
+        {
+            notice.Send();
+        }
     }
 
     mIsProcessingRemoteUpdates = false;

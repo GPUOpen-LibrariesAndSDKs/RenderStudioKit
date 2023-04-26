@@ -24,10 +24,14 @@ public:
     AR_API
     bool SpecWasCreated() const;
 
+    AR_API
+    bool IsValid() const;
+
 private:
     SdfPath mChangedPrim;
     bool mWasDeleted = false;
     bool mSpecWasCreated = false;
+    bool mIsValid = true;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
