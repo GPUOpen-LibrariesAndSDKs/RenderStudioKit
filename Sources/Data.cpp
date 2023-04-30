@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <iostream>
+#include <set>
 
 #include <pxr/base/trace/trace.h>
 #include <pxr/base/work/utils.h>
@@ -62,8 +63,25 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                     }
                 }
 
-                // Update field
-                layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
+                if (field.first == SdfChildrenKeys->PrimChildren)
+                {
+                    // Merge corner case
+                    auto localData = layer->GetField(delta.first, field.first).Get<std::vector<TfToken>>();
+                    auto remoteData = field.second.Get<std::vector<TfToken>>();
+
+                    // Make set to forbid equal items
+                    std::set<TfToken> set;
+                    std::copy(localData.begin(), localData.end(), std::inserter(set, set.begin()));
+                    std::copy(remoteData.begin(), remoteData.end(), std::inserter(set, set.begin()));
+
+                    std::vector<TfToken> merged(set.begin(), set.end());
+                    layer->GetStateDelegate()->SetField(delta.first, field.first, VtValue { merged });
+                }
+                else
+                {
+                    // Regular field update
+                    layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
+                }
 
                 if (field.first == SdfFieldKeys->Active)
                 {
