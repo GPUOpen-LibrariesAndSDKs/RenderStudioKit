@@ -49,13 +49,17 @@ DeserializeDeltas(const std::string message)
         for (const auto& jsonUpdate : jsonUpdates)
         {
             SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
-            boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
 
-            for (const auto& jsonField : jsonFields)
+            if (jsonUpdate.as_object().if_contains("fields"))
             {
-                TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
-                VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
-                deltas[path].fields.push_back({ key, value });
+                boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
+
+                for (const auto& jsonField : jsonFields)
+                {
+                    TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
+                    VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
+                    deltas[path].fields.push_back({ key, value });
+                }
             }
 
             deltas[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
