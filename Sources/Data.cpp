@@ -14,7 +14,6 @@
 #pragma warning(pop)
 
 #include "Logger/Logger.h"
-#include "Notice.h"
 #include "Resolver.h"
 #include "Serialization/Serialization.h"
 
@@ -29,6 +28,64 @@ RenderStudioData::~RenderStudioData()
 {
     // Clear out mData in parallel, since it can get big.
     WorkSwapDestroyAsync(mData);
+}
+
+void
+RenderStudioData::ApplyDelta(
+    SdfLayerHandle& layer,
+    std::vector<RenderStudioNotice>& notices,
+    const SdfPath& path,
+    const TfToken& key,
+    const VtValue& value,
+    SdfSpecType spec)
+{
+    // Create field if not exist
+    if (layer->GetSpecType(path) == SdfSpecTypeUnknown)
+    {
+        layer->GetStateDelegate()->CreateSpec(path, spec, false);
+        if (path.IsPrimPath())
+        {
+            notices.push_back(RenderStudioNotice(path, false, true));
+        }
+    }
+
+    if (key == SdfChildrenKeys->PrimChildren)
+    {
+        // Merge corner case
+        auto localData = layer->GetField(path, key).Get<std::vector<TfToken>>();
+        auto remoteData = value.Get<std::vector<TfToken>>();
+
+        // Make set to forbid equal items
+        std::set<TfToken> set;
+        std::copy(localData.begin(), localData.end(), std::inserter(set, set.begin()));
+        std::copy(remoteData.begin(), remoteData.end(), std::inserter(set, set.begin()));
+
+        std::vector<TfToken> merged(set.begin(), set.end());
+        layer->GetStateDelegate()->SetField(path, key, VtValue { merged });
+
+        // Debug log
+        std::stringstream ss;
+        for (const auto& value : merged)
+            ss << value << ',';
+        LOG_DEBUG << "Merge update: " << path << " [" << ss.str() << "]";
+    }
+    else
+    {
+        // Ignore all unacknowledged updates
+        if (mUnacknowledgedFields.count(path) > 0)
+        {
+            LOG_DEBUG << "Skip unacknowledged message: " << path;
+            return;
+        }
+
+        // Regular field update
+        layer->GetStateDelegate()->SetField(path, key, value);
+    }
+
+    if (key == SdfFieldKeys->Active)
+    {
+        notices.push_back(RenderStudioNotice(path, true, false));
+    }
 }
 
 void
@@ -51,42 +108,17 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
         for (const std::pair<SdfPath, _SpecData>& delta : deltas)
         {
+            // Check if it's acknowledge message (for now it just doesn't contain fields)
+            if (delta.second.fields.empty())
+            {
+                mUnacknowledgedFields.erase(delta.first);
+                continue;
+            }
+
+            // Process updates
             for (const std::pair<TfToken, VtValue>& field : delta.second.fields)
             {
-                // Create field if not exist
-                if (layer->GetSpecType(delta.first) == SdfSpecTypeUnknown)
-                {
-                    layer->GetStateDelegate()->CreateSpec(delta.first, delta.second.specType, false);
-                    if (delta.first.IsPrimPath())
-                    {
-                        notices.push_back(RenderStudioNotice(delta.first, false, true));
-                    }
-                }
-
-                if (field.first == SdfChildrenKeys->PrimChildren)
-                {
-                    // Merge corner case
-                    auto localData = layer->GetField(delta.first, field.first).Get<std::vector<TfToken>>();
-                    auto remoteData = field.second.Get<std::vector<TfToken>>();
-
-                    // Make set to forbid equal items
-                    std::set<TfToken> set;
-                    std::copy(localData.begin(), localData.end(), std::inserter(set, set.begin()));
-                    std::copy(remoteData.begin(), remoteData.end(), std::inserter(set, set.begin()));
-
-                    std::vector<TfToken> merged(set.begin(), set.end());
-                    layer->GetStateDelegate()->SetField(delta.first, field.first, VtValue { merged });
-                }
-                else
-                {
-                    // Regular field update
-                    layer->GetStateDelegate()->SetField(delta.first, field.first, field.second);
-                }
-
-                if (field.first == SdfFieldKeys->Active)
-                {
-                    notices.push_back(RenderStudioNotice(delta.first, true, false));
-                }
+                ApplyDelta(layer, notices, delta.first, field.first, field.second, delta.second.specType);
             }
 
             notices.push_back(RenderStudioNotice(delta.first, false, false));
@@ -99,7 +131,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     block.reset();
 
-    for (const auto& notice : notices)
+    for (const RenderStudioNotice& notice : notices)
     {
         if (notice.IsValid())
         {
@@ -443,6 +475,10 @@ RenderStudioData::_GetOrCreateFieldValueDelta(const SdfPath& path, const TfToken
     }
 
     spec.fields.emplace_back(std::piecewise_construct, std::forward_as_tuple(field), std::forward_as_tuple());
+
+    // Hypothesis: Ignoring all unacknowledged paths during updates receiving would grant data consistency
+    mUnacknowledgedFields.insert(path);
+
     return &spec.fields.back().second;
 }
 

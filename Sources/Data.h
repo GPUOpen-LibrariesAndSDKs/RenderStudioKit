@@ -13,6 +13,7 @@
 #include <pxr/usd/usd/stage.h>
 #pragma warning(pop)
 
+#include "Notice.h"
 #include "Serialization/Api.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -101,6 +102,13 @@ protected:
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
+    void ApplyDelta(
+        SdfLayerHandle& layer,
+        std::vector<RenderStudioNotice>& notices,
+        const SdfPath& path,
+        const TfToken& key,
+        const VtValue& value,
+        SdfSpecType spec);
     void ProcessRemoteUpdates(SdfLayerHandle& layer);
     void AccumulateRemoteUpdate(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
     RenderStudioApi::DeltaType FetchLocalDeltas();
@@ -122,6 +130,7 @@ private:
 
     _HashTable mData;
     _HashTable mLocalDeltas;
+    std::set<SdfPath> mUnacknowledgedFields;
     std::mutex mRemoteMutex;
     std::size_t mLatestAppliedSequence = 0;
     std::map<std::size_t, RenderStudioApi::DeltaType> mRemoteDeltasQueue;
