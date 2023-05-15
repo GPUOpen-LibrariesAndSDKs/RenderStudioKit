@@ -49,35 +49,61 @@ RenderStudioData::ApplyDelta(
         }
     }
 
-    if (key == SdfChildrenKeys->PrimChildren)
+    bool requireMerge = key == SdfChildrenKeys->PrimChildren;
+    bool unacknowledgedYet = mUnacknowledgedFields.count(path) > 0;
+
+    // Ignore all unacknowledged updates except mergeable
+    if (!requireMerge && unacknowledgedYet)
+    {
+        LOG_DEBUG << "Skip unacknowledged message: " << path;
+        return;
+    }
+
+    if (requireMerge)
     {
         // Merge corner case
         auto localData = layer->GetField(path, key).Get<std::vector<TfToken>>();
         auto remoteData = value.Get<std::vector<TfToken>>();
 
-        // Make set to forbid equal items
-        std::set<TfToken> set;
-        std::copy(localData.begin(), localData.end(), std::inserter(set, set.begin()));
-        std::copy(remoteData.begin(), remoteData.end(), std::inserter(set, set.begin()));
+        // Merge vectors, if our update is acknowledged then it would appear earlier in vector
+        std::vector<TfToken> merged;
 
-        std::vector<TfToken> merged(set.begin(), set.end());
-        layer->GetStateDelegate()->SetField(path, key, VtValue { merged });
+        if (unacknowledgedYet)
+        {
+            merged.insert(merged.end(), remoteData.begin(), remoteData.end());
+            merged.insert(merged.end(), localData.begin(), localData.end());
+        }
+        else
+        {
+            merged.insert(merged.end(), localData.begin(), localData.end());
+            merged.insert(merged.end(), remoteData.begin(), remoteData.end());
+        }
+
+        // Remove duplicates
+        std::unordered_set<TfToken, TfToken::HashFunctor> seen;
+        std::vector<TfToken> deduplicated;
+
+        for (const auto& item : merged)
+        {
+            if (seen.find(item) == seen.end())
+            {
+                deduplicated.push_back(item);
+                seen.insert(item);
+            }
+        }
+
+        layer->GetStateDelegate()->SetField(path, key, VtValue { deduplicated });
 
         // Debug log
         std::stringstream ss;
-        for (const auto& value : merged)
+        for (const auto& value : deduplicated)
+        {
             ss << value << ',';
+        }
         LOG_DEBUG << "Merge update: " << path << " [" << ss.str() << "]";
     }
     else
     {
-        // Ignore all unacknowledged updates
-        if (mUnacknowledgedFields.count(path) > 0)
-        {
-            LOG_DEBUG << "Skip unacknowledged message: " << path;
-            return;
-        }
-
         // Regular field update
         layer->GetStateDelegate()->SetField(path, key, value);
     }
