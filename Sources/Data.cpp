@@ -62,8 +62,8 @@ RenderStudioData::ApplyDelta(
     if (requireMerge)
     {
         // Merge corner case
-        auto localData = layer->GetField(path, key).Get<std::vector<TfToken>>();
-        auto remoteData = value.Get<std::vector<TfToken>>();
+        auto localData = layer->GetField(path, key).GetWithDefault<std::vector<TfToken>>();
+        auto remoteData = value.GetWithDefault<std::vector<TfToken>>();
 
         // Merge vectors, if our update is acknowledged then it would appear earlier in vector
         std::vector<TfToken> merged;
