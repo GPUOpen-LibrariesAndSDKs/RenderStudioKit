@@ -34,4 +34,38 @@ private:
     bool mIsValid = true;
 };
 
+class RenderStudioLoadingNotice : public TfNotice
+{
+public:
+    enum class Action
+    {
+        Started,
+        Finished
+    };
+
+    AR_API
+    RenderStudioLoadingNotice(const std::string& name, const std::string& category);
+
+    AR_API
+    ~RenderStudioLoadingNotice();
+
+    AR_API
+    std::string GetName() const;
+
+    AR_API
+    std::string GetCategory() const;
+
+    AR_API
+    std::string GetUuid() const;
+
+    AR_API
+    Action GetAction() const;
+
+private:
+    std::string mName;
+    std::string mCategory;
+    std::string mUuid;
+    Action mAction;
+};
+
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -1,5 +1,6 @@
 #include "Asset.h"
 
+#include <Notice.h>
 #include <Resolver.h>
 
 #include <Logger/Logger.h>

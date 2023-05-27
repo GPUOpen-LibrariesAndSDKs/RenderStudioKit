@@ -252,6 +252,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("studio:/", 0) == 0)
     {
+        RenderStudioLoadingNotice notice(_path, "primitive");
+
         _path.erase(0, std::string("studio:/").size());
         std::filesystem::path resolved = mRootPath / _path;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolved.string() });
@@ -259,6 +261,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("gpuopen:/", 0) == 0)
     {
+        RenderStudioLoadingNotice notice(_path, "material");
+
         std::string uuid = resolvedPath.GetPathString();
         uuid.erase(0, std::string("gpuopen:/").size());
         std::filesystem::path saveLocation = mRootPath / "Materials" / uuid;
@@ -267,6 +271,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("storage:/", 0) == 0)
     {
+        RenderStudioLoadingNotice notice(_path, "light");
+
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
         auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(

@@ -57,7 +57,7 @@ private:
     void ProcessLiveUpdates();
     void Connect(const std::string& url);
     void Disconnect();
-    RenderStudioDataPtr _GetRenderStudioData(SdfLayerHandle layer);
+    RenderStudioDataPtr _GetRenderStudioData(SdfLayerHandle layer) const;
     void OnMessage(const std::string& message);
 
     friend class RenderStudioResolver;

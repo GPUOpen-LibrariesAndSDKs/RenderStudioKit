@@ -49,8 +49,8 @@ RenderStudioData::ApplyDelta(
         }
     }
 
-    bool requireMerge = key == SdfChildrenKeys->PrimChildren;
     bool unacknowledgedYet = mUnacknowledgedFields.count(path) > 0;
+    bool requireMerge = key == SdfChildrenKeys->PrimChildren && unacknowledgedYet;
 
     // Ignore all unacknowledged updates except mergeable
     if (!requireMerge && unacknowledgedYet)
@@ -181,15 +181,15 @@ RenderStudioData::AccumulateRemoteUpdate(
 RenderStudioApi::DeltaType
 RenderStudioData::FetchLocalDeltas()
 {
-    if (mFirstFetch)
-    {
-        mFirstFetch = false;
-        mLocalDeltas.clear();
-    }
-
     auto copy = mLocalDeltas;
     mLocalDeltas.clear();
     return copy;
+}
+
+void
+RenderStudioData::OnLoaded()
+{
+    mIsLoaded = true;
 }
 
 bool
@@ -410,7 +410,7 @@ RenderStudioData::Set(const SdfPath& path, const TfToken& field, const VtValue& 
     }
 
     // USD calls Set() method while setting fields, we don't want to update local deltas in such case
-    if (mIsProcessingRemoteUpdates)
+    if (mIsProcessingRemoteUpdates || !mIsLoaded)
     {
         return;
     }
@@ -436,7 +436,7 @@ RenderStudioData::Set(const SdfPath& path, const TfToken& field, const SdfAbstra
     }
 
     // USD calls Set() method while setting fields, we don't want to update local deltas in such case
-    if (mIsProcessingRemoteUpdates)
+    if (mIsProcessingRemoteUpdates || !mIsLoaded)
     {
         return;
     }

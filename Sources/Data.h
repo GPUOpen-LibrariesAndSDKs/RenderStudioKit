@@ -112,6 +112,7 @@ private:
     void ProcessRemoteUpdates(SdfLayerHandle& layer);
     void AccumulateRemoteUpdate(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
     RenderStudioApi::DeltaType FetchLocalDeltas();
+    void OnLoaded();
 
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path, const TfToken& field, SdfSpecType* specType) const;
 
@@ -134,7 +135,7 @@ private:
     std::mutex mRemoteMutex;
     std::size_t mLatestAppliedSequence = 0;
     std::map<std::size_t, RenderStudioApi::DeltaType> mRemoteDeltasQueue;
-    bool mFirstFetch = true;
+    bool mIsLoaded = false;
     bool mIsProcessingRemoteUpdates = false;
 };
 

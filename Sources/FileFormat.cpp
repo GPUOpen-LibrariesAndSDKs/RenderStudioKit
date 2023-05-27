@@ -52,7 +52,7 @@ _GetMtlxFileFormat()
 } // namespace
 
 RenderStudioDataPtr
-RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer)
+RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer) const
 {
     SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
     RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
@@ -200,6 +200,9 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
     SdfAbstractDataRefPtr renderStudioData = InitData(GetDefaultFileFormatArguments());
     renderStudioData->CopyFrom(abstractData);
     SdfFileFormat::_SetLayerData(layer, renderStudioData);
+
+    // Tell layer that loading is finished and all new updates would be considered as user edit
+    _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
 
     return result;
 }
