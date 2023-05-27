@@ -1,6 +1,8 @@
 #pragma once
 
 #pragma warning(push, 0)
+#include <optional>
+
 #include <pxr/base/tf/instantiateType.h>
 #include <pxr/base/tf/notice.h>
 #include <pxr/usd/ar/api.h>
@@ -9,11 +11,11 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class RenderStudioNotice : public TfNotice
+class RenderStudioPrimitiveNotice : public TfNotice
 {
 public:
     AR_API
-    RenderStudioNotice(const SdfPath& path, bool deleted = false, bool appended = false);
+    RenderStudioPrimitiveNotice(const SdfPath& path, bool deleted = false, bool appended = false);
 
     AR_API
     SdfPath GetChangedPrim() const;
@@ -30,7 +32,7 @@ public:
 private:
     SdfPath mChangedPrim;
     bool mWasDeleted = false;
-    bool mSpecWasCreated = false;
+    bool mWasCreated = false;
     bool mIsValid = true;
 };
 
@@ -66,6 +68,23 @@ private:
     std::string mCategory;
     std::string mUuid;
     Action mAction;
+};
+
+class RenderStudioOwnerNotice : public TfNotice
+{
+public:
+    AR_API
+    RenderStudioOwnerNotice(const SdfPath& path, const std::optional<std::string> owner);
+
+    AR_API
+    SdfPath GetPath() const;
+
+    AR_API
+    std::optional<std::string> GetOwner() const;
+
+private:
+    SdfPath mPath;
+    std::optional<std::string> mOwner;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

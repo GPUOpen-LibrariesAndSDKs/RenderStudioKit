@@ -104,7 +104,7 @@ protected:
 private:
     void ApplyDelta(
         SdfLayerHandle& layer,
-        std::vector<RenderStudioNotice>& notices,
+        std::vector<RenderStudioPrimitiveNotice>& notices,
         const SdfPath& path,
         const TfToken& key,
         const VtValue& value,

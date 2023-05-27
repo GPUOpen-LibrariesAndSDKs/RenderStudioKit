@@ -68,8 +68,6 @@ RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer) const
 void
 RenderStudioFileFormat::OnMessage(const std::string& message)
 {
-    LOG_DEBUG << "Received message: " << message;
-
     // Receive deltas
     std::string identifier;
     RenderStudioApi::DeltaType deltas;

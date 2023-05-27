@@ -33,7 +33,7 @@ RenderStudioData::~RenderStudioData()
 void
 RenderStudioData::ApplyDelta(
     SdfLayerHandle& layer,
-    std::vector<RenderStudioNotice>& notices,
+    std::vector<RenderStudioPrimitiveNotice>& notices,
     const SdfPath& path,
     const TfToken& key,
     const VtValue& value,
@@ -45,15 +45,45 @@ RenderStudioData::ApplyDelta(
         layer->GetStateDelegate()->CreateSpec(path, spec, false);
         if (path.IsPrimPath())
         {
-            notices.push_back(RenderStudioNotice(path, false, true));
+            notices.push_back(RenderStudioPrimitiveNotice(path, false, true));
+        }
+    }
+
+    // Check if it's primitive lock by other user
+    if (key == SdfFieldKeys->CustomData && value.IsHolding<VtDictionary>())
+    {
+        VtDictionary data = value.Get<VtDictionary>();
+        auto it = data.find("owner");
+        if (it != data.end() && it->first == "owner")
+        {
+            std::optional<std::string> owner = [&it]() -> std::optional<std::string>
+            {
+                std::string owner = it->second.Get<std::string>();
+                if (owner == "None")
+                {
+                    return std::nullopt;
+                }
+                else
+                {
+                    return owner;
+                }
+            }();
+
+            RenderStudioOwnerNotice(path, owner).Send();
         }
     }
 
     bool unacknowledgedYet = mUnacknowledgedFields.count(path) > 0;
     bool requireMerge = key == SdfChildrenKeys->PrimChildren && unacknowledgedYet;
+    bool requireForceApply = path.GetNameToken().GetString().find("xformOp:") != std::string::npos;
 
-    // Ignore all unacknowledged updates except mergeable
-    if (!requireMerge && unacknowledgedYet)
+    // Ignore all unacknowledged updates except mergeable or which must be force applied
+    // Merge updates might not be skipped because we need to have both own edit and other user edit, overwrites
+    // prohibited Transformations must be always applied to guarantee that each user would receive update because we
+    // would use implicit primitive locks for editing All other unacknowledged attributes might be skipped, because we
+    // are sure that our edit would be latest in history
+
+    if (!requireForceApply && !requireMerge && unacknowledgedYet)
     {
         LOG_DEBUG << "Skip unacknowledged message: " << path;
         return;
@@ -110,7 +140,7 @@ RenderStudioData::ApplyDelta(
 
     if (key == SdfFieldKeys->Active)
     {
-        notices.push_back(RenderStudioNotice(path, true, false));
+        notices.push_back(RenderStudioPrimitiveNotice(path, true, false));
     }
 }
 
@@ -123,7 +153,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     // Change block should gain performance
     std::unique_ptr<SdfChangeBlock> block = std::make_unique<SdfChangeBlock>();
-    std::vector<RenderStudioNotice> notices;
+    std::vector<RenderStudioPrimitiveNotice> notices;
 
     // Apply all the deltas (in sequence order)
     std::size_t nextRequestedSequence = mLatestAppliedSequence + 1;
@@ -147,7 +177,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                 ApplyDelta(layer, notices, delta.first, field.first, field.second, delta.second.specType);
             }
 
-            notices.push_back(RenderStudioNotice(delta.first, false, false));
+            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false, false));
         }
 
         mLatestAppliedSequence = nextRequestedSequence;
@@ -157,7 +187,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     block.reset();
 
-    for (const RenderStudioNotice& notice : notices)
+    for (const RenderStudioPrimitiveNotice& notice : notices)
     {
         if (notice.IsValid())
         {

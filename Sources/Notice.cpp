@@ -9,8 +9,9 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_INSTANTIATE_TYPE(RenderStudioNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
+TF_INSTANTIATE_TYPE(RenderStudioPrimitiveNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
 TF_INSTANTIATE_TYPE(RenderStudioLoadingNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
+TF_INSTANTIATE_TYPE(RenderStudioOwnerNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
 
 namespace uuid
 {
@@ -54,37 +55,42 @@ generate_uuid_v4()
 }
 } // namespace uuid
 
-RenderStudioNotice::RenderStudioNotice(const SdfPath& path, bool deleted, bool appended)
+RenderStudioPrimitiveNotice::RenderStudioPrimitiveNotice(const SdfPath& path, bool deleted, bool appended)
     : mChangedPrim(path)
     , mWasDeleted(deleted)
-    , mSpecWasCreated(appended)
+    , mWasCreated(appended)
 {
     if (!mChangedPrim.IsPrimPath())
+    {
+        mChangedPrim = mChangedPrim.GetPrimPath();
+    }
+
+    if (!mChangedPrim.IsPrimPath() || mChangedPrim.IsAbsoluteRootPath())
     {
         mIsValid = false;
     }
 }
 
 SdfPath
-RenderStudioNotice::GetChangedPrim() const
+RenderStudioPrimitiveNotice::GetChangedPrim() const
 {
     return mChangedPrim;
 }
 
 bool
-RenderStudioNotice::WasDeleted() const
+RenderStudioPrimitiveNotice::WasDeleted() const
 {
     return mWasDeleted;
 }
 
 bool
-RenderStudioNotice::SpecWasCreated() const
+RenderStudioPrimitiveNotice::SpecWasCreated() const
 {
-    return mSpecWasCreated;
+    return mWasCreated;
 }
 
 bool
-RenderStudioNotice::IsValid() const
+RenderStudioPrimitiveNotice::IsValid() const
 {
     return mIsValid;
 }
@@ -126,6 +132,24 @@ RenderStudioLoadingNotice::Action
 RenderStudioLoadingNotice::GetAction() const
 {
     return mAction;
+}
+
+RenderStudioOwnerNotice::RenderStudioOwnerNotice(const SdfPath& path, const std::optional<std::string> owner)
+    : mPath(path)
+    , mOwner(owner)
+{
+}
+
+SdfPath
+RenderStudioOwnerNotice::GetPath() const
+{
+    return mPath;
+}
+
+std::optional<std::string>
+RenderStudioOwnerNotice::GetOwner() const
+{
+    return mOwner;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
