@@ -8,7 +8,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 
 # Find packages
 find_package(USDMonolithic REQUIRED)
-find_package(Boost REQUIRED COMPONENTS python random)
+find_package(Boost REQUIRED COMPONENTS python)
 
 add_subdirectory(External)
 add_subdirectory(Logger)
@@ -19,7 +19,6 @@ add_subdirectory(Serialization)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
     Boost::boost
     Boost::python
-    Boost::random
     ar
     sdf
     RenderStudioNetworking
