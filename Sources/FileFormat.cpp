@@ -21,7 +21,9 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+#pragma warning(push, 0)
 TF_DEFINE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, RENDER_STUDIO_FILE_FORMAT_TOKENS);
+#pragma warning(pop)
 
 TF_REGISTRY_FUNCTION(TfType) { SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, SdfFileFormat); }
 
@@ -87,7 +89,7 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
 
     if (layer != nullptr)
     {
-        _GetRenderStudioData(layer)->AccumulateRemoteUpdate(layer, deltas, sequence);
+        _GetRenderStudioData(layer)->AccumulateRemoteUpdate(deltas, sequence);
     }
 }
 
@@ -151,6 +153,7 @@ RenderStudioFileFormat::Disconnect()
 SdfAbstractDataRefPtr
 RenderStudioFileFormat::InitData(const FileFormatArguments& args) const
 {
+    (void)args;
     // Copy-pasted from USD. By default USD requires at least pseudo root spec.
     RenderStudioData* metadata = new RenderStudioData;
     metadata->CreateSpec(SdfPath::AbsoluteRootPath(), SdfSpecTypePseudoRoot);

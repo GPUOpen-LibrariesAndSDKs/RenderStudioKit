@@ -60,7 +60,11 @@ GpuOpenAsset::GetBuffer() const
         {
         }
 
-        void operator()(const char* b) { _mapping.reset(); }
+        void operator()(const char* b)
+        {
+            (void)b;
+            _mapping.reset();
+        }
 
         std::shared_ptr<ArchConstFileMapping> _mapping;
     };

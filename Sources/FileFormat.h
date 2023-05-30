@@ -21,7 +21,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 #define RENDER_STUDIO_FILE_FORMAT_TOKENS ((Id, "studio"))((Version, "1.0"))((Target, "usd"))
 
 #pragma warning(push, 0)
-TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, SDF_API, RENDER_STUDIO_FILE_FORMAT_TOKENS);
+TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, AR_API, RENDER_STUDIO_FILE_FORMAT_TOKENS);
 #pragma warning(pop)
 
 TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
@@ -31,10 +31,10 @@ class ArAsset;
 class RenderStudioFileFormat : public SdfFileFormat
 {
 public:
-    SDF_API
+    AR_API
     SdfAbstractDataRefPtr InitData(const FileFormatArguments& args) const override;
 
-    SDF_API
+    AR_API
     virtual SdfLayer* _InstantiateNewLayer(
         const SdfFileFormatConstPtr& fileFormat,
         const std::string& identifier,
@@ -42,10 +42,10 @@ public:
         const ArAssetInfo& assetInfo,
         const FileFormatArguments& args) const override;
 
-    SDF_API
+    AR_API
     virtual bool CanRead(const std::string& file) const override;
 
-    SDF_API
+    AR_API
     virtual bool Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const override;
 
 private:

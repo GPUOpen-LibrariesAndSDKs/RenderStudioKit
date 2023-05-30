@@ -139,8 +139,8 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
 
     if (!SSL_set_tlsext_host_name(mWebsocketStream->next_layer().native_handle(), mEndpoint.Host().c_str()))
     {
-        boost::beast::error_code ec { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
-        throw boost::beast::system_error { ec };
+        boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
+        throw boost::beast::system_error { sslEc };
     }
 
     mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());

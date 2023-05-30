@@ -63,8 +63,8 @@ SslImpl(boost::asio::io_context& context, const Url& url, const ResultsT& result
 
     if (!SSL_set_tlsext_host_name(stream.native_handle(), url.Host().c_str()))
     {
-        boost::beast::error_code ec { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
-        throw boost::beast::system_error { ec };
+        boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
+        throw boost::beast::system_error { sslEc };
     }
 
     boost::beast::get_lowest_layer(stream).connect(results);

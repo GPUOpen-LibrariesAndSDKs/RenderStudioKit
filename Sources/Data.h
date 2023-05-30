@@ -27,78 +27,78 @@ class RenderStudioData : public SdfAbstractData
 public:
     RenderStudioData();
 
-    SDF_API
+    AR_API
     virtual ~RenderStudioData();
 
     /// SdfAbstractData overrides
-    SDF_API
+    AR_API
     virtual bool StreamsData() const;
 
-    SDF_API
+    AR_API
     virtual void CreateSpec(const SdfPath& path, SdfSpecType specType);
-    SDF_API
+    AR_API
     virtual bool HasSpec(const SdfPath& path) const;
-    SDF_API
+    AR_API
     virtual void EraseSpec(const SdfPath& path);
-    SDF_API
+    AR_API
     virtual void MoveSpec(const SdfPath& oldPath, const SdfPath& newPath);
-    SDF_API
+    AR_API
     virtual SdfSpecType GetSpecType(const SdfPath& path) const;
 
-    SDF_API
+    AR_API
     virtual bool Has(const SdfPath& path, const TfToken& fieldName, SdfAbstractDataValue* value) const;
-    SDF_API
+    AR_API
     virtual bool Has(const SdfPath& path, const TfToken& fieldName, VtValue* value = NULL) const;
-    SDF_API
+    AR_API
     virtual bool
     HasSpecAndField(const SdfPath& path, const TfToken& fieldName, SdfAbstractDataValue* value, SdfSpecType* specType)
         const;
 
-    SDF_API
+    AR_API
     virtual bool
     HasSpecAndField(const SdfPath& path, const TfToken& fieldName, VtValue* value, SdfSpecType* specType) const;
 
-    SDF_API
+    AR_API
     virtual VtValue Get(const SdfPath& path, const TfToken& fieldName) const;
-    SDF_API
+    AR_API
     virtual void Set(const SdfPath& path, const TfToken& fieldName, const VtValue& value);
-    SDF_API
+    AR_API
     virtual void Set(const SdfPath& path, const TfToken& fieldName, const SdfAbstractDataConstValue& value);
-    SDF_API
+    AR_API
     virtual void Erase(const SdfPath& path, const TfToken& fieldName);
-    SDF_API
+    AR_API
     virtual std::vector<TfToken> List(const SdfPath& path) const;
 
-    SDF_API
+    AR_API
     virtual std::set<double> ListAllTimeSamples() const;
 
-    SDF_API
+    AR_API
     virtual std::set<double> ListTimeSamplesForPath(const SdfPath& path) const;
 
-    SDF_API
+    AR_API
     virtual bool GetBracketingTimeSamples(double time, double* tLower, double* tUpper) const;
 
-    SDF_API
+    AR_API
     virtual size_t GetNumTimeSamplesForPath(const SdfPath& path) const;
 
-    SDF_API
+    AR_API
     virtual bool
     GetBracketingTimeSamplesForPath(const SdfPath& path, double time, double* tLower, double* tUpper) const;
 
-    SDF_API
+    AR_API
     virtual bool QueryTimeSample(const SdfPath& path, double time, SdfAbstractDataValue* optionalValue) const;
-    SDF_API
+    AR_API
     virtual bool QueryTimeSample(const SdfPath& path, double time, VtValue* value) const;
 
-    SDF_API
+    AR_API
     virtual void SetTimeSample(const SdfPath& path, double time, const VtValue& value);
 
-    SDF_API
+    AR_API
     virtual void EraseTimeSample(const SdfPath& path, double time);
 
 protected:
     // SdfAbstractData overrides
-    SDF_API
+    AR_API
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
@@ -110,7 +110,7 @@ private:
         const VtValue& value,
         SdfSpecType spec);
     void ProcessRemoteUpdates(SdfLayerHandle& layer);
-    void AccumulateRemoteUpdate(SdfLayerHandle& layer, const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
+    void AccumulateRemoteUpdate(const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
     RenderStudioApi::DeltaType FetchLocalDeltas();
     void OnLoaded();
 

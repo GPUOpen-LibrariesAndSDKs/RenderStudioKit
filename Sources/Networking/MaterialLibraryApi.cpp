@@ -76,6 +76,8 @@ Download(const PackageResponse::Item& material, const std::filesystem::path& pat
         },
         &arg);
 
+    (void)status;
+
     // Remove archive
     std::filesystem::remove(archivePath);
 

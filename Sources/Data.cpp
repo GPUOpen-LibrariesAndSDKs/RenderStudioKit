@@ -123,14 +123,6 @@ RenderStudioData::ApplyDelta(
         }
 
         layer->GetStateDelegate()->SetField(path, key, VtValue { deduplicated });
-
-        // Debug log
-        std::stringstream ss;
-        for (const auto& value : deduplicated)
-        {
-            ss << value << ',';
-        }
-        LOG_DEBUG << "Merge update: " << path << " [" << ss.str() << "]";
     }
     else
     {
@@ -199,10 +191,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 }
 
 void
-RenderStudioData::AccumulateRemoteUpdate(
-    SdfLayerHandle& layer,
-    const RenderStudioApi::DeltaType& deltas,
-    std::size_t sequence)
+RenderStudioData::AccumulateRemoteUpdate(const RenderStudioApi::DeltaType& deltas, std::size_t sequence)
 {
     std::unique_lock<std::mutex> lock(mRemoteMutex);
     mRemoteDeltasQueue[sequence] = deltas;
