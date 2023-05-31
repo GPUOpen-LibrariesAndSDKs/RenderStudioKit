@@ -74,7 +74,7 @@ RenderStudioResolver::~RenderStudioResolver() { LOG_INFO << "Destroyed"; }
 void
 RenderStudioResolver::ProcessLiveUpdates()
 {
-    if (!sFileFormat)
+    if (sFileFormat == nullptr)
     {
         throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
     }
@@ -90,14 +90,14 @@ RenderStudioResolver::StartLiveMode()
         throw std::runtime_error("Remote URL wasn't set");
     }
 
-    if (!sFileFormat)
+    if (sFileFormat == nullptr)
     {
         SdfFileFormatConstPtr format = SdfFileFormat::FindByExtension(".studio");
         RenderStudioFileFormatConstPtr casted = TfDynamic_cast<RenderStudioFileFormatConstPtr>(format);
         sFileFormat = TfConst_cast<RenderStudioFileFormatPtr>(casted);
     }
 
-    if (!sFileFormat)
+    if (sFileFormat == nullptr)
     {
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
@@ -109,7 +109,7 @@ RenderStudioResolver::StartLiveMode()
 void
 RenderStudioResolver::StopLiveMode()
 {
-    if (!sFileFormat)
+    if (sFileFormat == nullptr)
     {
         throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
     }
