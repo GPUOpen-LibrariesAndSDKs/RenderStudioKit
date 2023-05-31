@@ -1,3 +1,31 @@
-add_subdirectory(websocketpp)
+cmake_minimum_required(VERSION 3.12)
+project(RenderStudioExternal)
 
-file(COPY websocketpp/websocketpp fmt/include/fmt json.hpp Logger.hpp WebSocketClient.h base64.hpp DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+# Add targets
+set(URIPARSER_BUILD_TESTS OFF)
+set(URIPARSER_BUILD_TOOLS OFF)
+set(URIPARSER_BUILD_DOCS OFF)
+set(BUILD_SHARED_LIBS OFF)
+
+set(_saved_CMAKE_MESSAGE_LOG_LEVEL ${CMAKE_MESSAGE_LOG_LEVEL})
+set(CMAKE_MESSAGE_LOG_LEVEL NOTICE)
+add_subdirectory(fmt)
+add_subdirectory(uriparser)
+add_subdirectory(zip)
+set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
+
+# Create static library
+add_library(${PROJECT_NAME} INTERFACE)
+target_link_libraries(${PROJECT_NAME} INTERFACE fmt uriparser zip)
+
+set_target_properties(${PROJECT_NAME} fmt uriparser zip uninstall PROPERTIES FOLDER HiddenTargets)
+
+# Export targets
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    EXPORT_NAME External
+)
+
+export(TARGETS ${PROJECT_NAME} fmt uriparser zip
+    NAMESPACE RenderStudio::
+    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioExternalConfig.cmake
+)

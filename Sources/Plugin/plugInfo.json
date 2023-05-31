@@ -3,16 +3,35 @@
         {
             "Info": {
                 "Types": {
-                    "WebUsdAssetResolver": {
+                    "RenderStudioResolver": {
                         "bases": [
                             "ArResolver"
-                        ]
+                        ],
+                        "uriSchemes": [
+                            "studio",
+                            "gpuopen",
+                            "storage"
+                        ],
+                        "primary": true
+                    },
+                    "RenderStudioFileFormat": {
+                        "bases": [
+                            "SdfFileFormat"
+                        ],
+                        "displayName": "AMD RenderStudio file format",
+                        "extensions": [
+                            "studio"
+                        ],
+                        "formatId": "studio",
+                        "primary": true,
+                        "target": "usd"
                     }
                 }
             },
             "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
+            "ResourcePath": "resources",
             "Root": "..",
-            "Name": "WebUsdAssetResolver",
+            "Name": "AMD RenderStudio asset resolver plugin",
             "Type": "library"
         }
     ]

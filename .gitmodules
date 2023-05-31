@@ -1,6 +1,9 @@
-[submodule "Sources/External/websocketpp"]
-	path = Sources/External/websocketpp
-	url = git@github.com:zaphoyd/websocketpp.git
 [submodule "Sources/External/fmt"]
 	path = Sources/External/fmt
 	url = git@github.com:fmtlib/fmt.git
+[submodule "Sources/External/uriparser"]
+	path = Sources/External/uriparser
+	url = git@github.com:uriparser/uriparser.git
+[submodule "Sources/External/zip"]
+	path = Sources/External/zip
+	url = git@github.com:kuba--/zip.git

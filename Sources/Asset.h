@@ -1,45 +1,58 @@
+#pragma once
 
-#ifndef PXR_USD_AR_WEBUSD_ASSET_H
-#define PXR_USD_AR_WEBUSD_ASSET_H
-
-#include "pxr/pxr.h"
-#include "pxr/usd/ar/api.h"
-#include "pxr/usd/ar/asset.h"
-
-#include <cstdio>
-#include <memory>
-#include <utility>
+#pragma warning(push, 0)
+#include <filesystem>
 #include <string>
+
+#include <pxr/base/arch/errno.h>
+#include <pxr/base/arch/fileSystem.h>
+#include <pxr/pxr.h>
+#include <pxr/usd/ar/api.h>
+#include <pxr/usd/ar/asset.h>
+#pragma warning(pop)
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class WebUsdAsset : public ArAsset
+class GpuOpenAsset : public ArAsset
 {
 public:
     AR_API
-    explicit WebUsdAsset(std::shared_ptr<const char> assetPtr, std::size_t assetSize);
+    static std::shared_ptr<GpuOpenAsset> Open(const std::string& uuid, const std::filesystem::path& location);
 
     AR_API
-    ~WebUsdAsset();
+    explicit GpuOpenAsset(const std::string& uuid, const std::filesystem::path& location);
 
     AR_API
-    virtual size_t GetSize() const override;
+    explicit GpuOpenAsset() = default;
+
+    AR_API
+    virtual ~GpuOpenAsset();
+
+    AR_API
+    virtual std::size_t GetSize() const override;
 
     AR_API
     virtual std::shared_ptr<const char> GetBuffer() const override;
-    
-    AR_API
-    virtual size_t Read(void* buffer, size_t count, size_t offset) const override;
 
     AR_API
-    virtual std::pair<FILE*, size_t> GetFileUnsafe() const;
+    virtual std::size_t Read(void* buffer, std::size_t count, std::size_t offset) const override;
 
+    AR_API
+    virtual std::pair<FILE*, std::size_t> GetFileUnsafe() const override;
 
-private:
-    std::shared_ptr<const char> mData;
-    std::size_t mDataSize;
+protected:
+    std::string mUuid;
+    FILE* mFileMapping;
+};
+
+class LocalStorageAsset : public GpuOpenAsset
+{
+public:
+    AR_API
+    static std::shared_ptr<LocalStorageAsset> Open(const std::string& uuid, const std::filesystem::path& location);
+
+    AR_API
+    explicit LocalStorageAsset(const std::string& uuid, const std::filesystem::path& location);
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
-
-#endif // PXR_USD_AR_WEBUSD_ASSET_H

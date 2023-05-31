@@ -1,54 +1,74 @@
-#ifndef USD_REMOTE_ASSET_RESOLVER_H
-#define USD_REMOTE_ASSET_RESOLVER_H
+#pragma once
+
+#pragma warning(push, 0)
+#include <filesystem>
 
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/api.h>
-#include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/ar/defaultResolver.h>
-
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include <pxr/usd/ar/resolver.h>
+#pragma warning(pop)
 
 #include "Context.h"
-#include <WebSocketClient.h>
+#include "FileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class WebUsdAssetResolver : public ArDefaultResolver
+class RenderStudioResolver : public ArDefaultResolver
 {
 public:
     AR_API
-    WebUsdAssetResolver();
+    RenderStudioResolver();
 
     AR_API
-    virtual ~WebUsdAssetResolver();
+    virtual ~RenderStudioResolver();
 
     AR_API
-    static void SetRemoteServerAddress(std::string protocol, std::string host, std::uint32_t port);
+    static void ProcessLiveUpdates();
+
+    AR_API
+    static void StartLiveMode();
+
+    AR_API
+    static void StopLiveMode();
+
+    AR_API
+    static void SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl);
+
+    AR_API
+    static void SetCurrentUserId(const std::string& name);
+
+    AR_API
+    virtual std::string _GetExtension(const std::string& path) const override;
 
     AR_API
     virtual ArResolvedPath _Resolve(const std::string& path) const override;
 
+    AR_API
+    static std::string GetLocalStorageUrl();
+
+    AR_API
+    static std::string GetCurrentUserId();
+
+    AR_API
+    static bool IsRenderStudioPath(const std::string& path);
+
 protected:
+    AR_API
+    std::string _CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const override;
+
     AR_API
     virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
 
-    AR_API
-    virtual ArTimestamp _GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const override;
-
 private:
-    std::string HttpGetRequest(const std::string& asset) const;
-    std::string WebSocketRequest(const std::string& asset) const;
+    static std::filesystem::path GetDocumentsDirectory();
 
-    mutable boost::uuids::random_generator mUuidGenerator;
-    mutable std::map<std::string, std::unique_ptr<websocket_endpoint>> mLiveServerEndpoints;
+    static inline std::string sLiveUrl;
+    static inline std::string sStorageUrl;
+    static inline std::string sUserId;
+    static inline RenderStudioFileFormatPtr sFileFormat;
 
-    static inline std::string mProtocol;
-    static inline std::string mHost;
-    static inline std::uint32_t mPort = 0;
+    std::filesystem::path mRootPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
-
-#endif
