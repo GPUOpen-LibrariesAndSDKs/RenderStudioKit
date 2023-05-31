@@ -74,6 +74,11 @@ RenderStudioResolver::~RenderStudioResolver() { LOG_INFO << "Destroyed"; }
 void
 RenderStudioResolver::ProcessLiveUpdates()
 {
+    if (!sFileFormat)
+    {
+        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
+    }
+
     sFileFormat->ProcessLiveUpdates();
 }
 
@@ -92,6 +97,11 @@ RenderStudioResolver::StartLiveMode()
         sFileFormat = TfConst_cast<RenderStudioFileFormatPtr>(casted);
     }
 
+    if (!sFileFormat)
+    {
+        throw std::runtime_error("Can't access RenderStudioFileFormat");
+    }
+
     // Connect here for now
     sFileFormat->Connect(sLiveUrl);
 }
@@ -99,6 +109,11 @@ RenderStudioResolver::StartLiveMode()
 void
 RenderStudioResolver::StopLiveMode()
 {
+    if (!sFileFormat)
+    {
+        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
+    }
+
     sFileFormat->Disconnect();
 }
 
@@ -287,13 +302,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 std::string
 RenderStudioResolver::_GetExtension(const std::string& assetPath) const
 {
+    (void)assetPath;
     return "studio";
-}
-
-ArTimestamp
-RenderStudioResolver::_GetModificationTimestamp(const std::string& path, const ArResolvedPath& resolvedPath) const
-{
-    return ArTimestamp(0);
 }
 
 std::filesystem::path
@@ -305,7 +315,8 @@ RenderStudioResolver::GetDocumentsDirectory()
     if (SUCCEEDED(hr))
     {
         char str[1024];
-        wcstombs(str, folder, 1023);
+        std::size_t count;
+        wcstombs_s(&count, str, sizeof(str), folder, sizeof(folder) / sizeof(wchar_t) - 1);
         return std::filesystem::path(str);
     }
     else
