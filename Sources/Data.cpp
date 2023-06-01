@@ -179,11 +179,28 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     block.reset();
 
+    // Deduplicate notices
+    std::map<SdfPath, std::vector<RenderStudioPrimitiveNotice>> noticesMap;
     for (const RenderStudioPrimitiveNotice& notice : notices)
     {
         if (notice.IsValid())
         {
-            notice.Send();
+            noticesMap[notice.GetChangedPrim()].push_back(notice);
+        }
+    }
+
+    for (const auto& [path, noticeVector] : noticesMap)
+    {
+        auto it = std::find_if(
+            noticeVector.begin(), noticeVector.end(), [](const auto& item) { return item.WasResynched(); });
+
+        if (it != noticeVector.end())
+        {
+            it->Send();
+        }
+        else
+        {
+            noticeVector.front().Send();
         }
     }
 

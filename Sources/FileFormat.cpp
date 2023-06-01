@@ -75,6 +75,13 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
     RenderStudioApi::DeltaType deltas;
     std::size_t sequence = 0;
 
+    // Half-fix on finished receiving history
+    if (message.find("History::Loaded") != std::string::npos)
+    {
+        RenderStudioLoadingNotice("History", "RenderStudio::Internal");
+        return;
+    }
+
     try
     {
         std::tie(identifier, deltas, sequence) = RenderStudioApi::DeserializeDeltas(message);
