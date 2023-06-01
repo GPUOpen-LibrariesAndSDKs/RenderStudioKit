@@ -15,24 +15,20 @@ class RenderStudioPrimitiveNotice : public TfNotice
 {
 public:
     AR_API
-    RenderStudioPrimitiveNotice(const SdfPath& path, bool deleted = false, bool appended = false);
+    RenderStudioPrimitiveNotice(const SdfPath& path, bool resynched = false);
 
     AR_API
     SdfPath GetChangedPrim() const;
 
     AR_API
-    bool WasDeleted() const;
-
-    AR_API
-    bool SpecWasCreated() const;
+    bool WasResynched() const;
 
     AR_API
     bool IsValid() const;
 
 private:
     SdfPath mChangedPrim;
-    bool mWasDeleted = false;
-    bool mWasCreated = false;
+    bool mWasResynched = false;
     bool mIsValid = true;
 };
 

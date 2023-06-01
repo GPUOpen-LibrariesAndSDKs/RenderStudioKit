@@ -55,10 +55,9 @@ generate_uuid_v4()
 }
 } // namespace uuid
 
-RenderStudioPrimitiveNotice::RenderStudioPrimitiveNotice(const SdfPath& path, bool deleted, bool appended)
+RenderStudioPrimitiveNotice::RenderStudioPrimitiveNotice(const SdfPath& path, bool resynced)
     : mChangedPrim(path)
-    , mWasDeleted(deleted)
-    , mWasCreated(appended)
+    , mWasResynched(resynced)
 {
     if (!mChangedPrim.IsPrimPath())
     {
@@ -78,15 +77,9 @@ RenderStudioPrimitiveNotice::GetChangedPrim() const
 }
 
 bool
-RenderStudioPrimitiveNotice::WasDeleted() const
+RenderStudioPrimitiveNotice::WasResynched() const
 {
-    return mWasDeleted;
-}
-
-bool
-RenderStudioPrimitiveNotice::SpecWasCreated() const
-{
-    return mWasCreated;
+    return mWasResynched;
 }
 
 bool

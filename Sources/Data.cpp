@@ -45,7 +45,7 @@ RenderStudioData::ApplyDelta(
         layer->GetStateDelegate()->CreateSpec(path, spec, false);
         if (path.IsPrimPath())
         {
-            notices.push_back(RenderStudioPrimitiveNotice(path, false, true));
+            notices.push_back(RenderStudioPrimitiveNotice(path, true));
         }
     }
 
@@ -132,7 +132,7 @@ RenderStudioData::ApplyDelta(
 
     if (key == SdfFieldKeys->Active)
     {
-        notices.push_back(RenderStudioPrimitiveNotice(path, true, false));
+        notices.push_back(RenderStudioPrimitiveNotice(path, true));
     }
 }
 
@@ -169,7 +169,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                 ApplyDelta(layer, notices, delta.first, field.first, field.second, delta.second.specType);
             }
 
-            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false, false));
+            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false));
         }
 
         mLatestAppliedSequence = nextRequestedSequence;
