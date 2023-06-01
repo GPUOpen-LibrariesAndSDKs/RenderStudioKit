@@ -2,12 +2,39 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set (CMAKE_CXX_STANDARD 20)
 
+set (USD_MONOLITHIC_REQUIRED 1)
+
+if (MAYA_SUPPORT)
+    set (USD_MONOLITHIC_REQUIRED 0)
+endif()
+
 # Create target
 file(GLOB SOURCES *.h *.cpp)
 add_library(${CMAKE_PROJECT_NAME} SHARED ${SOURCES})
 
 # Find packages
-find_package(USDMonolithic REQUIRED)
+
+if (USD_MONOLITHIC_REQUIRED)
+    find_package(USDMonolithic REQUIRED)
+else()
+    if(MAYA_SUPPORT)
+        find_package(pxr CONFIG REQUIRED)
+
+        if (pxr_FOUND)
+           find_package(PythonInterp 3 REQUIRED)
+           find_package(PythonLibs 3 REQUIRED)
+           list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/../Boost_1_76_0/bin")
+
+           include_directories(
+               ${PYTHON_INCLUDE_DIRS})
+
+           target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+               ${PYTHON_LIBRARIES}
+               usd)
+        endif()
+    endif()
+endif()
+
 find_package(Boost REQUIRED COMPONENTS python)
 
 add_subdirectory(External)
