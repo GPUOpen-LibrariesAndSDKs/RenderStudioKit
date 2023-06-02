@@ -2,6 +2,7 @@ function(SetMaxWarningLevel Project)
     if(MSVC)
         target_compile_options(${Project} PRIVATE 
             /W4
+            /WX
             /permissive-
             /w14640
             /wd4506)

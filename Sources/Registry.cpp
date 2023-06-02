@@ -1,7 +1,7 @@
 #include "Registry.h"
 
 #pragma warning(push, 0)
-#include <experimental/map>
+#include <map>
 #pragma warning(pop)
 
 #include <Logger/Logger.h>
@@ -17,7 +17,7 @@ RenderStudioLayerRegistry::AddLayer(SdfLayerHandle layer)
 void
 RenderStudioLayerRegistry::RemoveExpiredLayers()
 {
-    std::experimental::erase_if(mCreatedLayers, [](const auto& pair) { return pair.second.IsExpired(); });
+    std::erase_if(mCreatedLayers, [](const auto& pair) { return pair.second.IsExpired(); });
 }
 
 void
