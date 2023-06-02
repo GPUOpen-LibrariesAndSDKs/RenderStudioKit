@@ -44,6 +44,8 @@ if(WIN32)
     )
 endif()
 
+string (REGEX REPLACE "v([0-9]+)" "\\1" VS_NUMERIC_PLATFORM_TOOLSET ${CMAKE_VS_PLATFORM_TOOLSET})
+
 # Set compile options
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE 
     HAVE_SNPRINTF 
@@ -51,6 +53,7 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     AR_EXPORTS
     NOMINMAX
     _WIN32_WINNT=0x0601
+    VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
 )
 
 if (WIN32)
