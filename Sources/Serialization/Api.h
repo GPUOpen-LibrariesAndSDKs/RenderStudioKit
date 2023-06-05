@@ -22,6 +22,34 @@ namespace RenderStudioApi
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
+struct SpecData
+{
+    SdfSpecType specType = SdfSpecTypeUnknown;
+    std::vector<std::pair<TfToken, VtValue>> fields;
+};
+
+struct DeltaEvent
+{
+    std::string layer;
+    std::string user;
+    TfHashMap<SdfPath, SpecData, SdfPath::Hash> updates;
+};
+
+struct AcknowledgeEvent
+{
+    std::vector<SdfPath> paths;
+};
+
+struct HistoryLoadedEvent
+{
+};
+
+struct Event
+{
+    std::string event;
+    std::variant<DeltaEvent, AcknowledgeEvent, HistoryLoadedEvent> body;
+};
+
 typedef std::pair<TfToken, VtValue> _FieldValuePair;
 struct _SpecData
 {
@@ -32,7 +60,6 @@ struct _SpecData
 
     SdfSpecType specType;
     std::vector<_FieldValuePair> fields;
-    std::vector<TfToken> deletedFields;
 };
 
 typedef SdfPath _Key;

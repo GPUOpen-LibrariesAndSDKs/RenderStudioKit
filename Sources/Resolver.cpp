@@ -290,10 +290,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
-        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(
-            name, RenderStudioResolver::GetLocalStorageUrl());
-        std::filesystem::path saveLocation = mRootPath / "Storage" / package.name;
-        return LocalStorageAsset::Open(package.id, saveLocation);
+        std::filesystem::path saveLocation = mRootPath / "Storage" / name;
+        return LocalStorageAsset::Open(name, saveLocation);
     }
 
     return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });
