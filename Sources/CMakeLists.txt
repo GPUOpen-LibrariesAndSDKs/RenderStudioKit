@@ -14,6 +14,7 @@ add_subdirectory(External)
 add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)
+add_subdirectory(Server)
 
 # Link libraries
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE

@@ -135,8 +135,8 @@ RenderStudioFileFormat::Connect(const std::string& url)
     mLayerRegistry.RemoveExpiredLayers();
 
     // Create client
-    mWebsocketClient = std::make_shared<RenderStudio::Networking::WebsocketClient>([this](const std::string& message)
-                                                                                   { OnMessage(message); });
+    mWebsocketClient
+        = RenderStudio::Networking::WebsocketClient::Create([this](const std::string& message) { OnMessage(message); });
 
     // Connect to endpoint
     try

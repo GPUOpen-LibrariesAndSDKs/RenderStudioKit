@@ -34,7 +34,12 @@ class WebsocketClient : public std::enable_shared_from_this<WebsocketClient>
 {
 public:
     using OnMessageFn = std::function<void(const std::string&)>;
-    explicit WebsocketClient(const OnMessageFn& fn);
+
+    template <typename... Args> static std::shared_ptr<WebsocketClient> Create(Args&&... args)
+    {
+        return std::shared_ptr<WebsocketClient> { new WebsocketClient { std::forward<Args>(args)... } };
+    }
+
     ~WebsocketClient();
 
     void Connect(const Url& endpoint);
@@ -42,6 +47,8 @@ public:
     void SendMessageString(const std::string& message);
 
 private:
+    explicit WebsocketClient(const OnMessageFn& fn);
+
     void Ping(boost::beast::error_code ec);
     void OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
     void OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint);
