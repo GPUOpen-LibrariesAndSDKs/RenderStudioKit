@@ -13,7 +13,7 @@ function(SetVisualStudioDebuggerOptions)
     list(APPEND RS_RUNTIME_PATH ${RS_INSTALL_DIR}/USD/bin)
     list(APPEND RS_RUNTIME_PATH ${RS_INSTALL_DIR}/USD/plugin/usd)
     list(APPEND RS_RUNTIME_PATH ${RS_INSTALL_DIR}/Engine/UsdRenderer)
-    find_package (Python3 3.7 EXACT REQUIRED COMPONENTS Interpreter Development)
+    find_package (Python3 3.7 REQUIRED COMPONENTS Interpreter Development)
     list(APPEND RS_RUNTIME_PATH ${Python3_RUNTIME_LIBRARY_DIRS})
 
     # Visual Studio debugger options
