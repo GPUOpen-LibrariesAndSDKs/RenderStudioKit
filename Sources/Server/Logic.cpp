@@ -18,7 +18,7 @@ Logic::OnConnected(ConnectionPtr connection)
     Channel& channel = iter->second;
 
     // Log
-    LOG_INFO << connection->GetDebugName() << " joined " << connection->GetChannel();
+    LOG_INFO << "User \'" << connection->GetDebugName() << "\' joined \'" << connection->GetChannel() << "\'";
     channel.AddConnection(connection);
 
     // Send history
@@ -40,7 +40,7 @@ Logic::OnDisconnected(ConnectionPtr connection)
     std::lock_guard<std::mutex> lock(mMutex);
 
     // Log
-    LOG_INFO << connection->GetDebugName() << " exited " << connection->GetChannel();
+    LOG_INFO << "User \'" << connection->GetDebugName() << "\' exited \'" << connection->GetChannel() << "\'";
 
     // Remove from channel
     Channel& channel = mChannels.at(connection->GetChannel());

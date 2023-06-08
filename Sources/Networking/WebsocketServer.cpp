@@ -7,6 +7,60 @@
 
 #include <Logger/Logger.h>
 
+namespace
+{
+
+struct Util
+{
+    static std::pair<std::string, std::string> ExtractChannelAndUserNames(std::string target)
+    {
+        std::string channelName;
+        std::string userName;
+
+        std::size_t queryPosition = target.find('?');
+
+        if (queryPosition != std::string::npos)
+        {
+            channelName = target.substr(0, queryPosition);
+
+            std::string query = target.substr(queryPosition + 1);
+            std::size_t start = 0;
+            std::size_t end = 0;
+
+            while (end != std::string::npos)
+            {
+                end = query.find('&', start);
+
+                std::string keyValue = query.substr(start, end - start);
+                std::size_t equalsPos = keyValue.find('=');
+
+                if (equalsPos != std::string::npos)
+                {
+                    std::string key = keyValue.substr(0, equalsPos);
+                    std::string value = keyValue.substr(equalsPos + 1);
+
+                    if (key == "user")
+                    {
+                        userName = value;
+                    }
+                }
+
+                start = end + 1;
+            }
+        }
+        else
+        {
+            channelName = target;
+        }
+
+        channelName.erase(std::remove(channelName.begin(), channelName.end(), '/'), channelName.end());
+
+        return { channelName, userName };
+    }
+};
+
+} // namespace
+
 namespace RenderStudio::Networking
 {
 
@@ -136,15 +190,14 @@ WebsocketSession::WebsocketSession(
     , mServerLogic(logic)
     , mRequest(request)
 {
-    // Set target
-    mChannel = request.target().to_string();
-    mChannel.erase(std::remove(mChannel.begin(), mChannel.end(), '?'), mChannel.end());
-    mChannel.erase(std::remove(mChannel.begin(), mChannel.end(), '/'), mChannel.end());
+    std::tie(mChannel, mDebugName) = Util::ExtractChannelAndUserNames(request.target().to_string());
 
-    // Set debug name
-    std::stringstream ss;
-    ss << mWebsocketStream.next_layer().socket().remote_endpoint();
-    mDebugName = ss.str();
+    if (mDebugName.empty())
+    {
+        std::stringstream ss;
+        ss << mWebsocketStream.next_layer().socket().remote_endpoint();
+        mDebugName = ss.str();
+    }
 }
 
 void

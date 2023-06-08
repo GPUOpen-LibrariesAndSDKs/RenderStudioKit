@@ -99,8 +99,6 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
         return;
     }
 
-    LOG_INFO << "Got message: " << message;
-
     std::visit(
         Overload { [this](const RenderStudio::API::DeltaEvent& v)
                    {
@@ -229,6 +227,12 @@ RenderStudioFileFormat::Connect(const std::string& url)
 void
 RenderStudioFileFormat::Disconnect()
 {
+    if (mWebsocketClient == nullptr)
+    {
+        LOG_WARNING << "Tried to disconnect WebSocket that doesn't exist, skipping";
+        return;
+    }
+
     mWebsocketClient->Disconnect();
     mWebsocketClient.reset();
 }

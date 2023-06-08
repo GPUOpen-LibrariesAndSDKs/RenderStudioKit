@@ -3,10 +3,10 @@
 Channel::Channel(const std::string& name)
     : mName(name)
 {
-    LOG_INFO << "Created channel " << mName;
+    LOG_INFO << "Created channel \'" << mName << "\'";
 }
 
-Channel::~Channel() { LOG_INFO << "Removed channel " << mName; }
+Channel::~Channel() { LOG_INFO << "Removed channel \'" << mName << "\'"; }
 
 void
 Channel::AddConnection(ConnectionPtr connection)

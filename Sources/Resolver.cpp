@@ -66,30 +66,6 @@ RenderStudioResolver::RenderStudioResolver()
         std::filesystem::create_directory(mRootPath);
     }
 
-    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << mRootPath;
-}
-
-RenderStudioResolver::~RenderStudioResolver(){}
-
-void
-RenderStudioResolver::ProcessLiveUpdates()
-{
-    if (sFileFormat == nullptr)
-    {
-        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
-    }
-
-    sFileFormat->ProcessLiveUpdates();
-}
-
-void
-RenderStudioResolver::StartLiveMode()
-{
-    if (sLiveUrl.empty())
-    {
-        throw std::runtime_error("Remote URL wasn't set");
-    }
-
     if (sFileFormat == nullptr)
     {
         SdfFileFormatConstPtr format = SdfFileFormat::FindByExtension(".studio");
@@ -102,34 +78,30 @@ RenderStudioResolver::StartLiveMode()
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
 
+    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << mRootPath;
+}
+
+RenderStudioResolver::~RenderStudioResolver() { }
+
+void
+RenderStudioResolver::ProcessLiveUpdates()
+{
+    sFileFormat->ProcessLiveUpdates();
+}
+
+void
+RenderStudioResolver::StartLiveMode(const LiveModeInfo& info)
+{
+    sLiveModeInfo = info;
+
     // Connect here for now
-    sFileFormat->Connect(sLiveUrl);
+    sFileFormat->Connect(info.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
 }
 
 void
 RenderStudioResolver::StopLiveMode()
 {
-    if (sFileFormat == nullptr)
-    {
-        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
-    }
-
     sFileFormat->Disconnect();
-}
-
-void
-RenderStudioResolver::SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl)
-{
-    sLiveUrl = liveUrl;
-    sStorageUrl = storageUrl;
-
-    LOG_INFO << "Set remote server address to " << liveUrl << ", " << storageUrl;
-}
-
-void
-RenderStudioResolver::SetCurrentUserId(const std::string& id)
-{
-    sUserId = id;
 }
 
 ArResolvedPath
@@ -193,13 +165,13 @@ RenderStudioResolver::_Resolve(const std::string& path) const
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    return sStorageUrl;
+    return sLiveModeInfo.storageUrl;
 }
 
 std::string
 RenderStudioResolver::GetCurrentUserId()
 {
-    return sUserId;
+    return sLiveModeInfo.userId;
 }
 
 static std::string
