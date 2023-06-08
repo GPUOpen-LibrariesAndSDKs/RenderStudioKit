@@ -322,7 +322,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec3d& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -346,7 +346,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec2f& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -369,7 +369,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec3f& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -435,7 +435,7 @@ tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
 {
     array result;
 
-    for (auto i = 0; i < GfMatrix4d::numRows * GfMatrix4d::numColumns; i++)
+    for (std::size_t i = 0; i < GfMatrix4d::numRows * GfMatrix4d::numColumns; i++)
     {
         result.push_back(*v[i]);
     }
@@ -449,7 +449,7 @@ tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
     GfMatrix4d result {};
     array jsonArray = json.as_array();
 
-    for (auto i = 0; i < jsonArray.size(); i++)
+    for (std::size_t i = 0; i < jsonArray.size(); i++)
     {
         *result[i] = value_to<GfMatrix4d::ScalarType>(jsonArray.at(i));
     }

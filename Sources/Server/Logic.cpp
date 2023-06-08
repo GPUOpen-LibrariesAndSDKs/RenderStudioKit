@@ -88,10 +88,10 @@ Logic::OnMessage(ConnectionPtr connection, const std::string& message)
                            paths.push_back(key);
                        }
 
-                       RenderStudio::API::Event event {
+                       RenderStudio::API::Event ack {
                            "Acknowledge::Event", RenderStudio::API::AcknowledgeEvent { v.layer, paths, sequence }
                        };
-                       connection->Send(boost::json::serialize(boost::json::value_from(event)));
+                       connection->Send(boost::json::serialize(boost::json::value_from(ack)));
                    },
                    [](const RenderStudio::API::HistoryEvent& v)
                    {

@@ -9,7 +9,6 @@
 #include <pxr/usd/ar/resolver.h>
 #pragma warning(pop)
 
-#include "Context.h"
 #include "FileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE

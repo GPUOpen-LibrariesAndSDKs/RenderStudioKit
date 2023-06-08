@@ -7,6 +7,7 @@
 #include <memory>
 #include <queue>
 #include <string>
+#include <thread>
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/strand.hpp>

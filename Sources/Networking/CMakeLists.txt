@@ -5,12 +5,23 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
+
+if (NOT WIN32)
+    list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Certificates.h)
+    list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Certificates.cpp)
+endif()
+
+message("List: ${SOURCES}")
+
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # Find packages
 find_package(Boost REQUIRED)
 find_package(OpenSSL REQUIRED)
-find_package(BinaryOpenSSL REQUIRED)
+
+if (WIN32)
+    find_package(BinaryOpenSSL REQUIRED)
+endif()
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE 

@@ -58,14 +58,13 @@ RenderStudioData::ApplyDelta(
         {
             std::optional<std::string> owner = [&it]() -> std::optional<std::string>
             {
-                std::string owner = it->second.Get<std::string>();
-                if (owner == "None")
+                if (it->second.Get<std::string>() == "None")
                 {
                     return std::nullopt;
                 }
                 else
                 {
-                    return owner;
+                    return it->second.Get<std::string>();
                 }
             }();
 

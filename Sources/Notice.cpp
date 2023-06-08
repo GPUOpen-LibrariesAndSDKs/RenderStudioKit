@@ -9,9 +9,9 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_INSTANTIATE_TYPE(RenderStudioPrimitiveNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
-TF_INSTANTIATE_TYPE(RenderStudioLoadingNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
-TF_INSTANTIATE_TYPE(RenderStudioOwnerNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice));
+TF_INSTANTIATE_TYPE(RenderStudioPrimitiveNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioLoadingNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioOwnerNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 
 namespace uuid
 {

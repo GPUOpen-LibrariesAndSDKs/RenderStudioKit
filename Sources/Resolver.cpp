@@ -34,7 +34,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
+AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver)
 
 bool
 RenderStudioResolver::IsRenderStudioPath(const std::string& path)
@@ -149,7 +149,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         {
             std::string uuid = tokens.at(1);
             std::filesystem::path location = mRootPath / "Materials";
-            for (auto i = 1; i < tokens.size(); i++)
+            for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
             }
@@ -169,7 +169,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         {
             std::string uuid = tokens.at(1);
             std::filesystem::path location = mRootPath / "Storage";
-            for (auto i = 1; i < tokens.size(); i++)
+            for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
             }
@@ -331,7 +331,7 @@ RenderStudioResolver::GetDocumentsDirectory()
 
     if (homedir != nullptr)
     {
-        return std::filesystem::path(homedir) / "Documents"
+        return std::filesystem::path(homedir) / "Documents";
     }
     else
     {

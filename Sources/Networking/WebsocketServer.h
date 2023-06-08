@@ -20,6 +20,7 @@ struct IServerLogic
     virtual void OnConnected(std::shared_ptr<WebsocketSession> session) = 0;
     virtual void OnDisconnected(std::shared_ptr<WebsocketSession> session) = 0;
     virtual void OnMessage(std::shared_ptr<WebsocketSession> session, const std::string& message) = 0;
+    virtual ~IServerLogic() = default;
 };
 
 class HttpSession : public std::enable_shared_from_this<HttpSession>
