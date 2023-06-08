@@ -158,6 +158,11 @@ WebsocketSession::Run()
 void
 WebsocketSession::Send(const std::string& message)
 {
+    // From boost documentation:
+    // Post our work to the strand, this ensures
+    // that the members of `this` will not be
+    // accessed concurrently.
+
     boost::asio::post(
         mWebsocketStream.get_executor(),
         boost::beast::bind_front_handler(&WebsocketSession::Write, shared_from_this(), message));

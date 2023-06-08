@@ -55,6 +55,7 @@ private:
     void OnHandshake(boost::beast::error_code ec);
     void OnSslHandshake(boost::beast::error_code ec);
     void OnPing(boost::beast::error_code ec);
+    void Write(const std::string& message);
     void OnWrite(boost::beast::error_code ec, std::size_t transferred);
     void OnRead(boost::beast::error_code ec, std::size_t transferred);
     void OnClose(boost::beast::error_code ec);
