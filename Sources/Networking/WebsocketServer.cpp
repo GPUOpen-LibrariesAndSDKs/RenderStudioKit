@@ -138,6 +138,8 @@ WebsocketSession::WebsocketSession(
 {
     // Set target
     mChannel = request.target().to_string();
+    mChannel.erase(std::remove(mChannel.begin(), mChannel.end(), '?'), mChannel.end());
+    mChannel.erase(std::remove(mChannel.begin(), mChannel.end(), '/'), mChannel.end());
 
     // Set debug name
     std::stringstream ss;
@@ -154,10 +156,26 @@ WebsocketSession::Run()
 }
 
 void
+WebsocketSession::Send(const std::string& message)
+{
+    boost::asio::post(
+        mWebsocketStream.get_executor(),
+        boost::beast::bind_front_handler(&WebsocketSession::Write, shared_from_this(), message));
+}
+
+void
 WebsocketSession::Write(const std::string& message)
 {
+    mWriteQueue.push(message);
+
+    if (mWriteQueue.size() > 1)
+    {
+        return;
+    }
+
     mWebsocketStream.async_write(
-        boost::asio::buffer(message), boost::beast::bind_front_handler(&WebsocketSession::OnWrite, shared_from_this()));
+        boost::asio::buffer(mWriteQueue.back()),
+        boost::beast::bind_front_handler(&WebsocketSession::OnWrite, shared_from_this()));
 }
 
 std::string
@@ -237,6 +255,15 @@ WebsocketSession::OnWrite(boost::beast::error_code ec, std::size_t transferred)
             LOG_ERROR << "[Networking] Disconnected: " << ec.message();
         }
         return;
+    }
+
+    mWriteQueue.pop();
+
+    if (!mWriteQueue.empty())
+    {
+        mWebsocketStream.async_write(
+            boost::asio::buffer(mWriteQueue.front()),
+            boost::beast::bind_front_handler(&WebsocketSession::OnWrite, shared_from_this()));
     }
 }
 

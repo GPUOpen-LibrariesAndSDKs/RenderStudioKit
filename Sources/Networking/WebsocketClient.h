@@ -44,7 +44,7 @@ public:
 
     void Connect(const Url& endpoint);
     void Disconnect();
-    void SendMessageString(const std::string& message);
+    void Send(const std::string& message);
 
 private:
     explicit WebsocketClient(const OnMessageFn& fn);

@@ -2,6 +2,7 @@
 
 #pragma warning(push, 0)
 #include <memory>
+#include <queue>
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core/tcp_stream.hpp>
@@ -16,9 +17,9 @@ class WebsocketServer;
 
 struct IServerLogic
 {
-    virtual void OnConnected(const std::shared_ptr<WebsocketSession>& session) = 0;
-    virtual void OnDisconnected(const std::shared_ptr<WebsocketSession>& session) = 0;
-    virtual void OnMessage(const std::shared_ptr<WebsocketSession>& session, const std::string& message) = 0;
+    virtual void OnConnected(std::shared_ptr<WebsocketSession> session) = 0;
+    virtual void OnDisconnected(std::shared_ptr<WebsocketSession> session) = 0;
+    virtual void OnMessage(std::shared_ptr<WebsocketSession> session, const std::string& message) = 0;
 };
 
 class HttpSession : public std::enable_shared_from_this<HttpSession>
@@ -59,7 +60,8 @@ public:
         return std::shared_ptr<WebsocketSession> { new WebsocketSession { std::forward<Args>(args)... } };
     }
 
-    void Write(const std::string& message);
+    void Send(const std::string& message);
+
     std::string GetDebugName() const;
     std::string GetChannel() const;
 
@@ -71,6 +73,7 @@ private:
     void OnAccept(boost::beast::error_code ec);
     void Read();
     void OnRead(boost::beast::error_code ec, std::size_t transferred);
+    void Write(const std::string& message);
     void OnWrite(boost::beast::error_code ec, std::size_t transferred);
 
 private:
@@ -80,6 +83,7 @@ private:
     IServerLogic& mServerLogic;
     boost::beast::http::message<true, boost::beast::http::string_body, boost::beast::http::fields> mRequest;
     std::string mChannel;
+    std::queue<std::string> mWriteQueue;
 };
 
 class WebsocketServer : public std::enable_shared_from_this<WebsocketServer>

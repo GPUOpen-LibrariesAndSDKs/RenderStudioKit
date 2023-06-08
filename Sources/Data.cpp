@@ -152,7 +152,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     while (mRemoteDeltasQueue.find(nextRequestedSequence) != mRemoteDeltasQueue.end())
     {
-        RenderStudioApi::DeltaType& deltas = mRemoteDeltasQueue.at(nextRequestedSequence);
+        _HashTable& deltas = mRemoteDeltasQueue.at(nextRequestedSequence);
 
         for (const std::pair<SdfPath, _SpecData>& delta : deltas)
         {
@@ -208,13 +208,13 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 }
 
 void
-RenderStudioData::AccumulateRemoteUpdate(const RenderStudioApi::DeltaType& deltas, std::size_t sequence)
+RenderStudioData::AccumulateRemoteUpdate(const _HashTable& deltas, std::size_t sequence)
 {
     std::unique_lock<std::mutex> lock(mRemoteMutex);
     mRemoteDeltasQueue[sequence] = deltas;
 }
 
-RenderStudioApi::DeltaType
+RenderStudioData::_HashTable
 RenderStudioData::FetchLocalDeltas()
 {
     auto copy = mLocalDeltas;

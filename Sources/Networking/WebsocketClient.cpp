@@ -73,7 +73,7 @@ WebsocketClient::Disconnect()
 }
 
 void
-WebsocketClient::SendMessageString(const std::string& message)
+WebsocketClient::Send(const std::string& message)
 {
     mWriteQueue.push(message);
 

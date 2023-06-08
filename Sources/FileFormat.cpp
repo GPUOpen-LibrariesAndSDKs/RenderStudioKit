@@ -51,6 +51,28 @@ _GetMtlxFileFormat()
     return mtlxFormat;
 }
 
+static std::optional<RenderStudio::API::Event>
+ParseEvent(const std::string& message)
+{
+    try
+    {
+        boost::json::value json = boost::json::parse(message);
+        return boost::json::value_to<RenderStudio::API::Event>(json);
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_WARNING << "Can't parse: " << message << "[" << ex.what() << "]";
+        return {};
+    }
+}
+
+template <typename... Ts> struct Overload : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts> Overload(Ts...) -> Overload<Ts...>;
+
 } // namespace
 
 RenderStudioDataPtr
@@ -70,34 +92,72 @@ RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer) const
 void
 RenderStudioFileFormat::OnMessage(const std::string& message)
 {
-    // Receive deltas
-    std::string identifier;
-    RenderStudioApi::DeltaType deltas;
-    std::size_t sequence = 0;
+    auto event = ParseEvent(message);
 
-    // Half-fix on finished receiving history
-    if (message.find("History::Loaded") != std::string::npos)
+    if (!event.has_value())
     {
-        RenderStudioLoadingNotice("History", "RenderStudio::Internal");
         return;
     }
 
-    try
-    {
-        std::tie(identifier, deltas, sequence) = RenderStudioApi::DeserializeDeltas(message);
-    }
-    catch (const std::exception& ex)
-    {
-        LOG_WARNING << "Can't parse: " << message << "[" << ex.what() << "]";
-    }
+    LOG_INFO << "Got message: " << message;
 
-    // Append deltas to the data
-    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(identifier);
+    std::visit(
+        Overload { [this](const RenderStudio::API::DeltaEvent& v)
+                   {
+                       if (!v.sequence.has_value())
+                       {
+                           LOG_WARNING << "Got update without sequence number";
+                           return;
+                       }
 
-    if (layer != nullptr)
-    {
-        _GetRenderStudioData(layer)->AccumulateRemoteUpdate(deltas, sequence);
-    }
+                       SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
+
+                       if (layer == nullptr)
+                       {
+                           LOG_WARNING << "Got update for unknown layer: " << v.layer;
+                           return;
+                       }
+
+                       // Convert API update to internal format
+                       RenderStudioData::_HashTable updates;
+                       for (const auto& [key, value] : v.updates)
+                       {
+                           RenderStudioData::_SpecData spec;
+                           spec.specType = value.specType;
+                           spec.fields = value.fields;
+                           updates[key] = spec;
+                       }
+
+                       // Append deltas to the data
+                       _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence.value());
+                   },
+                   [](const RenderStudio::API::HistoryEvent& v)
+                   {
+                       // Send history notice
+                       (void)v;
+                       RenderStudioLoadingNotice("History", "RenderStudio::Internal");
+                   },
+                   [this](const RenderStudio::API::AcknowledgeEvent& v)
+                   {
+                       SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
+
+                       if (layer == nullptr)
+                       {
+                           LOG_WARNING << "Got acknowledge for unknown layer: " << v.layer;
+                           return;
+                       }
+
+                       // Convert API update to internal format
+                       RenderStudioData::_HashTable updates;
+                       for (const auto& path : v.paths)
+                       {
+                           updates[path] = RenderStudioData::_SpecData {};
+                       }
+
+                       // Append deltas to the data
+                       _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence);
+                   } },
+        event.value().body);
 }
 
 void
@@ -108,15 +168,31 @@ RenderStudioFileFormat::ProcessLiveUpdates()
         {
             RenderStudioDataPtr data = _GetRenderStudioData(layer);
 
+            if (data == nullptr)
+            {
+                LOG_ERROR << "Data was null for layer: " << layer->GetIdentifier();
+                return;
+            }
+
             // Send local deltas
             auto deltas = data->FetchLocalDeltas();
             if (!deltas.empty())
             {
                 try
                 {
-                    boost::json::object deltasJson
-                        = RenderStudioApi::SerializeDeltas(layer, deltas, RenderStudioResolver::GetCurrentUserId());
-                    mWebsocketClient->SendMessageString(boost::json::serialize(deltasJson));
+                    // Convert internal format to API update
+                    RenderStudio::API::DeltaEvent body;
+                    body.layer = layer->GetIdentifier();
+                    body.user = RenderStudioResolver::GetCurrentUserId();
+                    body.sequence = std::nullopt;
+
+                    for (const auto& [key, value] : deltas)
+                    {
+                        body.updates[key] = RenderStudio::API::SpecData { value.specType, value.fields };
+                    }
+
+                    RenderStudio::API::Event event { "Delta::Event", body };
+                    mWebsocketClient->Send(boost::json::serialize(boost::json::value_from(event)));
                 }
                 catch (const std::exception& ex)
                 {

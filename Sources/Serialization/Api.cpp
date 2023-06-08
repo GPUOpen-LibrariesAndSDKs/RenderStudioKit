@@ -2,73 +2,29 @@
 
 #include "Serialization.h"
 
-namespace RenderStudioApi
+namespace
 {
-
-boost::json::object
-SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas, const std::string& user)
+struct Helper
 {
-    boost::json::object jsonRoot;
-    jsonRoot["layer"] = boost::json::value_from(layer);
-    jsonRoot["user"] = boost::json::value_from(user);
-    auto& jsonUpdates = jsonRoot["updates"].emplace_array();
-
-    for (auto& [path, spec] : deltas)
+    template <class T> static void Extract(boost::json::object const& json, T& t, boost::json::string_view key)
     {
-        boost::json::object jsonUpdate;
-        jsonUpdate["path"] = boost::json::value_from(path);
-        jsonUpdate["spec"] = boost::json::value_from(spec.specType);
-        auto& jsonFields = jsonUpdate["fields"].emplace_array();
-
-        for (const auto& field : spec.fields)
-        {
-            boost::json::object jsonField;
-            jsonField["key"] = boost::json::value_from(field.first);
-            jsonField["value"] = boost::json::value_from(field.second);
-            jsonFields.push_back(jsonField);
-        }
-
-        jsonUpdates.push_back(jsonUpdate);
+        t = boost::json::value_to<T>(json.at(key));
     }
 
-    return jsonRoot;
-}
-
-std::tuple<std::string, DeltaType, std::size_t>
-DeserializeDeltas(const std::string message)
-{
-    DeltaType deltas;
-
-    boost::json::value jsonRoot = boost::json::parse(message);
-    std::size_t sequence = boost::json::value_to<std::size_t>(jsonRoot.at("sequence"));
-    std::string layerName = boost::json::value_to<std::string>(jsonRoot.at("layer"));
-
-    if (jsonRoot.as_object().if_contains("updates"))
+    template <class T>
+    static void Extract(boost::json::object const& json, std::optional<T>& t, boost::json::string_view key)
     {
-        boost::json::array jsonUpdates = jsonRoot.at("updates").as_array();
-        for (const auto& jsonUpdate : jsonUpdates)
+        if (json.if_contains(key))
         {
-            SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
-
-            if (jsonUpdate.as_object().if_contains("fields"))
-            {
-                boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
-
-                for (const auto& jsonField : jsonFields)
-                {
-                    TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
-                    VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
-                    deltas[path].fields.push_back({ key, value });
-                }
-            }
-
-            deltas[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
+            t = boost::json::value_to<T>(json.at(key));
         }
     }
+};
 
-    return { layerName, deltas, sequence };
-}
+} // namespace
 
+namespace RenderStudio::API
+{
 // --- SpecData ---
 void
 tag_invoke(const value_from_tag&, value& json, const SpecData& v)
@@ -112,19 +68,66 @@ void
 tag_invoke(const value_from_tag&, value& json, const DeltaEvent& v)
 {
     object result;
+
     result["layer"] = boost::json::value_from(v.layer);
     result["user"] = boost::json::value_from(v.user);
-    result["updates"] = boost::json::value_from(v.updates);
+    if (v.sequence.has_value())
+    {
+        result["sequence"] = boost::json::value_from(v.sequence.value());
+    }
+
+    array& jsonUpdates = result["updates"].emplace_array();
+
+    for (const auto& [path, spec] : v.updates)
+    {
+        boost::json::object jsonUpdate;
+        jsonUpdate["path"] = boost::json::value_from(path);
+        jsonUpdate["spec"] = boost::json::value_from(spec.specType);
+        auto& jsonFields = jsonUpdate["fields"].emplace_array();
+
+        for (const auto& field : spec.fields)
+        {
+            boost::json::object jsonField;
+            jsonField["key"] = boost::json::value_from(field.first);
+            jsonField["value"] = boost::json::value_from(field.second);
+            jsonFields.push_back(jsonField);
+        }
+
+        jsonUpdates.push_back(jsonUpdate);
+    }
+
     json = result;
 }
 
 DeltaEvent
 tag_invoke(const value_to_tag<DeltaEvent>&, const value& json)
 {
-    return DeltaEvent {
-        boost::json::value_to<std::string>(json.at("layer")), boost::json::value_to<std::string>(json.at("user")),
-        /*boost::json::value_to<TfHashMap<SdfPath, SpecData, SdfPath::Hash>>(json.at("updates")),*/
-    };
+    const boost::json::object& root = json.as_object();
+    DeltaEvent result {};
+
+    Helper::Extract(root, result.layer, "layer");
+    Helper::Extract(root, result.user, "user");
+    Helper::Extract(root, result.sequence, "sequence");
+
+    boost::json::array jsonUpdates = json.at("updates").as_array();
+    TfHashMap<SdfPath, SpecData, SdfPath::Hash> updates;
+
+    for (const auto& jsonUpdate : jsonUpdates)
+    {
+        SdfPath path = boost::json::value_to<SdfPath>(jsonUpdate.at("path"));
+        boost::json::array jsonFields = jsonUpdate.at("fields").as_array();
+
+        for (const auto& jsonField : jsonFields)
+        {
+            TfToken key = boost::json::value_to<TfToken>(jsonField.at("key"));
+            VtValue value = boost::json::value_to<VtValue>(jsonField.at("value"));
+            result.updates[path].fields.push_back({ key, value });
+        }
+
+        result.updates[path].specType = boost::json::value_to<SdfSpecType>(jsonUpdate.at("spec"));
+    }
+
+    return result;
 }
 
 // --- AcknowledgeEvent ---
@@ -134,14 +137,21 @@ tag_invoke(const value_from_tag&, value& json, const AcknowledgeEvent& v)
     object result;
     result["layer"] = boost::json::value_from(v.layer);
     result["paths"] = boost::json::value_from(v.paths);
+    result["sequence"] = boost::json::value_from(v.sequence);
     json = result;
 }
 
 AcknowledgeEvent
 tag_invoke(const value_to_tag<AcknowledgeEvent>&, const value& json)
 {
-    return AcknowledgeEvent { boost::json::value_to<std::string>(json.at("layer")),
-                              boost::json::value_to<std::vector<SdfPath>>(json.at("paths")) };
+    boost::json::object root = json.as_object();
+    AcknowledgeEvent result;
+
+    Helper::Extract(root, result.layer, "layer");
+    Helper::Extract(root, result.paths, "paths");
+    Helper::Extract(root, result.sequence, "sequence");
+
+    return result;
 }
 
 // --- HistoryEvent ---
@@ -214,4 +224,4 @@ tag_invoke(const value_to_tag<Event>&, const value& json)
     return result;
 }
 
-} // namespace RenderStudioApi
+} // namespace RenderStudio::API
