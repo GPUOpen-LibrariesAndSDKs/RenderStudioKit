@@ -69,7 +69,7 @@ RenderStudioResolver::RenderStudioResolver()
     LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << mRootPath;
 }
 
-RenderStudioResolver::~RenderStudioResolver() { LOG_INFO << "Destroyed"; }
+RenderStudioResolver::~RenderStudioResolver(){}
 
 void
 RenderStudioResolver::ProcessLiveUpdates()
