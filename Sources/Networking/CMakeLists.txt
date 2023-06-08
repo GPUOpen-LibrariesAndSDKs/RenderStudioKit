@@ -11,8 +11,6 @@ if (NOT WIN32)
     list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Certificates.cpp)
 endif()
 
-message("List: ${SOURCES}")
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 # Find packages

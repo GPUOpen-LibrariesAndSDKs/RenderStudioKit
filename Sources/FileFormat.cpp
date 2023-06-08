@@ -61,7 +61,7 @@ ParseEvent(const std::string& message)
     }
     catch (const std::exception& ex)
     {
-        LOG_WARNING << "Can't parse: " << message << "[" << ex.what() << "]";
+        LOG_WARNING << "Can't parse: " << message << " [" << ex.what() << "]";
         return {};
     }
 }
