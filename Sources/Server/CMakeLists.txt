@@ -19,6 +19,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioSerialization
     tf
 )
+
+if (MAYA_SUPPORT)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${PYTHON_LIBRARIES}
+    )       
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../)
 
 # Set compile options
