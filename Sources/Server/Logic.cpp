@@ -43,6 +43,13 @@ Logic::OnDisconnected(ConnectionPtr connection)
     LOG_INFO << "User \'" << connection->GetDebugName() << "\' exited \'" << connection->GetChannel() << "\'";
 
     // Remove from channel
+    if (mChannels.count(connection->GetChannel()) == 0)
+    {
+        LOG_INFO << "User \'" << connection->GetDebugName() << "\' disconnected from non-existing channel \'"
+                 << connection->GetChannel() << "\'";
+        return;
+    }
+
     Channel& channel = mChannels.at(connection->GetChannel());
     channel.RemoveConnection(connection);
 
