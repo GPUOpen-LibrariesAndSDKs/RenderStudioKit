@@ -69,47 +69,54 @@ Logic::OnMessage(ConnectionPtr connection, const std::string& message)
     }
 
     std::visit(
-        Overload { [&connection, this, &message](const RenderStudio::API::DeltaEvent& v)
-                   {
-                       // Thread safety
-                       std::lock_guard<std::mutex> lock(mMutex);
+        Overload {
+            [&connection, this, &message](const RenderStudio::API::DeltaEvent& v)
+            {
+                // Thread safety
+                std::lock_guard<std::mutex> lock(mMutex);
 
-                       // Process sequence
-                       Channel& channel = mChannels.at(connection->GetChannel());
-                       std::size_t sequence = channel.GetSequenceNumber();
-                       RenderStudio::API::DeltaEvent acknowledgedDelta = v;
-                       acknowledgedDelta.sequence = sequence;
+                if (mChannels.count(connection->GetChannel()) == 0)
+                {
+                    LOG_ERROR << "User \'" << connection->GetDebugName()
+                              << "\' sent message from non-existent channel \'" << connection->GetChannel() << "\'";
+                    return;
+                }
 
-                       // Broadcast update to users
-                       channel.AddToHistory(acknowledgedDelta);
-                       channel.Send(
-                           connection,
-                           boost::json::serialize(boost::json::value_from(
-                               RenderStudio::API::Event { "Delta::Event", acknowledgedDelta })));
+                // Process sequence
+                Channel& channel = mChannels.at(connection->GetChannel());
+                std::size_t sequence = channel.GetSequenceNumber();
+                RenderStudio::API::DeltaEvent acknowledgedDelta = v;
+                acknowledgedDelta.sequence = sequence;
 
-                       // Send acknowledge
-                       std::vector<pxr::SdfPath> paths;
+                // Broadcast update to users
+                channel.AddToHistory(acknowledgedDelta);
+                channel.Send(
+                    connection,
+                    boost::json::serialize(
+                        boost::json::value_from(RenderStudio::API::Event { "Delta::Event", acknowledgedDelta })));
 
-                       for (const auto& [key, value] : v.updates)
-                       {
-                           paths.push_back(key);
-                       }
+                // Send acknowledge
+                std::vector<pxr::SdfPath> paths;
 
-                       RenderStudio::API::Event ack {
-                           "Acknowledge::Event", RenderStudio::API::AcknowledgeEvent { v.layer, paths, sequence }
-                       };
-                       connection->Send(boost::json::serialize(boost::json::value_from(ack)));
-                   },
-                   [](const RenderStudio::API::HistoryEvent& v)
-                   {
-                       (void)v;
-                       // Do nothing. Only clients receive history
-                   },
-                   [](const RenderStudio::API::AcknowledgeEvent& v)
-                   {
-                       (void)v;
-                       // Do nothing. Only clients receive acknowledges
-                   } },
+                for (const auto& [key, value] : v.updates)
+                {
+                    paths.push_back(key);
+                }
+
+                RenderStudio::API::Event ack { "Acknowledge::Event",
+                                               RenderStudio::API::AcknowledgeEvent { v.layer, paths, sequence } };
+                connection->Send(boost::json::serialize(boost::json::value_from(ack)));
+            },
+            [](const RenderStudio::API::HistoryEvent& v)
+            {
+                (void)v;
+                // Do nothing. Only clients receive history
+            },
+            [](const RenderStudio::API::AcknowledgeEvent& v)
+            {
+                (void)v;
+                // Do nothing. Only clients receive acknowledges
+            } },
         event.value().body);
 }
 
