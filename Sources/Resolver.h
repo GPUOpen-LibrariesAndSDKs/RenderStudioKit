@@ -49,6 +49,12 @@ public:
     static bool IsRenderStudioPath(const std::string& path);
 
     AR_API
+    static bool IsUnresovableToRenderStudioPath(const std::string& path);
+
+    AR_API
+    static std::string Unresolve(const std::string& path);
+
+    AR_API
     virtual std::string _GetExtension(const std::string& path) const override;
 
     AR_API
@@ -63,11 +69,10 @@ protected:
 
 private:
     static std::filesystem::path GetDocumentsDirectory();
+    static std::filesystem::path GetRootPath();
 
     static inline LiveModeInfo sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;
-
-    std::filesystem::path mRootPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

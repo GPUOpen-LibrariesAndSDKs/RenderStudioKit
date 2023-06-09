@@ -57,13 +57,30 @@ RenderStudioResolver::IsRenderStudioPath(const std::string& path)
     return false;
 }
 
+bool
+RenderStudioResolver::IsUnresovableToRenderStudioPath(const std::string& path)
+{
+    std::filesystem::path relative
+        = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath());
+    return !relative.empty() && *relative.begin() != "..";
+}
+
+std::string
+RenderStudioResolver::Unresolve(const std::string& path)
+{
+    std::string relative
+        = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath()).string();
+    std::replace(relative.begin(), relative.end(), '\\', '/');
+    return "studio://" + relative;
+}
+
 RenderStudioResolver::RenderStudioResolver()
 {
-    mRootPath = RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
+    std::filesystem::path rootPath = RenderStudioResolver::GetRootPath();
 
-    if (!std::filesystem::exists(mRootPath))
+    if (!std::filesystem::exists(rootPath))
     {
-        std::filesystem::create_directory(mRootPath);
+        std::filesystem::create_directory(rootPath);
     }
 
     if (sFileFormat == nullptr)
@@ -78,7 +95,7 @@ RenderStudioResolver::RenderStudioResolver()
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
 
-    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << mRootPath;
+    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << rootPath;
 }
 
 RenderStudioResolver::~RenderStudioResolver() { }
@@ -120,7 +137,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = mRootPath / "Materials";
+            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Materials";
             for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
@@ -140,7 +157,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = mRootPath / "Storage";
+            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Storage";
             for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
@@ -155,7 +172,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
     if (std::filesystem::path(path).extension().string().find(".usd") == std::string::npos)
     {
         std::string copy = path;
-        copy.replace(copy.find("studio:"), sizeof("studio:") - 1, mRootPath.string());
+        copy.replace(copy.find("studio:"), sizeof("studio:") - 1, RenderStudioResolver::GetRootPath().string());
         return ArResolvedPath(copy);
     }
 
@@ -242,7 +259,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         RenderStudioLoadingNotice notice(_path, "primitive");
 
         _path.erase(0, std::string("studio:/").size());
-        std::filesystem::path resolved = mRootPath / _path;
+        std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / _path;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolved.string() });
     }
 
@@ -252,7 +269,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string uuid = resolvedPath.GetPathString();
         uuid.erase(0, std::string("gpuopen:/").size());
-        std::filesystem::path saveLocation = mRootPath / "Materials" / uuid;
+        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Materials" / uuid;
         return GpuOpenAsset::Open(uuid, saveLocation);
     }
 
@@ -262,7 +279,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
-        std::filesystem::path saveLocation = mRootPath / "Storage" / name;
+        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Storage" / name;
         return LocalStorageAsset::Open(name, saveLocation);
     }
 
@@ -310,6 +327,12 @@ RenderStudioResolver::GetDocumentsDirectory()
         throw std::runtime_error("Can't find Documents folder on Linux");
     }
 #endif
+}
+
+std::filesystem::path
+RenderStudioResolver::GetRootPath()
+{
+    return RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE
