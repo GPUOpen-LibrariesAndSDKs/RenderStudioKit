@@ -265,10 +265,12 @@ WebsocketSession::OnAccept(boost::beast::error_code ec)
 {
     if (ec)
     {
+        mConnected = false;
         LOG_ERROR << "[Networking] " << ec.message();
         return;
     }
 
+    mConnected = true;
     mServerLogic.OnConnected(shared_from_this());
     Read();
 }
@@ -276,6 +278,11 @@ WebsocketSession::OnAccept(boost::beast::error_code ec)
 void
 WebsocketSession::Read()
 {
+    if (!mConnected)
+    {
+        return;
+    }
+
     mReadBuffer.consume(mReadBuffer.size());
     mWebsocketStream.async_read(
         mReadBuffer, boost::beast::bind_front_handler(&WebsocketSession::OnRead, shared_from_this()));
@@ -286,8 +293,14 @@ WebsocketSession::OnRead(boost::beast::error_code ec, std::size_t transferred)
 {
     boost::ignore_unused(transferred);
 
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
+        mConnected = false;
         mServerLogic.OnDisconnected(shared_from_this());
         if (ec != boost::asio::error::connection_reset && ec != boost::beast::websocket::error::closed)
         {
@@ -305,8 +318,14 @@ WebsocketSession::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 {
     boost::ignore_unused(transferred);
 
+    if (!mConnected)
+    {
+        return;
+    }
+
     if (ec)
     {
+        mConnected = false;
         mServerLogic.OnDisconnected(shared_from_this());
         if (ec != boost::asio::error::connection_reset && ec != boost::beast::websocket::error::closed)
         {

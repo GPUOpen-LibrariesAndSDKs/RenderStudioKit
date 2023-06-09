@@ -85,6 +85,7 @@ private:
     boost::beast::http::message<true, boost::beast::http::string_body, boost::beast::http::fields> mRequest;
     std::string mChannel;
     std::queue<std::string> mWriteQueue;
+    bool mConnected = false;
 };
 
 class WebsocketServer : public std::enable_shared_from_this<WebsocketServer>
