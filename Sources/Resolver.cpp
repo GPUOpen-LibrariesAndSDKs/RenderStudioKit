@@ -1,6 +1,7 @@
 #include "Resolver.h"
 
 #pragma warning(push, 0)
+#include <pxr/base/arch/env.h>
 #include <pxr/base/tf/diagnostic.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/usd/ar/defineResolver.h>
@@ -182,7 +183,14 @@ RenderStudioResolver::_Resolve(const std::string& path) const
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    return sLiveModeInfo.storageUrl;
+    if (!sLiveModeInfo.storageUrl.empty())
+    {
+        return sLiveModeInfo.storageUrl;
+    }
+    else
+    {
+        return ArchGetEnv("STORAGE_SERVER_URL");
+    }
 }
 
 std::string

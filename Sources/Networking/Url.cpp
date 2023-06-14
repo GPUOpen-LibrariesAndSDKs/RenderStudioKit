@@ -51,7 +51,7 @@ Url::Parse(const std::string& request)
         }
         else
         {
-            throw std::runtime_error("Unsupported protocol");
+            throw std::runtime_error("Unsupported protocol: " + result.mProtocol);
         }
     }
 
