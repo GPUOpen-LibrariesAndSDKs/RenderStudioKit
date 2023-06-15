@@ -102,6 +102,25 @@ protected:
     virtual void _VisitSpecs(SdfAbstractDataSpecVisitor* visitor) const;
 
 private:
+    // Backing storage for a single "spec" -- prim, property, etc.
+    typedef std::pair<TfToken, VtValue> _FieldValuePair;
+    struct _SpecData
+    {
+        _SpecData()
+            : specType(SdfSpecTypeUnknown)
+        {
+        }
+
+        SdfSpecType specType;
+        std::vector<_FieldValuePair> fields;
+    };
+
+    // Hashtable storing _SpecData.
+    typedef SdfPath _Key;
+    typedef SdfPath::Hash _KeyHash;
+    typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
+
+private:
     void ApplyDelta(
         SdfLayerHandle& layer,
         std::vector<RenderStudioPrimitiveNotice>& notices,
@@ -110,8 +129,8 @@ private:
         const VtValue& value,
         SdfSpecType spec);
     void ProcessRemoteUpdates(SdfLayerHandle& layer);
-    void AccumulateRemoteUpdate(const RenderStudioApi::DeltaType& deltas, std::size_t sequence);
-    RenderStudioApi::DeltaType FetchLocalDeltas();
+    void AccumulateRemoteUpdate(const _HashTable& deltas, std::size_t sequence);
+    _HashTable FetchLocalDeltas();
     void OnLoaded();
 
     const VtValue* _GetSpecTypeAndFieldValue(const SdfPath& path, const TfToken& field, SdfSpecType* specType) const;
@@ -126,15 +145,14 @@ private:
 
 private:
     friend class RenderStudioFileFormat;
-    using _HashTable = RenderStudioApi::_HashTable;
-    using _SpecData = RenderStudioApi::_SpecData;
 
     _HashTable mData;
     _HashTable mLocalDeltas;
+
     std::set<SdfPath> mUnacknowledgedFields;
     std::mutex mRemoteMutex;
     std::size_t mLatestAppliedSequence = 0;
-    std::map<std::size_t, RenderStudioApi::DeltaType> mRemoteDeltasQueue;
+    std::map<std::size_t, _HashTable> mRemoteDeltasQueue;
     bool mIsLoaded = false;
     bool mIsProcessingRemoteUpdates = false;
 };

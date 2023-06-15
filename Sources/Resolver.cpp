@@ -1,6 +1,7 @@
 #include "Resolver.h"
 
 #pragma warning(push, 0)
+#include <pxr/base/arch/env.h>
 #include <pxr/base/tf/diagnostic.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/usd/ar/defineResolver.h>
@@ -31,10 +32,11 @@
 #include <Networking/LocalStorageApi.h>
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
+#include <Networking/Url.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver);
+AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver)
 
 bool
 RenderStudioResolver::IsRenderStudioPath(const std::string& path)
@@ -57,37 +59,30 @@ RenderStudioResolver::IsRenderStudioPath(const std::string& path)
     return false;
 }
 
+bool
+RenderStudioResolver::IsUnresovableToRenderStudioPath(const std::string& path)
+{
+    std::filesystem::path relative
+        = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath());
+    return !relative.empty() && *relative.begin() != "..";
+}
+
+std::string
+RenderStudioResolver::Unresolve(const std::string& path)
+{
+    std::string relative
+        = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath()).string();
+    std::replace(relative.begin(), relative.end(), '\\', '/');
+    return "studio://" + relative;
+}
+
 RenderStudioResolver::RenderStudioResolver()
 {
-    mRootPath = RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
+    std::filesystem::path rootPath = RenderStudioResolver::GetRootPath();
 
-    if (!std::filesystem::exists(mRootPath))
+    if (!std::filesystem::exists(rootPath))
     {
-        std::filesystem::create_directory(mRootPath);
-    }
-
-    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << mRootPath;
-}
-
-RenderStudioResolver::~RenderStudioResolver(){}
-
-void
-RenderStudioResolver::ProcessLiveUpdates()
-{
-    if (sFileFormat == nullptr)
-    {
-        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
-    }
-
-    sFileFormat->ProcessLiveUpdates();
-}
-
-void
-RenderStudioResolver::StartLiveMode()
-{
-    if (sLiveUrl.empty())
-    {
-        throw std::runtime_error("Remote URL wasn't set");
+        std::filesystem::create_directory(rootPath);
     }
 
     if (sFileFormat == nullptr)
@@ -102,34 +97,30 @@ RenderStudioResolver::StartLiveMode()
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
 
+    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << rootPath;
+}
+
+RenderStudioResolver::~RenderStudioResolver() { }
+
+void
+RenderStudioResolver::ProcessLiveUpdates()
+{
+    sFileFormat->ProcessLiveUpdates();
+}
+
+void
+RenderStudioResolver::StartLiveMode(const LiveModeInfo& info)
+{
+    sLiveModeInfo = info;
+
     // Connect here for now
-    sFileFormat->Connect(sLiveUrl);
+    sFileFormat->Connect(info.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
 }
 
 void
 RenderStudioResolver::StopLiveMode()
 {
-    if (sFileFormat == nullptr)
-    {
-        throw std::runtime_error("Can't access RenderStudioFileFormat. Probably live mode wasn't started");
-    }
-
     sFileFormat->Disconnect();
-}
-
-void
-RenderStudioResolver::SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl)
-{
-    sLiveUrl = liveUrl;
-    sStorageUrl = storageUrl;
-
-    LOG_INFO << "Set remote server address to " << liveUrl << ", " << storageUrl;
-}
-
-void
-RenderStudioResolver::SetCurrentUserId(const std::string& id)
-{
-    sUserId = id;
 }
 
 ArResolvedPath
@@ -148,8 +139,8 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = mRootPath / "Materials";
-            for (auto i = 1; i < tokens.size(); i++)
+            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Materials";
+            for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
             }
@@ -168,8 +159,8 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = mRootPath / "Storage";
-            for (auto i = 1; i < tokens.size(); i++)
+            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Storage";
+            for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
             }
@@ -183,7 +174,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
     if (std::filesystem::path(path).extension().string().find(".usd") == std::string::npos)
     {
         std::string copy = path;
-        copy.replace(copy.find("studio:"), sizeof("studio:") - 1, mRootPath.string());
+        copy.replace(copy.find("studio:"), sizeof("studio:") - 1, RenderStudioResolver::GetRootPath().string());
         return ArResolvedPath(copy);
     }
 
@@ -193,13 +184,20 @@ RenderStudioResolver::_Resolve(const std::string& path) const
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    return sStorageUrl;
+    if (!sLiveModeInfo.storageUrl.empty())
+    {
+        return sLiveModeInfo.storageUrl;
+    }
+    else
+    {
+        return ArchGetEnv("STORAGE_SERVER_URL");
+    }
 }
 
 std::string
 RenderStudioResolver::GetCurrentUserId()
 {
-    return sUserId;
+    return sLiveModeInfo.userId;
 }
 
 static std::string
@@ -226,6 +224,13 @@ _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::s
     // GPUOpen paths would be global, so we need to persist current asset name (with uuid) in identifier
     if (anchorPath.rfind("gpuopen:/", 0) == 0)
     {
+        // For now only gpuopen:// supports query parameters. Need to remove them before constructing full path
+        const RenderStudio::Networking::Url url = RenderStudio::Networking::Url::Parse(anchorPath);
+
+        std::string uuid = url.Path();
+        uuid.erase(std::remove(uuid.begin(), uuid.end(), '/'), uuid.end());
+        forwardPath = url.Protocol() + ":/" + uuid;
+
         anchoredPath = TfStringCatPaths(forwardPath, path);
     }
 
@@ -270,17 +275,29 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         RenderStudioLoadingNotice notice(_path, "primitive");
 
         _path.erase(0, std::string("studio:/").size());
-        std::filesystem::path resolved = mRootPath / _path;
+        std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / _path;
         return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolved.string() });
     }
 
     if (resolvedPath.GetPathString().rfind("gpuopen:/", 0) == 0)
     {
-        RenderStudioLoadingNotice notice(_path, "material");
+        std::optional<RenderStudioLoadingNotice> notice;
 
-        std::string uuid = resolvedPath.GetPathString();
-        uuid.erase(0, std::string("gpuopen:/").size());
-        std::filesystem::path saveLocation = mRootPath / "Materials" / uuid;
+        const RenderStudio::Networking::Url url = RenderStudio::Networking::Url::Parse(resolvedPath.GetPathString());
+
+        std::string uuid = url.Path();
+        uuid.erase(std::remove(uuid.begin(), uuid.end(), '/'), uuid.end());
+
+        if (auto query = url.Query(); query.count("title") > 0)
+        {
+            notice.emplace(query["title"], "material");
+        }
+        else
+        {
+            notice.emplace(uuid, "material");
+        }
+
+        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Materials" / uuid;
         return GpuOpenAsset::Open(uuid, saveLocation);
     }
 
@@ -290,10 +307,8 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
-        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(
-            name, RenderStudioResolver::GetLocalStorageUrl());
-        std::filesystem::path saveLocation = mRootPath / "Storage" / package.name;
-        return LocalStorageAsset::Open(package.id, saveLocation);
+        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Storage" / name;
+        return LocalStorageAsset::Open(name, saveLocation);
     }
 
     return ArDefaultResolver::_OpenAsset(ArResolvedPath { resolvedPath });
@@ -333,13 +348,19 @@ RenderStudioResolver::GetDocumentsDirectory()
 
     if (homedir != nullptr)
     {
-        return std::filesystem::path(homedir) / "Documents"
+        return std::filesystem::path(homedir) / "Documents";
     }
     else
     {
         throw std::runtime_error("Can't find Documents folder on Linux");
     }
 #endif
+}
+
+std::filesystem::path
+RenderStudioResolver::GetRootPath()
+{
+    return RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

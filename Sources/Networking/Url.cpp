@@ -8,6 +8,8 @@
 #include <uriparser/Uri.h>
 #pragma warning(pop)
 
+#include <Logger/Logger.h>
+
 namespace RenderStudio::Networking
 {
 
@@ -24,24 +26,35 @@ Url::Parse(const std::string& request)
 
     Url result {};
 
+    // Parse basic fields
     result.mProtocol = std::string(uri.scheme.first, uri.scheme.afterLast);
     result.mHost = std::string(uri.hostText.first, uri.hostText.afterLast);
     result.mPort = std::string(uri.portText.first, uri.portText.afterLast);
 
+    // Parse full path
     auto current = uri.pathHead;
     while (current != nullptr)
     {
-        result.mTarget += "/" + std::string { current->text.first, current->text.afterLast };
+        result.mPath += "/" + std::string { current->text.first, current->text.afterLast };
         current = current->next;
     }
 
-    result.mTarget += "?" + std::string(uri.query.first, uri.query.afterLast);
+    // Parse full query
+    std::string query = std::string(uri.query.first, uri.query.afterLast);
+    std::string key, value;
+    std::istringstream ss(query);
+    while (std::getline(ss, key, '=') && std::getline(ss, value, '&'))
+    {
+        result.mQuery[key] = RenderStudio::Networking::Url::Decode(value);
+    }
 
-    result.mSsl = result.mProtocol == "https" || result.mProtocol == "wss";
+    // Parse target = path + query
+    result.mTarget = result.mPath + "?" + query;
 
+    // Set port from protocol
     if (result.mPort.empty())
     {
-        if (result.mProtocol == "https" || result.mProtocol == "wss")
+        if (result.mProtocol == "https" || result.mProtocol == "wss" || result.mProtocol == "gpuopen")
         {
             result.mPort = "443";
         }
@@ -51,9 +64,12 @@ Url::Parse(const std::string& request)
         }
         else
         {
-            throw std::runtime_error("Unsupported protocol");
+            throw std::runtime_error("Unsupported protocol: " + result.mProtocol);
         }
     }
+
+    // Determine SSL
+    result.mSsl = result.mPort == "443";
 
     uriFreeUriMembersA(&uri);
     return result;
@@ -64,6 +80,14 @@ Url::Encode(const std::string& url)
 {
     std::string result = url;
     boost::replace_all(result, " ", "%20");
+    return result;
+}
+
+std::string
+Url::Decode(const std::string& url)
+{
+    std::string result = url;
+    boost::replace_all(result, "%20", " ");
     return result;
 }
 

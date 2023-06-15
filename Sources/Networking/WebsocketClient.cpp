@@ -10,7 +10,9 @@
 #include <uriparser/Uri.h>
 #pragma warning(pop)
 
+#ifdef PLATFORM_WINDOWS
 #include "Certificates.h"
+#endif
 
 #include <Logger/Logger.h>
 
@@ -24,7 +26,10 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
     , mConnected(false)
 {
     mSslContext = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12_client);
+
+#ifdef PLATFORM_WINDOWS
     AddWindowsRootCertificates(*mSslContext.get());
+#endif
     mWebsocketStream
         = std::make_shared<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>(
             boost::asio::make_strand(mIoContext), *mSslContext.get());
@@ -73,11 +78,29 @@ WebsocketClient::Disconnect()
 }
 
 void
-WebsocketClient::SendMessageString(const std::string& message)
+WebsocketClient::Send(const std::string& message)
+{
+    // From boost documentation:
+    // Post our work to the strand, this ensures
+    // that the members of `this` will not be
+    // accessed concurrently.
+
+    boost::asio::post(
+        mWebsocketStream->get_executor(),
+        boost::beast::bind_front_handler(&WebsocketClient::Write, shared_from_this(), message));
+}
+
+void
+WebsocketClient::Write(const std::string& message)
 {
     mWriteQueue.push(message);
 
     if (!mConnected)
+    {
+        return;
+    }
+
+    if (mWriteQueue.size() > 1)
     {
         return;
     }

@@ -7,6 +7,7 @@
 #include <memory>
 #include <queue>
 #include <string>
+#include <thread>
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/strand.hpp>
@@ -34,20 +35,28 @@ class WebsocketClient : public std::enable_shared_from_this<WebsocketClient>
 {
 public:
     using OnMessageFn = std::function<void(const std::string&)>;
-    explicit WebsocketClient(const OnMessageFn& fn);
+
+    template <typename... Args> static std::shared_ptr<WebsocketClient> Create(Args&&... args)
+    {
+        return std::shared_ptr<WebsocketClient> { new WebsocketClient { std::forward<Args>(args)... } };
+    }
+
     ~WebsocketClient();
 
     void Connect(const Url& endpoint);
     void Disconnect();
-    void SendMessageString(const std::string& message);
+    void Send(const std::string& message);
 
 private:
+    explicit WebsocketClient(const OnMessageFn& fn);
+
     void Ping(boost::beast::error_code ec);
     void OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
     void OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint);
     void OnHandshake(boost::beast::error_code ec);
     void OnSslHandshake(boost::beast::error_code ec);
     void OnPing(boost::beast::error_code ec);
+    void Write(const std::string& message);
     void OnWrite(boost::beast::error_code ec, std::size_t transferred);
     void OnRead(boost::beast::error_code ec, std::size_t transferred);
     void OnClose(boost::beast::error_code ec);

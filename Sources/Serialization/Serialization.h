@@ -204,7 +204,7 @@ tag_invoke(const value_to_tag<VtArray<T>>&, const value& json)
 
     VtArray<T> result(jsonArray.size());
 
-    for (auto i = 0; i < jsonArray.size(); i++)
+    for (std::size_t i = 0; i < jsonArray.size(); i++)
     {
         result[i] = value_to<T>(jsonArray[i]);
     }

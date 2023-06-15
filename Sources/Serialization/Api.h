@@ -17,30 +17,56 @@
 #include <boost/json.hpp>
 #pragma warning(pop)
 
-namespace RenderStudioApi
+namespace RenderStudio::API
 {
 
 PXR_NAMESPACE_USING_DIRECTIVE
+using namespace boost::json;
 
-typedef std::pair<TfToken, VtValue> _FieldValuePair;
-struct _SpecData
+struct SpecData
 {
-    _SpecData()
-        : specType(SdfSpecTypeUnknown)
-    {
-    }
-
-    SdfSpecType specType;
-    std::vector<_FieldValuePair> fields;
-    std::vector<TfToken> deletedFields;
+    SdfSpecType specType = SdfSpecTypeUnknown;
+    std::vector<std::pair<TfToken, VtValue>> fields;
 };
 
-typedef SdfPath _Key;
-typedef SdfPath::Hash _KeyHash;
-typedef TfHashMap<_Key, _SpecData, _KeyHash> _HashTable;
-using DeltaType = _HashTable;
+void tag_invoke(const value_from_tag&, value& json, const SpecData& v);
+SpecData tag_invoke(const value_to_tag<SpecData>&, const value& json);
 
-boost::json::object SerializeDeltas(SdfLayerHandle layer, const DeltaType& deltas, const std::string& user);
-std::tuple<std::string, DeltaType, std::size_t> DeserializeDeltas(const std::string message);
+struct DeltaEvent
+{
+    std::string layer;
+    std::string user;
+    std::optional<std::size_t> sequence;
+    TfHashMap<SdfPath, SpecData, SdfPath::Hash> updates;
+};
 
-} // namespace RenderStudioApi
+void tag_invoke(const value_from_tag&, value& json, const DeltaEvent& v);
+DeltaEvent tag_invoke(const value_to_tag<DeltaEvent>&, const value& json);
+
+struct AcknowledgeEvent
+{
+    std::string layer;
+    std::vector<SdfPath> paths;
+    std::size_t sequence = 0;
+};
+
+void tag_invoke(const value_from_tag&, value& json, const AcknowledgeEvent& v);
+AcknowledgeEvent tag_invoke(const value_to_tag<AcknowledgeEvent>&, const value& json);
+
+struct HistoryEvent
+{
+};
+
+void tag_invoke(const value_from_tag&, value& json, const HistoryEvent& v);
+HistoryEvent tag_invoke(const value_to_tag<HistoryEvent>&, const value& json);
+
+struct Event
+{
+    std::string event;
+    std::variant<DeltaEvent, AcknowledgeEvent, HistoryEvent> body;
+};
+
+void tag_invoke(const value_from_tag&, value& json, const Event& v);
+Event tag_invoke(const value_to_tag<Event>&, const value& json);
+
+} // namespace RenderStudio::API

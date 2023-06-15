@@ -45,7 +45,7 @@ RenderStudioData::ApplyDelta(
         layer->GetStateDelegate()->CreateSpec(path, spec, false);
         if (path.IsPrimPath())
         {
-            notices.push_back(RenderStudioPrimitiveNotice(path, false, true));
+            notices.push_back(RenderStudioPrimitiveNotice(path, true));
         }
     }
 
@@ -58,14 +58,13 @@ RenderStudioData::ApplyDelta(
         {
             std::optional<std::string> owner = [&it]() -> std::optional<std::string>
             {
-                std::string owner = it->second.Get<std::string>();
-                if (owner == "None")
+                if (it->second.Get<std::string>() == "None")
                 {
                     return std::nullopt;
                 }
                 else
                 {
-                    return owner;
+                    return it->second.Get<std::string>();
                 }
             }();
 
@@ -132,7 +131,7 @@ RenderStudioData::ApplyDelta(
 
     if (key == SdfFieldKeys->Active)
     {
-        notices.push_back(RenderStudioPrimitiveNotice(path, true, false));
+        notices.push_back(RenderStudioPrimitiveNotice(path, true));
     }
 }
 
@@ -152,7 +151,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     while (mRemoteDeltasQueue.find(nextRequestedSequence) != mRemoteDeltasQueue.end())
     {
-        RenderStudioApi::DeltaType& deltas = mRemoteDeltasQueue.at(nextRequestedSequence);
+        _HashTable& deltas = mRemoteDeltasQueue.at(nextRequestedSequence);
 
         for (const std::pair<SdfPath, _SpecData>& delta : deltas)
         {
@@ -169,7 +168,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                 ApplyDelta(layer, notices, delta.first, field.first, field.second, delta.second.specType);
             }
 
-            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false, false));
+            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false));
         }
 
         mLatestAppliedSequence = nextRequestedSequence;
@@ -179,11 +178,28 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     block.reset();
 
+    // Deduplicate notices
+    std::map<SdfPath, std::vector<RenderStudioPrimitiveNotice>> noticesMap;
     for (const RenderStudioPrimitiveNotice& notice : notices)
     {
         if (notice.IsValid())
         {
-            notice.Send();
+            noticesMap[notice.GetChangedPrim()].push_back(notice);
+        }
+    }
+
+    for (const auto& [path, noticeVector] : noticesMap)
+    {
+        auto it = std::find_if(
+            noticeVector.begin(), noticeVector.end(), [](const auto& item) { return item.WasResynched(); });
+
+        if (it != noticeVector.end())
+        {
+            it->Send();
+        }
+        else
+        {
+            noticeVector.front().Send();
         }
     }
 
@@ -191,13 +207,13 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 }
 
 void
-RenderStudioData::AccumulateRemoteUpdate(const RenderStudioApi::DeltaType& deltas, std::size_t sequence)
+RenderStudioData::AccumulateRemoteUpdate(const _HashTable& deltas, std::size_t sequence)
 {
     std::unique_lock<std::mutex> lock(mRemoteMutex);
     mRemoteDeltasQueue[sequence] = deltas;
 }
 
-RenderStudioApi::DeltaType
+RenderStudioData::_HashTable
 RenderStudioData::FetchLocalDeltas()
 {
     auto copy = mLocalDeltas;

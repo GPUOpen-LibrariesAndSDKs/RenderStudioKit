@@ -15,14 +15,17 @@ function(SetMaxWarningLevel Project)
     else()
         target_compile_options(${Project} PRIVATE
             -Werror
-            -Weverything
-            -Wno-pre-c++17-compat
-            -Wno-c++98-compat
-            -Wno-weak-vtables
-            -Wno-padded
-            -Wno-exit-time-destructors
-            -Wno-global-constructors
-            -Wno-ctad-maybe-unsupported
+            -Wall 
+            -Wextra
+            -Wshadow 
+            -Wnon-virtual-dtor 
+            -pedantic
+            -Wno-unknown-pragmas
+            -Wno-deprecated
         )
+    endif()
+
+    if (NOT MSVC)
+        set_property(TARGET ${Project} PROPERTY POSITION_INDEPENDENT_CODE ON)
     endif()
 endfunction(SetMaxWarningLevel)

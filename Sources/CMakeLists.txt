@@ -20,6 +20,7 @@ add_subdirectory(External)
 add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)
+add_subdirectory(Server)
 
 # Link libraries
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
@@ -44,7 +45,11 @@ if(WIN32)
     )
 endif()
 
-string (REGEX REPLACE "v([0-9]+)" "\\1" VS_NUMERIC_PLATFORM_TOOLSET ${CMAKE_VS_PLATFORM_TOOLSET})
+if (WIN32)
+    string (REGEX REPLACE "v([0-9]+)" "\\1" VS_NUMERIC_PLATFORM_TOOLSET ${CMAKE_VS_PLATFORM_TOOLSET})
+else()
+    set(VS_NUMERIC_PLATFORM_TOOLSET 0)
+endif()
 
 # Set compile options
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE 

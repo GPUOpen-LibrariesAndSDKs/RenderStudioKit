@@ -4,7 +4,6 @@
 #include <Resolver.h>
 
 #include <Logger/Logger.h>
-#include <Networking/LocalStorageApi.h>
 #include <Networking/MaterialLibraryApi.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -92,21 +91,45 @@ GpuOpenAsset::GetFileUnsafe() const
 }
 
 std::shared_ptr<LocalStorageAsset>
-LocalStorageAsset::Open(const std::string& uuid, const std::filesystem::path& location)
+LocalStorageAsset::Open(const std::string& name, const std::filesystem::path& location)
 {
-    return std::make_shared<LocalStorageAsset>(uuid, location);
+    return std::make_shared<LocalStorageAsset>(name, location);
 }
 
-LocalStorageAsset::LocalStorageAsset(const std::string& uuid, const std::filesystem::path& location)
+LocalStorageAsset::LocalStorageAsset(const std::string& name, const std::filesystem::path& location)
 {
-    mUuid = uuid;
+    // Aggressive optimization here, ignoring mUuid and applying first .usda file under light directory assuming that
+    // it's valid
+    mUuid = "empty";
 
-    // Download light
-    auto package
-        = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(uuid, RenderStudioResolver::GetLocalStorageUrl());
+    std::filesystem::path usdaLocation;
 
-    auto usdaLocation = RenderStudio::Networking::LocalStorageAPI::Download(
-        package, location, RenderStudioResolver::GetLocalStorageUrl());
+    if (!std::filesystem::exists(location))
+    {
+        // Download light
+        auto package = RenderStudio::Networking::LocalStorageAPI::GetLightPackage(
+            name, RenderStudioResolver::GetLocalStorageUrl());
+
+        usdaLocation = RenderStudio::Networking::LocalStorageAPI::Download(
+            package, location, RenderStudioResolver::GetLocalStorageUrl());
+    }
+    else
+    {
+        for (auto const& entry : std::filesystem::recursive_directory_iterator(location))
+        {
+            if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".usda")
+            {
+                usdaLocation = entry.path();
+                break;
+            }
+        }
+
+        if (usdaLocation.empty())
+        {
+            throw std::runtime_error("Storage was corrupted, can't find " + location.string());
+        }
+    }
+
     mFileMapping = ArchOpenFile(usdaLocation.string().c_str(), "rb");
 }
 

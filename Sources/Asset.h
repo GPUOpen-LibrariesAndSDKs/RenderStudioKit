@@ -11,6 +11,8 @@
 #include <pxr/usd/ar/asset.h>
 #pragma warning(pop)
 
+#include <Networking/LocalStorageApi.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class GpuOpenAsset : public ArAsset
@@ -49,10 +51,10 @@ class LocalStorageAsset : public GpuOpenAsset
 {
 public:
     AR_API
-    static std::shared_ptr<LocalStorageAsset> Open(const std::string& uuid, const std::filesystem::path& location);
+    static std::shared_ptr<LocalStorageAsset> Open(const std::string& name, const std::filesystem::path& location);
 
     AR_API
-    explicit LocalStorageAsset(const std::string& uuid, const std::filesystem::path& location);
+    explicit LocalStorageAsset(const std::string& name, const std::filesystem::path& location);
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

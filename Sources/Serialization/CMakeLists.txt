@@ -13,6 +13,7 @@ find_package(Boost REQUIRED)
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
+    Boost::python
     sdf
 )
 

@@ -107,7 +107,11 @@ void
 tag_invoke(const value_from_tag&, value& json, const VtValue& v)
 {
     object result;
-    result["type"] = v.GetTypeName();
+
+    std::string typeName = v.GetTypeName();
+    typeName.erase(std::remove(typeName.begin(), typeName.end(), ' '), typeName.end());
+    result["type"] = typeName;
+
     auto& data = result["data"];
 
     if (v.IsHolding<GfVec3d>())
@@ -265,11 +269,11 @@ tag_invoke(const value_to_tag<VtValue>&, const value& json)
     {
         return VtValue { value_to<double>(data) };
     }
-    else if ("vector<TfToken,allocator<TfToken> >" == type)
+    else if ("vector<TfToken,allocator<TfToken>>" == type)
     {
         return VtValue { value_to<std::vector<TfToken>>(data) };
     }
-    else if ("vector<SdfPath,allocator<SdfPath> >" == type)
+    else if ("vector<SdfPath,allocator<SdfPath>>" == type)
     {
         return VtValue { value_to<std::vector<SdfPath>>(data) };
     }
@@ -322,7 +326,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec3d& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -346,7 +350,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec2f& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -369,7 +373,7 @@ tag_invoke(const value_from_tag&, value& json, const GfVec3f& v)
 {
     array result;
 
-    for (auto i = 0; i < v.dimension; i++)
+    for (std::size_t i = 0; i < v.dimension; i++)
     {
         result.push_back(v[i]);
     }
@@ -435,9 +439,9 @@ tag_invoke(const value_from_tag&, value& json, const GfMatrix4d& v)
 {
     array result;
 
-    for (auto i = 0; i < GfMatrix4d::numRows * GfMatrix4d::numColumns; i++)
+    for (std::size_t i = 0; i < GfMatrix4d::numRows * GfMatrix4d::numColumns; i++)
     {
-        result.push_back(*v[i]);
+        result.push_back(*v[static_cast<std::int32_t>(i)]);
     }
 
     json = result;
@@ -449,9 +453,10 @@ tag_invoke(const value_to_tag<GfMatrix4d>&, const value& json)
     GfMatrix4d result {};
     array jsonArray = json.as_array();
 
-    for (auto i = 0; i < jsonArray.size(); i++)
+    for (std::size_t i = 0; i < jsonArray.size(); i++)
     {
-        *result[i] = value_to<GfMatrix4d::ScalarType>(jsonArray.at(i));
+        *result[static_cast<std::int32_t>(i)]
+            = value_to<GfMatrix4d::ScalarType>(jsonArray.at(static_cast<std::int32_t>(i)));
     }
 
     return result;

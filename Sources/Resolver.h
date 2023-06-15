@@ -9,7 +9,6 @@
 #include <pxr/usd/ar/resolver.h>
 #pragma warning(pop)
 
-#include "Context.h"
 #include "FileFormat.h"
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -23,26 +22,22 @@ public:
     AR_API
     virtual ~RenderStudioResolver();
 
+    struct LiveModeInfo
+    {
+        std::string liveUrl;
+        std::string storageUrl;
+        std::string channelId;
+        std::string userId;
+    };
+
+    AR_API
+    static void StartLiveMode(const LiveModeInfo& info);
+
     AR_API
     static void ProcessLiveUpdates();
 
     AR_API
-    static void StartLiveMode();
-
-    AR_API
     static void StopLiveMode();
-
-    AR_API
-    static void SetRemoteServerAddress(const std::string& liveUrl, const std::string& storageUrl);
-
-    AR_API
-    static void SetCurrentUserId(const std::string& name);
-
-    AR_API
-    virtual std::string _GetExtension(const std::string& path) const override;
-
-    AR_API
-    virtual ArResolvedPath _Resolve(const std::string& path) const override;
 
     AR_API
     static std::string GetLocalStorageUrl();
@@ -53,6 +48,18 @@ public:
     AR_API
     static bool IsRenderStudioPath(const std::string& path);
 
+    AR_API
+    static bool IsUnresovableToRenderStudioPath(const std::string& path);
+
+    AR_API
+    static std::string Unresolve(const std::string& path);
+
+    AR_API
+    virtual std::string _GetExtension(const std::string& path) const override;
+
+    AR_API
+    virtual ArResolvedPath _Resolve(const std::string& path) const override;
+
 protected:
     AR_API
     std::string _CreateIdentifier(const std::string& assetPath, const ArResolvedPath& anchorAssetPath) const override;
@@ -62,13 +69,10 @@ protected:
 
 private:
     static std::filesystem::path GetDocumentsDirectory();
+    static std::filesystem::path GetRootPath();
 
-    static inline std::string sLiveUrl;
-    static inline std::string sStorageUrl;
-    static inline std::string sUserId;
+    static inline LiveModeInfo sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;
-
-    std::filesystem::path mRootPath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
