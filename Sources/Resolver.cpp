@@ -32,6 +32,7 @@
 #include <Networking/LocalStorageApi.h>
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
+#include <Networking/Url.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -273,10 +274,22 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("gpuopen:/", 0) == 0)
     {
-        RenderStudioLoadingNotice notice(_path, "material");
+        std::optional<RenderStudioLoadingNotice> notice;
 
-        std::string uuid = resolvedPath.GetPathString();
-        uuid.erase(0, std::string("gpuopen:/").size());
+        const RenderStudio::Networking::Url url = RenderStudio::Networking::Url::Parse(resolvedPath.GetPathString());
+
+        std::string uuid = url.Path();
+        uuid.erase(std::remove(uuid.begin(), uuid.end(), '/'), uuid.end());
+
+        if (auto query = url.Query(); query.count("title") > 0)
+        {
+            notice.emplace(query["title"], "material");
+        }
+        else
+        {
+            notice.emplace(uuid, "material");
+        }
+
         std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Materials" / uuid;
         return GpuOpenAsset::Open(uuid, saveLocation);
     }
