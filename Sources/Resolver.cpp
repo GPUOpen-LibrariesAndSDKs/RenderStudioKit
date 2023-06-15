@@ -224,6 +224,13 @@ _AnchorRelativePathForStudioProtocol(const std::string& anchorPath, const std::s
     // GPUOpen paths would be global, so we need to persist current asset name (with uuid) in identifier
     if (anchorPath.rfind("gpuopen:/", 0) == 0)
     {
+        // For now only gpuopen:// supports query parameters. Need to remove them before constructing full path
+        const RenderStudio::Networking::Url url = RenderStudio::Networking::Url::Parse(anchorPath);
+
+        std::string uuid = url.Path();
+        uuid.erase(std::remove(uuid.begin(), uuid.end(), '/'), uuid.end());
+        forwardPath = url.Protocol() + ":/" + uuid;
+
         anchoredPath = TfStringCatPaths(forwardPath, path);
     }
 
