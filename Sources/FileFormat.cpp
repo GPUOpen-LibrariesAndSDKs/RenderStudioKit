@@ -304,6 +304,10 @@ RenderStudioFileFormat::RenderStudioFileFormat()
 {
 }
 
-RenderStudioFileFormat::~RenderStudioFileFormat() { mWebsocketClient->Disconnect(); }
+RenderStudioFileFormat::~RenderStudioFileFormat() { 
+    if (mWebsocketClient) {
+        mWebsocketClient->Disconnect();
+    }
+}
 
 PXR_NAMESPACE_CLOSE_SCOPE
