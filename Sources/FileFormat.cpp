@@ -304,8 +304,9 @@ RenderStudioFileFormat::RenderStudioFileFormat()
 {
 }
 
-RenderStudioFileFormat::~RenderStudioFileFormat() { 
-    if (mWebsocketClient) {
+RenderStudioFileFormat::~RenderStudioFileFormat() 
+{ 
+    if (mWebsocketClient != nullptr) {
         mWebsocketClient->Disconnect();
     }
 }
