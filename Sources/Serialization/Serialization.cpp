@@ -186,6 +186,10 @@ tag_invoke(const value_from_tag&, value& json, const VtValue& v)
     {
         data = value_from(v.Get<SdfListOp<SdfReference>>());
     }
+    else if (v.IsHolding<SdfListOp<TfToken>>())
+    {
+        data = value_from(v.Get<SdfListOp<TfToken>>());
+    }
     else if (v.IsHolding<std::vector<SdfPath>>())
     {
         data = value_from(v.Get<std::vector<SdfPath>>());
@@ -308,6 +312,10 @@ tag_invoke(const value_to_tag<VtValue>&, const value& json)
     else if ("SdfListOp<SdfReference>" == type)
     {
         return VtValue { value_to<SdfListOp<SdfReference>>(data) };
+    }
+    else if ("SdfListOp<TfToken>" == type)
+    {
+        return VtValue { value_to<SdfListOp<TfToken>>(data) };
     }
     else if ("SdfValueBlock" == type)
     {
