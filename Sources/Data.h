@@ -96,6 +96,9 @@ public:
     AR_API
     virtual void EraseTimeSample(const SdfPath& path, double time);
 
+    AR_API
+    std::size_t GetSequence() const { return mLatestAppliedSequence; }
+
 protected:
     // SdfAbstractData overrides
     AR_API

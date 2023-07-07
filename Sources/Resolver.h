@@ -34,7 +34,7 @@ public:
     static void StartLiveMode(const LiveModeInfo& info);
 
     AR_API
-    static void ProcessLiveUpdates();
+    static bool ProcessLiveUpdates();
 
     AR_API
     static void StopLiveMode();
