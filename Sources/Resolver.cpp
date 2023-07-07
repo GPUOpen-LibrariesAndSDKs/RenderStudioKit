@@ -102,10 +102,10 @@ RenderStudioResolver::RenderStudioResolver()
 
 RenderStudioResolver::~RenderStudioResolver() { }
 
-void
+bool
 RenderStudioResolver::ProcessLiveUpdates()
 {
-    sFileFormat->ProcessLiveUpdates();
+    return sFileFormat->ProcessLiveUpdates();
 }
 
 void

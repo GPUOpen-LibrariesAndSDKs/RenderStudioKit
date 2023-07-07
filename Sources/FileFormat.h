@@ -54,7 +54,7 @@ private:
     RenderStudioFileFormat();
     virtual ~RenderStudioFileFormat();
 
-    void ProcessLiveUpdates();
+    bool ProcessLiveUpdates();
     void Connect(const std::string& url);
     void Disconnect();
     RenderStudioDataPtr _GetRenderStudioData(SdfLayerHandle layer) const;

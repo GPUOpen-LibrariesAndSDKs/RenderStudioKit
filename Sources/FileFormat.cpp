@@ -158,11 +158,13 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
         event.value().body);
 }
 
-void
+bool
 RenderStudioFileFormat::ProcessLiveUpdates()
 {
+    bool updated = false;
+
     mLayerRegistry.ForEachLayer(
-        [this](SdfLayerHandle layer)
+        [this, &updated](SdfLayerHandle layer)
         {
             RenderStudioDataPtr data = _GetRenderStudioData(layer);
 
@@ -199,8 +201,17 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             }
 
             // Apply remote deltas
+            std::size_t sequence = data->GetSequence();
             data->ProcessRemoteUpdates(layer);
+
+            // Changed sequence number means there was an applied update
+            if (sequence != data->GetSequence())
+            {
+                updated = true;
+            }
         });
+
+    return updated;
 }
 
 void
@@ -304,9 +315,9 @@ RenderStudioFileFormat::RenderStudioFileFormat()
 {
 }
 
-RenderStudioFileFormat::~RenderStudioFileFormat() 
-{ 
-    if (mWebsocketClient != nullptr) 
+RenderStudioFileFormat::~RenderStudioFileFormat()
+{
+    if (mWebsocketClient != nullptr)
     {
         mWebsocketClient->Disconnect();
     }
