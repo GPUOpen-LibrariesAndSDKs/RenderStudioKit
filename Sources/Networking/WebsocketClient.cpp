@@ -16,6 +16,18 @@
 
 #include <Logger/Logger.h>
 
+namespace
+{
+
+template <typename... Ts> struct Overload : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts> Overload(Ts...) -> Overload<Ts...>;
+
+} // namespace
+
 namespace RenderStudio::Networking
 {
 
@@ -25,14 +37,6 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
     , mOnMessageFn(fn)
     , mConnected(false)
 {
-    mSslContext = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12_client);
-
-#ifdef PLATFORM_WINDOWS
-    AddWindowsRootCertificates(*mSslContext.get());
-#endif
-    mWebsocketStream
-        = std::make_shared<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>(
-            boost::asio::make_strand(mIoContext), *mSslContext.get());
 }
 
 WebsocketClient::~WebsocketClient()
@@ -45,6 +49,20 @@ void
 WebsocketClient::Connect(const Url& endpoint)
 {
     mEndpoint = endpoint;
+
+    if (endpoint.Ssl())
+    {
+        mSslContext = std::make_shared<boost::asio::ssl::context>(boost::asio::ssl::context::tlsv12_client);
+
+#ifdef PLATFORM_WINDOWS
+        AddWindowsRootCertificates(*mSslContext.get());
+#endif
+        mWebsocketStream = std::make_shared<SslStream>(boost::asio::make_strand(mIoContext), *mSslContext.get());
+    }
+    else
+    {
+        mWebsocketStream = std::make_shared<TcpStream>(boost::asio::make_strand(mIoContext));
+    }
 
     mTcpResolver.async_resolve(
         mEndpoint.Host(),
@@ -66,9 +84,14 @@ WebsocketClient::Disconnect()
 {
     if (mConnected)
     {
-        mWebsocketStream->async_close(
-            boost::beast::websocket::close_code::normal,
-            boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this()));
+        std::visit(
+            [this](auto& stream)
+            {
+                stream->async_close(
+                    boost::beast::websocket::close_code::normal,
+                    boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this()));
+            },
+            mWebsocketStream);
 
         LOG_DEBUG << "Websocket disconnected";
     }
@@ -85,9 +108,14 @@ WebsocketClient::Send(const std::string& message)
     // that the members of `this` will not be
     // accessed concurrently.
 
-    boost::asio::post(
-        mWebsocketStream->get_executor(),
-        boost::beast::bind_front_handler(&WebsocketClient::Write, shared_from_this(), message));
+    std::visit(
+        [this, &message](auto& stream)
+        {
+            boost::asio::post(
+                stream->get_executor(),
+                boost::beast::bind_front_handler(&WebsocketClient::Write, shared_from_this(), message));
+        },
+        mWebsocketStream);
 }
 
 void
@@ -105,9 +133,14 @@ WebsocketClient::Write(const std::string& message)
         return;
     }
 
-    mWebsocketStream->async_write(
-        boost::asio::buffer(mWriteQueue.back()),
-        boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
+    std::visit(
+        [this](auto& stream)
+        {
+            stream->async_write(
+                boost::asio::buffer(mWriteQueue.back()),
+                boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
+        },
+        mWebsocketStream);
 }
 
 void
@@ -124,7 +157,10 @@ WebsocketClient::Ping(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    mWebsocketStream->async_ping("", boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this()));
+    std::visit(
+        [this](auto& stream)
+        { stream->async_ping("", boost::beast::bind_front_handler(&WebsocketClient::OnPing, shared_from_this())); },
+        mWebsocketStream);
 }
 
 void
@@ -136,10 +172,16 @@ WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::re
         return Disconnect();
     }
 
-    boost::beast::get_lowest_layer(*mWebsocketStream.get()).expires_after(std::chrono::seconds(30));
+    std::visit(
+        [this, &results](auto& stream)
+        {
+            boost::beast::get_lowest_layer(*stream.get()).expires_after(std::chrono::seconds(30));
 
-    boost::beast::get_lowest_layer(*mWebsocketStream.get())
-        .async_connect(results, boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this()));
+            boost::beast::get_lowest_layer(*stream.get())
+                .async_connect(
+                    results, boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this()));
+        },
+        mWebsocketStream);
 }
 
 void
@@ -151,26 +193,46 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         return Disconnect();
     }
 
-    boost::beast::get_lowest_layer(*mWebsocketStream.get()).expires_never();
+    std::visit(
+        [this](auto& stream)
+        {
+            boost::beast::get_lowest_layer(*stream.get()).expires_never();
 
-    mWebsocketStream->set_option(
-        boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
+            stream->set_option(
+                boost::beast::websocket::stream_base::timeout::suggested(boost::beast::role_type::client));
 
-    mWebsocketStream->set_option(boost::beast::websocket::stream_base::decorator(
-        [](boost::beast::websocket::request_type& request)
-        { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
+            stream->set_option(boost::beast::websocket::stream_base::decorator(
+                [](boost::beast::websocket::request_type& request)
+                { request.set(boost::beast::http::field::user_agent, std::string("RenderStudio Resolver")); }));
+        },
+        mWebsocketStream);
 
-    if (!SSL_set_tlsext_host_name(mWebsocketStream->next_layer().native_handle(), mEndpoint.Host().c_str()))
-    {
-        boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category() };
-        throw boost::beast::system_error { sslEc };
-    }
+    std::visit(
+        Overload { [this, &endpoint](const std::shared_ptr<SslStream>& stream)
+                   {
+                       if (!SSL_set_tlsext_host_name(stream->next_layer().native_handle(), mEndpoint.Host().c_str()))
+                       {
+                           boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()),
+                                                            boost::asio::error::get_ssl_category() };
+                           throw boost::beast::system_error { sslEc };
+                       }
 
-    mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
+                       mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
 
-    mWebsocketStream->next_layer().async_handshake(
-        boost::asio::ssl::stream_base::client,
-        boost::beast::bind_front_handler(&WebsocketClient::OnSslHandshake, shared_from_this()));
+                       stream->next_layer().async_handshake(
+                           boost::asio::ssl::stream_base::client,
+                           boost::beast::bind_front_handler(&WebsocketClient::OnSslHandshake, shared_from_this()));
+                   },
+                   [this, &endpoint](const std::shared_ptr<TcpStream>& stream)
+                   {
+                       mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
+
+                       stream->async_handshake(
+                           mSslHost,
+                           mEndpoint.Target(),
+                           boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
+                   } },
+        mWebsocketStream);
 }
 
 void
@@ -182,10 +244,15 @@ WebsocketClient::OnSslHandshake(boost::beast::error_code ec)
         return Disconnect();
     }
 
-    mWebsocketStream->async_handshake(
-        mSslHost,
-        mEndpoint.Target(),
-        boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
+    std::visit(
+        [this](auto& stream)
+        {
+            stream->async_handshake(
+                mSslHost,
+                mEndpoint.Target(),
+                boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
+        },
+        mWebsocketStream);
 }
 
 void
@@ -238,9 +305,15 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 
     if (!mWriteQueue.empty())
     {
-        mWebsocketStream->async_write(
-            boost::asio::buffer(mWriteQueue.back()),
-            boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
+
+        std::visit(
+            [this](auto& stream)
+            {
+                stream->async_write(
+                    boost::asio::buffer(mWriteQueue.back()),
+                    boost::beast::bind_front_handler(&WebsocketClient::OnWrite, shared_from_this()));
+            },
+            mWebsocketStream);
     }
 }
 
@@ -264,8 +337,12 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
         mReadBuffer.clear();
     }
 
-    mWebsocketStream->async_read(
-        mReadBuffer, boost::beast::bind_front_handler(&WebsocketClient::OnRead, shared_from_this()));
+    std::visit(
+        [this](auto& stream) {
+            stream->async_read(
+                mReadBuffer, boost::beast::bind_front_handler(&WebsocketClient::OnRead, shared_from_this()));
+        },
+        mWebsocketStream);
 }
 
 void
