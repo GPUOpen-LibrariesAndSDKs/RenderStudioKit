@@ -12,4 +12,4 @@ set PATH=%USD_PATHS%;%PATH%
 set PXR_USDMTLX_STDLIB_SEARCH_PATHS=%USD_ROOT%\libraries
 set RENDERER_PATHS=%INSTALL_DIR%\Engine\UsdRenderer
 set PATH=%RENDERER_PATHS%;%PATH%
-%~dp0\RenderStudioServer.exe %*
+"%~dp0\RenderStudioServer.exe" %*
