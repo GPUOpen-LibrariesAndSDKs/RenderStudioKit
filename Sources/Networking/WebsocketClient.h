@@ -8,6 +8,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <variant>
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/strand.hpp>
@@ -65,8 +66,11 @@ private:
     Url mEndpoint;
     boost::asio::io_context mIoContext;
     boost::asio::ip::tcp::resolver mTcpResolver;
-    std::shared_ptr<boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>>
-        mWebsocketStream;
+
+    using SslStream = boost::beast::websocket::stream<boost::beast::ssl_stream<boost::beast::tcp_stream>>;
+    using TcpStream = boost::beast::websocket::stream<boost::beast::tcp_stream>;
+
+    std::variant<std::shared_ptr<SslStream>, std::shared_ptr<TcpStream>> mWebsocketStream;
     std::shared_ptr<boost::asio::ssl::context> mSslContext;
     boost::beast::flat_buffer mReadBuffer;
     boost::asio::deadline_timer mPingTimer;

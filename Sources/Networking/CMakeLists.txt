@@ -19,6 +19,7 @@ find_package(OpenSSL REQUIRED)
 
 if (WIN32)
     find_package(BinaryOpenSSL REQUIRED)
+    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
 endif()
 
 # Link libraries
