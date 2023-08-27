@@ -1,0 +1,39 @@
+#usda 1.0
+(
+    """ This file describes RenderStudio primitives schema for AI/ML driven operations.
+    """
+    subLayers = [
+        @usd/schema.usda@
+    ]
+)
+
+over "GLOBAL" (
+    customData = {
+        string libraryName       = "RenderStudioSchema"
+        string libraryPath       = "."
+        string libraryPrefix     = ""
+    }
+) {
+}
+
+class "RenderStudioAiPrimAPI" (
+    inherits = </APISchemaBase>
+    customData = {
+        token apiSchemaType = "singleApply"
+    }
+)
+{
+    string params:prompt (
+        customData = {
+            string apiName = "prompt"
+        }
+        doc = "String value denoting prompt"
+    )
+
+    string generated:description (
+        customData = {
+            string apiName = "description"
+        }
+        doc = "String value denoting generated description"
+    )
+}
