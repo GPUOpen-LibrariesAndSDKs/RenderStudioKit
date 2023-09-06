@@ -32,12 +32,35 @@ namespace RenderStudio::Networking
 
 template <typename StreamT>
 boost::beast::http::response<boost::beast::http::dynamic_body>
-HttpImpl(const Url& url, StreamT& stream, boost::beast::http::verb verb)
+HttpImpl(
+    const Url& url,
+    StreamT& stream,
+    boost::beast::http::verb verb,
+    const std::string& body,
+    const std::map<RestClient::Parameters, std::string>& parameters)
 {
     // HTTP request
     boost::beast::http::request<boost::beast::http::string_body> request { verb, url.Target(), 11 };
     request.set(boost::beast::http::field::host, url.Host());
     request.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+    // Process body
+    if (!body.empty())
+    {
+        if (parameters.count(RestClient::Parameters::ContentType) > 0)
+        {
+            request.set(boost::beast::http::field::content_type, parameters.at(RestClient::Parameters::ContentType));
+        }
+
+        if (parameters.count(RestClient::Parameters::Authorization) > 0)
+        {
+            request.set(boost::beast::http::field::authorization, parameters.at(RestClient::Parameters::Authorization));
+        }
+
+        request.body() = body;
+        request.prepare_payload();
+    }
+
     boost::beast::http::write(stream, request);
 
     // HTTP response
@@ -52,18 +75,30 @@ HttpImpl(const Url& url, StreamT& stream, boost::beast::http::verb verb)
 
 template <typename ResultsT>
 boost::beast::http::response<boost::beast::http::dynamic_body>
-TcpImpl(boost::asio::io_context& context, const Url& url, const ResultsT& results, boost::beast::http::verb verb)
+TcpImpl(
+    boost::asio::io_context& context,
+    const Url& url,
+    const ResultsT& results,
+    boost::beast::http::verb verb,
+    const std::string& body,
+    const std::map<RestClient::Parameters, std::string>& parameters)
 {
     boost::beast::tcp_stream stream(context);
     boost::beast::get_lowest_layer(stream).connect(results);
-    auto response = HttpImpl(url, stream, verb);
+    auto response = HttpImpl(url, stream, verb, body, parameters);
     stream.close();
     return response;
 }
 
 template <typename ResultsT>
 boost::beast::http::response<boost::beast::http::dynamic_body>
-SslImpl(boost::asio::io_context& context, const Url& url, const ResultsT& results, boost::beast::http::verb verb)
+SslImpl(
+    boost::asio::io_context& context,
+    const Url& url,
+    const ResultsT& results,
+    boost::beast::http::verb verb,
+    const std::string& body,
+    const std::map<RestClient::Parameters, std::string>& parameters)
 {
     boost::beast::error_code ec;
     boost::asio::ssl::context ctx { boost::asio::ssl::context::tlsv12_client };
@@ -83,7 +118,7 @@ SslImpl(boost::asio::io_context& context, const Url& url, const ResultsT& result
 
     boost::beast::get_lowest_layer(stream).connect(results);
     stream.handshake(boost::asio::ssl::stream_base::client);
-    auto response = HttpImpl(url, stream, verb);
+    auto response = HttpImpl(url, stream, verb, body, parameters);
     stream.shutdown(ec);
 
     if (ec == boost::asio::error::eof)
@@ -97,7 +132,10 @@ SslImpl(boost::asio::io_context& context, const Url& url, const ResultsT& result
 }
 
 std::string
-GetImpl(boost::asio::io_context& context, const std::string& request)
+GetImpl(
+    boost::asio::io_context& context,
+    const std::string& request,
+    const std::map<RestClient::Parameters, std::string>& parameters)
 {
     const Url url = Url::Parse(request);
 
@@ -106,8 +144,8 @@ GetImpl(boost::asio::io_context& context, const std::string& request)
     const auto results = resolver.resolve(url.Host(), url.Port());
 
     // Perform request
-    const auto response = url.Ssl() ? SslImpl(context, url, results, boost::beast::http::verb::get)
-                                    : TcpImpl(context, url, results, boost::beast::http::verb::get);
+    const auto response = url.Ssl() ? SslImpl(context, url, results, boost::beast::http::verb::get, "", parameters)
+                                    : TcpImpl(context, url, results, boost::beast::http::verb::get, "", parameters);
 
     // Check redirect
     const std::set<boost::beast::http::status> redirectCodes { boost::beast::http::status::moved_permanently,
@@ -116,7 +154,7 @@ GetImpl(boost::asio::io_context& context, const std::string& request)
 
     if (redirectCodes.count(response.result()) > 0)
     {
-        return GetImpl(context, response[boost::beast::http::field::location].to_string());
+        return GetImpl(context, response[boost::beast::http::field::location].to_string(), parameters);
     }
 
     return boost::beast::buffers_to_string(response.body().data());
@@ -127,7 +165,7 @@ RestClient::Get(const std::string& request)
 {
     try
     {
-        return GetImpl(mIoContext, Url::Encode(request));
+        return GetImpl(mIoContext, Url::Encode(request), mParameters);
     }
     catch (const std::exception& ex)
     {
@@ -135,6 +173,56 @@ RestClient::Get(const std::string& request)
     }
 
     return "[Error]";
+}
+
+std::string
+PostImpl(
+    boost::asio::io_context& context,
+    const std::string& request,
+    const std::string& body,
+    const std::map<RestClient::Parameters, std::string>& parameters)
+{
+    const Url url = Url::Parse(request);
+
+    // Resolve
+    boost::asio::ip::tcp::resolver resolver { context };
+    const auto results = resolver.resolve(url.Host(), url.Port());
+
+    // Perform request
+    const auto response = url.Ssl() ? SslImpl(context, url, results, boost::beast::http::verb::post, body, parameters)
+                                    : TcpImpl(context, url, results, boost::beast::http::verb::post, body, parameters);
+
+    // Check redirect
+    const std::set<boost::beast::http::status> redirectCodes { boost::beast::http::status::moved_permanently,
+                                                               boost::beast::http::status::found,
+                                                               boost::beast::http::status::temporary_redirect };
+
+    if (redirectCodes.count(response.result()) > 0)
+    {
+        return PostImpl(context, response[boost::beast::http::field::location].to_string(), body, parameters);
+    }
+
+    return boost::beast::buffers_to_string(response.body().data());
+}
+
+std::string
+RestClient::Post(const std::string& request, const std::string& body)
+{
+    try
+    {
+        return PostImpl(mIoContext, Url::Encode(request), body, mParameters);
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_ERROR << ex.what();
+    }
+
+    return "[Error]";
+}
+
+RestClient::RestClient(const std::map<RestClient::Parameters, std::string>& parameters)
+    : mParameters(parameters)
+{
 }
 
 } // namespace RenderStudio::Networking
