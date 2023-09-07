@@ -27,3 +27,6 @@ include(${CMAKE_SOURCE_DIR}/CMake/macros.cmake)
 include(${CMAKE_SOURCE_DIR}/CMake/macros/msvc.cmake)
 
 add_subdirectory(Sources)
+
+# Install license
+install(FILES ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_SOURCE_DIR}/NOTICE DESTINATION share/doc/${CMAKE_PROJECT_NAME})
