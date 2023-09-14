@@ -21,13 +21,24 @@ file(GLOB SOURCES *.h *.cpp)
 add_library(RenderStudioSchema SHARED ${SOURCES})
 
 # Link libraries
+
 target_link_libraries(RenderStudioSchema PRIVATE
     Boost::boost
-    Boost::python
+    usdGeom
     usd
     RenderStudioLogger
     RenderStudioNetworking
 )
+
+if(MAYA_SUPPORT)
+    target_link_libraries(RenderStudioSchema PRIVATE
+        ${PYTHON_LIBRARIES}
+    )
+else()
+    target_link_libraries(RenderStudioSchema PRIVATE
+        Boost::python
+    )
+endif()
 
 # Set compile options
 target_compile_definitions(RenderStudioSchema PRIVATE 
