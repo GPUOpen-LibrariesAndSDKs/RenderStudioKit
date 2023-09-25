@@ -43,7 +43,7 @@ AssistantResponse tag_invoke(boost::json::value_to_tag<AssistantResponse>, boost
 class Tools
 {
 public:
-    static std::optional<std::string> ProcessPrompt(const std::string& prompt, pxr::UsdPrim& root);
+    static std::optional<std::string> ProcessPrompt(const std::string& prompt, const pxr::UsdPrim& root);
 };
 
 } // namespace RenderStudio::AI

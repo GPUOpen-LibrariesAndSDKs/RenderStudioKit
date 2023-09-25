@@ -149,7 +149,7 @@ tag_invoke(boost::json::value_to_tag<AssistantResponse>, boost::json::value cons
 }
 
 std::optional<std::string>
-Tools::ProcessPrompt(const std::string& prompt, pxr::UsdPrim& root)
+Tools::ProcessPrompt(const std::string& prompt,  const pxr::UsdPrim& root)
 {
     static const std::string ENV_OPENAI_KEY = "RENDER_STUDIO_OPENAI_KEY";
 
