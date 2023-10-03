@@ -21,9 +21,9 @@ file(GLOB SOURCES *.h *.cpp)
 add_library(RenderStudioSchema SHARED ${SOURCES})
 
 # Link libraries
-
 target_link_libraries(RenderStudioSchema PRIVATE
     Boost::boost
+    Boost::python
     usdGeom
     usd
     RenderStudioLogger

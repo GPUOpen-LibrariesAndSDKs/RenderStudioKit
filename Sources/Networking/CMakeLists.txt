@@ -27,10 +27,6 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-# Find packages
-find_package(Boost REQUIRED)
-find_package(OpenSSL REQUIRED)
-
 if (WIN32)
     find_package(BinaryOpenSSL REQUIRED)
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)

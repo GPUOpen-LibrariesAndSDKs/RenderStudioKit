@@ -26,8 +26,7 @@
 #include <boost/json/src.hpp>
 #pragma warning(pop)
 
-#include <Resolver.h>
-
+#include "Resolver.h"
 #include "Data.h"
 
 #include <Logger/Logger.h>

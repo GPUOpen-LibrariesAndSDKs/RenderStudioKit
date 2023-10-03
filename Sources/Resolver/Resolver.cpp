@@ -41,6 +41,7 @@
 #pragma warning(pop)
 
 #include "Asset.h"
+#include "../Kit.h"
 
 #include <Logger/Logger.h>
 #include <Networking/LocalStorageApi.h>
@@ -51,6 +52,8 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver)
+
+std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> RenderStudioResolver::sLiveModeInfo = nullptr;
 
 bool
 RenderStudioResolver::IsRenderStudioPath(const std::string& path)
@@ -123,9 +126,9 @@ RenderStudioResolver::ProcessLiveUpdates()
 }
 
 void
-RenderStudioResolver::StartLiveMode(const LiveModeInfo& info)
+RenderStudioResolver::StartLiveMode(const RenderStudio::Kit::LiveSessionInfo& info)
 {
-    sLiveModeInfo = info;
+    sLiveModeInfo = std::make_unique<RenderStudio::Kit::LiveSessionInfo>(info);
 
     // Connect here for now
     sFileFormat->Connect(info.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
@@ -198,9 +201,9 @@ RenderStudioResolver::_Resolve(const std::string& path) const
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    if (!sLiveModeInfo.storageUrl.empty())
+    if (!sLiveModeInfo->storageUrl.empty())
     {
-        return sLiveModeInfo.storageUrl;
+        return sLiveModeInfo->storageUrl;
     }
     else
     {
@@ -211,7 +214,7 @@ RenderStudioResolver::GetLocalStorageUrl()
 std::string
 RenderStudioResolver::GetCurrentUserId()
 {
-    return sLiveModeInfo.userId;
+    return sLiveModeInfo->userId;
 }
 
 static std::string

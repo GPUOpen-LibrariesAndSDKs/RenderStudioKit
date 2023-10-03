@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 project(RenderStudioExternal)
 
+# Set policies
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+
 # Add targets
 set(URIPARSER_BUILD_TESTS OFF)
 set(URIPARSER_BUILD_TOOLS OFF)

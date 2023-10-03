@@ -25,6 +25,11 @@
 
 #include "FileFormat.h"
 
+namespace RenderStudio::Kit
+{
+    struct LiveSessionInfo;
+}
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class RenderStudioResolver : public ArDefaultResolver
@@ -36,16 +41,8 @@ public:
     AR_API
     virtual ~RenderStudioResolver();
 
-    struct LiveModeInfo
-    {
-        std::string liveUrl;
-        std::string storageUrl;
-        std::string channelId;
-        std::string userId;
-    };
-
     AR_API
-    static void StartLiveMode(const LiveModeInfo& info);
+    static void StartLiveMode(const RenderStudio::Kit::LiveSessionInfo& info);
 
     AR_API
     static bool ProcessLiveUpdates();
@@ -85,7 +82,7 @@ private:
     static std::filesystem::path GetDocumentsDirectory();
     static std::filesystem::path GetRootPath();
 
-    static inline LiveModeInfo sLiveModeInfo;
+    static std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;
 };
 

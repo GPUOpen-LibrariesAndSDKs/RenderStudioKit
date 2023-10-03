@@ -21,9 +21,6 @@ set(CMAKE_CXX_STANDARD 20)
 file(GLOB SOURCES *.h *.cpp)
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-# Find packages
-find_package(Boost REQUIRED COMPONENTS log)
-
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
