@@ -1,6 +1,6 @@
 function(SetMaxWarningLevel Project)
     if(MSVC)
-        target_compile_options(${Project} PRIVATE 
+        target_compile_options(${Project} PRIVATE
             /WX
             /W4
             /permissive-
@@ -8,17 +8,17 @@ function(SetMaxWarningLevel Project)
             /wd4506)
 
         if (MAYA_SUPPORT)
-            target_compile_options(${Project} PRIVATE 
-                /Zc:inline-          
+            target_compile_options(${Project} PRIVATE
+                /Zc:inline-
                 /bigobj)
         endif()
     else()
         target_compile_options(${Project} PRIVATE
             -Werror
-            -Wall 
+            -Wall
             -Wextra
-            -Wshadow 
-            -Wnon-virtual-dtor 
+            -Wshadow
+            -Wnon-virtual-dtor
             -pedantic
             -Wno-unknown-pragmas
             -Wno-deprecated

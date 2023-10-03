@@ -9,32 +9,32 @@
                     "RenderStudioFileFormat": {
                         "bases": [
                             "SdfFileFormat"
-                        ], 
-                        "displayName": "AMD RenderStudio file format", 
+                        ],
+                        "displayName": "AMD RenderStudio file format",
                         "extensions": [
                             "studio"
-                        ], 
-                        "formatId": "studio", 
-                        "primary": true, 
+                        ],
+                        "formatId": "studio",
+                        "primary": true,
                         "target": "usd"
-                    }, 
+                    },
                     "RenderStudioResolver": {
                         "bases": [
                             "ArResolver"
-                        ], 
-                        "primary": true, 
+                        ],
+                        "primary": true,
                         "uriSchemes": [
-                            "studio", 
-                            "gpuopen", 
+                            "studio",
+                            "gpuopen",
                             "storage"
                         ]
                     }
                 }
-            }, 
-            "LibraryPath": "../@PLUGIN_LIBRARY_NAME@", 
-            "Name": "RenderStudioResolver", 
-            "ResourcePath": "resources", 
-            "Root": "..", 
+            },
+            "LibraryPath": "../@PLUGIN_LIBRARY_NAME@",
+            "Name": "RenderStudioResolver",
+            "ResourcePath": "resources",
+            "Root": "..",
             "Type": "library"
         }
     ]

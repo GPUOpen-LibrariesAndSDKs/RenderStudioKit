@@ -1,7 +1,7 @@
 find_package(OpenSSL REQUIRED)
 
 cmake_path(
-    GET OPENSSL_INCLUDE_DIR 
+    GET OPENSSL_INCLUDE_DIR
     PARENT_PATH OPENSSL_ROOT)
 
 cmake_path(

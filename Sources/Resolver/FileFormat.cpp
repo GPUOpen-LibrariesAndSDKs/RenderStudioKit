@@ -26,8 +26,8 @@
 #include <boost/json/src.hpp>
 #pragma warning(pop)
 
-#include "Resolver.h"
 #include "Data.h"
+#include "Resolver.h"
 
 #include <Logger/Logger.h>
 #include <Serialization/Api.h>

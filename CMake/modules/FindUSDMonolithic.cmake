@@ -76,4 +76,3 @@ if(USDMonolithic_FOUND)
 elseif()
     message(FATAL "Can't find USD")
 endif()
-

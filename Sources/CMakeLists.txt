@@ -1,11 +1,11 @@
 # Copyright 2023 Advanced Micro Devices, Inc
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,7 @@ find_package(OpenSSL REQUIRED)
 
 if(MAYA_SUPPORT)
     find_package(MayaUsd REQUIRED)
-else() 
+else()
     find_package(USDMonolithic REQUIRED)
 endif()
 
@@ -47,8 +47,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
 )
 
 # Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
-    WIN32_LEAN_AND_MEAN 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    WIN32_LEAN_AND_MEAN
     NOMINMAX
     _WIN32_WINNT=0x0601
     VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}

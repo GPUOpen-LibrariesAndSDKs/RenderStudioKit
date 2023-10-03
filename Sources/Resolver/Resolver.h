@@ -27,7 +27,7 @@
 
 namespace RenderStudio::Kit
 {
-    struct LiveSessionInfo;
+struct LiveSessionInfo;
 }
 
 PXR_NAMESPACE_OPEN_SCOPE

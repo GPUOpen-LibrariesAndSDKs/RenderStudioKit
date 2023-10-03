@@ -1,11 +1,11 @@
 # Copyright 2023 Advanced Micro Devices, Inc
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,12 +31,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Temporary hack to make fmt working in other projects
-target_include_directories(${PROJECT_NAME} INTERFACE 
+target_include_directories(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/External/fmt/include)
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE
-        wsock32 
+        wsock32
         ws2_32
         bcrypt
     )
@@ -49,9 +49,9 @@ else()
 endif()
 
 # Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
-    HAVE_SNPRINTF 
-    WIN32_LEAN_AND_MEAN 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    HAVE_SNPRINTF
+    WIN32_LEAN_AND_MEAN
     AR_EXPORTS
     NOMINMAX
     _WIN32_WINNT=0x0601

@@ -40,8 +40,8 @@
 #endif
 #pragma warning(pop)
 
-#include "Asset.h"
 #include "../Kit.h"
+#include "Asset.h"
 
 #include <Logger/Logger.h>
 #include <Networking/LocalStorageApi.h>
