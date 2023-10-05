@@ -39,17 +39,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioLogger
     RenderStudioExternal)
 
+target_include_directories(${PROJECT_NAME} PRIVATE ..)
+
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE Crypt32)
 endif()
-
-# Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    HAVE_SNPRINTF
-    WIN32_LEAN_AND_MEAN NOMINMAX
-    _WIN32_WINNT=0x0601)
-
-SetMaxWarningLevel(${PROJECT_NAME})
 
 if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
@@ -62,10 +56,6 @@ install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certific
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
     DESTINATION lib)
 
-# Export CMake target
-set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME Networking)
-
-export(
-    TARGETS ${PROJECT_NAME}
-    NAMESPACE RenderStudio::
-    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioNetworkingConfig.cmake)
+SetDefaultCompileDefinitions(${PROJECT_NAME})
+SetMaxWarningLevel(${PROJECT_NAME})
+ExportTargetConfig(${PROJECT_NAME} Networking)

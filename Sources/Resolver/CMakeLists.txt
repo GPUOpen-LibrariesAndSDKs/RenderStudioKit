@@ -30,9 +30,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioSerialization
 )
 
-# Temporary hack to make fmt working in other projects
-target_include_directories(${PROJECT_NAME} INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/External/fmt/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ..)
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -49,12 +47,9 @@ else()
 endif()
 
 # Set compile options
+SetDefaultCompileDefinitions(${PROJECT_NAME})
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-    HAVE_SNPRINTF
-    WIN32_LEAN_AND_MEAN
     AR_EXPORTS
-    NOMINMAX
-    _WIN32_WINNT=0x0601
     VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
 )
 
@@ -83,15 +78,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
     DESTINATION plugin/usd/${PROJECT_NAME}/resources)
 
 # Install headers
-file(GLOB HEADERS *.h)
-install(FILES ${HEADERS} DESTINATION include/RenderStudioResolver/Resolver)
+install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)
 
-# Export CMake target
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    EXPORT_NAME Resolver
-)
-
-export(TARGETS ${PROJECT_NAME}
-    NAMESPACE RenderStudio::
-    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioResolverConfig.cmake
-)
+ExportTargetConfig(${PROJECT_NAME} Resolver)

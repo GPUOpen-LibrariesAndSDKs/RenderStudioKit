@@ -35,24 +35,86 @@ add_subdirectory(Resolver)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(${CMAKE_PROJECT_NAME} ${SOURCES})
+add_library(${PROJECT_NAME} ${SOURCES})
 
 # Link libraries
-target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE .)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    usd
+target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::python
     Boost::boost
     RenderStudioResolver
+    RenderStudioNetworking
+    RenderStudioLogger
+    RenderStudioExternal
+    RenderStudioSchema
+    usd
 )
 
 # Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-    _WIN32_WINNT=0x0601
-    VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
-)
-
+SetDefaultCompileDefinitions(${PROJECT_NAME})
 SetMaxWarningLevel(${PROJECT_NAME})
 SetVisualStudioDebuggerOptions(${PROJECT_NAME})
+
+# Export target
+include(CMakePackageConfigHelpers)
+
+set_target_properties(${PROJECT_NAME}
+    PROPERTIES EXPORT_NAME Kit
+)
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
+    "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>"
+)
+
+install(TARGETS ${PROJECT_NAME} RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioExternal RenderStudioSchema usd fmt uriparser zip
+    EXPORT RenderStudioTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(FILES Kit.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)
+
+install(EXPORT RenderStudioTargets
+    FILE RenderStudioTargets.cmake
+    NAMESPACE RenderStudio::
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+)
+
+# Deal with version
+file (STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION RENDER_STUDIO_KIT_VERSION)
+
+set_property(TARGET ${PROJECT_NAME} 
+    PROPERTY VERSION ${RENDER_STUDIO_KIT_VERSION}
+)
+
+set_property(TARGET ${PROJECT_NAME}
+    PROPERTY SOVERSION ${RENDER_STUDIO_KIT_VERSION}
+)
+
+set_property(TARGET ${PROJECT_NAME}
+    PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${RENDER_STUDIO_KIT_VERSION}
+)
+
+set_property(TARGET ${PROJECT_NAME} 
+    APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
+)
+
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfigVersion.cmake"
+  VERSION ${RENDER_STUDIO_KIT_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+)

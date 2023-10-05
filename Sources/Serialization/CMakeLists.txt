@@ -28,16 +28,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     sdf
 )
 
-# Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    HAVE_SNPRINTF
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-    _WIN32_WINNT=0x0601
-)
-
-SetMaxWarningLevel(${PROJECT_NAME})
-
 # Install headers
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h ${CMAKE_CURRENT_SOURCE_DIR}/Api.h
-    DESTINATION include/RenderStudioResolver/Serialization)
+DESTINATION include/RenderStudioResolver/Serialization)
+
+SetDefaultCompileDefinitions(${PROJECT_NAME})
+SetMaxWarningLevel(${PROJECT_NAME})
+SetDefaultCompileDefinitions(${PROJECT_NAME})
+ExportTargetConfig(${PROJECT_NAME} Serialization)
