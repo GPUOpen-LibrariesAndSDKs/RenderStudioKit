@@ -281,7 +281,6 @@ RenderStudioFileFormat::_InstantiateNewLayer(
 {
     // During creation of layer save it for further usage
     SdfLayer* layer = SdfFileFormat::_InstantiateNewLayer(fileFormat, identifier, realPath, assetInfo, args);
-    mLayerRegistry.AddLayer(SdfLayerHandle { layer });
     return layer;
 }
 
@@ -295,6 +294,11 @@ RenderStudioFileFormat::CanRead(const std::string& file) const
 bool
 RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const
 {
+    if (mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) != nullptr)
+    {
+        return true;
+    }
+
     bool result = false;
 
     // Delegate reading to USD
@@ -315,6 +319,31 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
 
     // Tell layer that loading is finished and all new updates would be considered as user edit
     _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
+    mLayerRegistry.AddLayer(SdfLayerHandle { layer });
+
+    return result;
+}
+
+bool
+RenderStudioFileFormat::WriteToFile(
+    const SdfLayer& layer,
+    const std::string& filePath,
+    const std::string& comment,
+    const FileFormatArguments& args) const
+{
+    bool result = false;
+
+    std::string resolvedPath = ArGetResolver().Resolve(filePath);
+
+    // Delegate writing to USD
+    if (filePath.rfind("gpuopen:/", 0) == 0)
+    {
+        result = _GetMtlxFileFormat()->WriteToFile(layer, resolvedPath, comment, args);
+    }
+    else
+    {
+        result = _GetUsdFileFormat()->WriteToFile(layer, resolvedPath, comment, args);
+    }
 
     return result;
 }

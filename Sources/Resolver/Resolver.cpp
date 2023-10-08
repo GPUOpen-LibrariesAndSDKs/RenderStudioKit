@@ -195,6 +195,20 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         return ArResolvedPath(copy);
     }
 
+    // Regular case for studio files
+    if (path.rfind("studio:/", 0) == 0)
+    {
+        std::string copy = path;
+        copy.erase(0, std::string("studio:/").size());
+        if (copy.at(0) == '/')
+        {
+            copy.erase(0, 1);
+        }
+        std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / copy;
+        return ArResolvedPath(resolved.string());
+    }
+
+    LOG_ERROR << "Asset resolver does nothing in Resolve()";
     return ArResolvedPath(path);
 }
 
