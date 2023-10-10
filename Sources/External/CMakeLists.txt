@@ -43,13 +43,3 @@ if (NOT MSVC)
     set_property(TARGET uriparser PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET zip PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
-
-# Export targets
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    EXPORT_NAME External
-)
-
-export(TARGETS ${PROJECT_NAME} fmt uriparser zip
-    NAMESPACE RenderStudio::
-    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioExternalConfig.cmake
-)

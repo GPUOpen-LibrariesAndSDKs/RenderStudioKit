@@ -67,4 +67,3 @@ file(GLOB HEADERS *.h)
 install(FILES ${HEADERS} DESTINATION include/RenderStudioResolver)
 
 SetDefaultCompileDefinitions(${PROJECT_NAME})
-ExportTargetConfig(${PROJECT_NAME} Schema)

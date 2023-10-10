@@ -34,4 +34,3 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
 
 SetDefaultCompileDefinitions(${PROJECT_NAME})
 SetMaxWarningLevel(${PROJECT_NAME})
-ExportTargetConfig(${PROJECT_NAME} Logger)

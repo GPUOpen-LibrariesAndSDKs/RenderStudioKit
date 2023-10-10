@@ -84,6 +84,12 @@ RenderStudioResolver::IsUnresovableToRenderStudioPath(const std::string& path)
     return !relative.empty() && *relative.begin() != "..";
 }
 
+void
+RenderStudioResolver::SetWorkspacePath(const std::string& path)
+{
+    sWorkspacePath = path;
+}
+
 std::string
 RenderStudioResolver::Unresolve(const std::string& path)
 {
@@ -114,7 +120,7 @@ RenderStudioResolver::RenderStudioResolver()
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
 
-    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << rootPath;
+    LOG_INFO << "[RenderStudioResolver] Workspace folder: " << rootPath;
 }
 
 RenderStudioResolver::~RenderStudioResolver() { }
@@ -391,6 +397,11 @@ RenderStudioResolver::GetDocumentsDirectory()
 std::filesystem::path
 RenderStudioResolver::GetRootPath()
 {
+    if (!sWorkspacePath.empty())
+    {
+        return sWorkspacePath;
+    }
+
     return RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
 }
 

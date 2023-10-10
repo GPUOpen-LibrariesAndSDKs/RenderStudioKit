@@ -58,4 +58,3 @@ install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
 
 SetDefaultCompileDefinitions(${PROJECT_NAME})
 SetMaxWarningLevel(${PROJECT_NAME})
-ExportTargetConfig(${PROJECT_NAME} Networking)

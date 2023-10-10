@@ -55,4 +55,8 @@ std::string UnresolveToRenderStudioPath(const std::string& path);
 /// @return True if path is RenderStudio path
 bool IsRenderStudioPath(const std::string& path);
 
+/// @brief Set directory which would be synchronized for all connected users
+/// @param path Directory to syncronize
+void SetWorkspacePath(const std::string& path);
+
 } // namespace RenderStudio::Kit

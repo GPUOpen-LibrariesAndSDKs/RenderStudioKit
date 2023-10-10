@@ -61,4 +61,11 @@ IsRenderStudioPath(const std::string& path)
     return RenderStudioResolver::IsRenderStudioPath(path);
 }
 
+void
+SetWorkspacePath(const std::string& path)
+{
+    PXR_NAMESPACE_USING_DIRECTIVE
+    return RenderStudioResolver::SetWorkspacePath(path);
+}
+
 } // namespace RenderStudio::Kit

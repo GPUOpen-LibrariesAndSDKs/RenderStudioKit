@@ -79,5 +79,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
 
 # Install headers
 install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)
-
-ExportTargetConfig(${PROJECT_NAME} Resolver)

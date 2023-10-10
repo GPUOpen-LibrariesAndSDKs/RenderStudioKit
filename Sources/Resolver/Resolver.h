@@ -63,6 +63,9 @@ public:
     static bool IsUnresovableToRenderStudioPath(const std::string& path);
 
     AR_API
+    static void SetWorkspacePath(const std::string& path);
+
+    AR_API
     static std::string Unresolve(const std::string& path);
 
     AR_API
@@ -84,6 +87,7 @@ private:
 
     static std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;
+    static inline std::filesystem::path sWorkspacePath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
