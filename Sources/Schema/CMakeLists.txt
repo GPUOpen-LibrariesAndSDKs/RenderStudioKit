@@ -22,7 +22,6 @@ add_library(RenderStudioSchema SHARED ${SOURCES})
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
-    Boost::python
     usdGeom
     usd
     RenderStudioLogger

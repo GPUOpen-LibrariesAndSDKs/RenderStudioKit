@@ -30,6 +30,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioSerialization
 )
 
+target_link_libraries(${PROJECT_NAME} PRIVATE
+       ${PYTHON_LIBRARIES}
+       usd)
+
 target_include_directories(${PROJECT_NAME} PRIVATE ..)
 
 if(WIN32)

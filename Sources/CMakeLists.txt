@@ -14,15 +14,24 @@
 
 cmake_minimum_required(VERSION 3.12)
 
-# Find packages
-find_package(Boost REQUIRED COMPONENTS python log)
 find_package(OpenSSL REQUIRED)
 
+# Create target
+file(GLOB SOURCES *.h *.cpp)
+add_library(${PROJECT_NAME} ${SOURCES})
+
+
+# Find packages
 if(MAYA_SUPPORT)
     find_package(MayaUsd REQUIRED)
+
+    # perform find package after we listed all necessary directoris in Find mayausd package
+    find_package(Boost REQUIRED COMPONENTS python log)
 else()
+    find_package(Boost REQUIRED COMPONENTS python log)
     find_package(USDMonolithic REQUIRED)
 endif()
+ 
 
 # Add dependencies
 add_subdirectory(External)
@@ -32,10 +41,6 @@ add_subdirectory(Serialization)
 add_subdirectory(Server)
 add_subdirectory(Schema)
 add_subdirectory(Resolver)
-
-# Create target
-file(GLOB SOURCES *.h *.cpp)
-add_library(${PROJECT_NAME} ${SOURCES})
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -67,7 +72,7 @@ target_include_directories(${PROJECT_NAME}
     "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>"
 )
 
-install(TARGETS ${PROJECT_NAME} RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioExternal RenderStudioSchema usd fmt uriparser zip
+install(TARGETS ${PROJECT_NAME} RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioExternal RenderStudioSchema fmt uriparser zip
     EXPORT RenderStudioTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
