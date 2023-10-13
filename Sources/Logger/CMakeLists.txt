@@ -25,7 +25,7 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     Boost::log
-    RenderStudioExternal
+    fmt::fmt
 )
 
 target_link_libraries(${PROJECT_NAME} INTERFACE

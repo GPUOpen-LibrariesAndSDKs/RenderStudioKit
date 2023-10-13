@@ -43,12 +43,12 @@ void LiveSessionDisconnect();
 /// @brief Checks if provided path could be transformed into RenderStudio path
 /// @param path Path to check
 /// @return True if path convertible to RenderStudio path
-bool IsUnresovableToRenderStudioPath(const std::string& path);
+bool IsUnresolvable(const std::string& path);
 
 /// @brief Convert local filesystem path from local path into RenderStudio path
 /// @param path Local filesystem path
 /// @return RenderStudio filesystem path
-std::string UnresolveToRenderStudioPath(const std::string& path);
+std::string Unresolve(const std::string& path);
 
 /// @brief Checks if provided path is render studio path
 /// @param path Path to check

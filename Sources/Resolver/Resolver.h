@@ -60,7 +60,7 @@ public:
     static bool IsRenderStudioPath(const std::string& path);
 
     AR_API
-    static bool IsUnresovableToRenderStudioPath(const std::string& path);
+    static bool IsUnresolvable(const std::string& path);
 
     AR_API
     static void SetWorkspacePath(const std::string& path);
@@ -73,6 +73,9 @@ public:
 
     AR_API
     virtual ArResolvedPath _Resolve(const std::string& path) const override;
+
+    AR_API
+    static std::string ResolveImpl(const std::string& path);
 
 protected:
     AR_API

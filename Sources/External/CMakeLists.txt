@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.12)
-project(RenderStudioExternal)
-
 # Set policies
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
@@ -32,10 +29,7 @@ add_subdirectory(zip)
 set(CMAKE_MESSAGE_LOG_LEVEL ${_saved_CMAKE_MESSAGE_LOG_LEVEL})
 
 # Create static library
-add_library(${PROJECT_NAME} INTERFACE)
-target_link_libraries(${PROJECT_NAME} INTERFACE fmt uriparser zip)
-
-set_target_properties(${PROJECT_NAME} fmt uriparser zip uninstall PROPERTIES FOLDER HiddenTargets)
+set_target_properties(fmt uriparser zip uninstall PROPERTIES FOLDER HiddenTargets)
 
 if (NOT MSVC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)

@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.12)
-project(RenderStudioResolver)
-
 # Create target
+set(KIT_TARGET_NAME "RenderStudioResolver")
 file(GLOB SOURCES *.h *.cpp)
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
+add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     Boost::boost
     Boost::python
     ar
@@ -30,14 +28,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioSerialization
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
+if (MAYA_SUPPORT)
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE
        ${PYTHON_LIBRARIES}
-       usd)
+       usd
+    )
+endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE ..)
+target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE
         wsock32
         ws2_32
         bcrypt
@@ -51,35 +52,35 @@ else()
 endif()
 
 # Set compile options
-SetDefaultCompileDefinitions(${PROJECT_NAME})
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
+target_compile_definitions(${KIT_TARGET_NAME} PRIVATE
     AR_EXPORTS
     VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
 )
 
 if (WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_WINDOWS)
+    target_compile_definitions(${KIT_TARGET_NAME} PRIVATE PLATFORM_WINDOWS)
 elseif(UNIX)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_UNIX)
+    target_compile_definitions(${KIT_TARGET_NAME} PRIVATE PLATFORM_UNIX)
 endif()
 
-SetMaxWarningLevel(${PROJECT_NAME})
+SetMaxWarningLevel(${KIT_TARGET_NAME})
 
 # Install library
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${KIT_TARGET_NAME}
     DESTINATION plugin/usd)
 
 # Install plugInfo
 if(WIN32)
-    set(PLUGIN_LIBRARY_NAME ${PROJECT_NAME}.dll)
+    set(PLUGIN_LIBRARY_NAME ${KIT_TARGET_NAME}.dll)
 elseif(UNIX)
-    set(PLUGIN_LIBRARY_NAME lib${PROJECT_NAME}.so)
+    set(PLUGIN_LIBRARY_NAME lib${KIT_TARGET_NAME}.so)
 endif()
 
 configure_file(plugInfo.json plugInfo.json @ONLY)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
-    DESTINATION plugin/usd/${PROJECT_NAME}/resources)
+    DESTINATION plugin/usd/${KIT_TARGET_NAME}/resources)
 
 # Install headers
 install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)

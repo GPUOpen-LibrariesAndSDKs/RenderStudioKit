@@ -41,14 +41,14 @@ LiveSessionDisconnect()
 }
 
 bool
-IsUnresovableToRenderStudioPath(const std::string& path)
+IsUnresolvable(const std::string& path)
 {
     PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::IsUnresovableToRenderStudioPath(path);
+    return RenderStudioResolver::IsUnresolvable(path);
 }
 
 std::string
-UnresolveToRenderStudioPath(const std::string& path)
+Unresolve(const std::string& path)
 {
     PXR_NAMESPACE_USING_DIRECTIVE
     return RenderStudioResolver::Unresolve(path);

@@ -36,8 +36,11 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     OpenSSL::SSL
+    uriparser
+    zip::zip
+    fmt::fmt
     RenderStudioLogger
-    RenderStudioExternal)
+)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ..)
 
@@ -51,7 +54,7 @@ endif()
 
 # Install headers
 install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
-    DESTINATION include/RenderStudioResolver/Networking)
+    DESTINATION include/RenderStudio/)
 
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
     DESTINATION lib)

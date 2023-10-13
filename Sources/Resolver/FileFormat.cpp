@@ -15,6 +15,8 @@
 #include "FileFormat.h"
 
 #pragma warning(push, 0)
+#include <filesystem>
+
 #include <pxr/base/tf/registryManager.h>
 #include <pxr/pxr.h>
 #include <pxr/usd/ar/asset.h>
@@ -42,26 +44,12 @@ TF_REGISTRY_FUNCTION(TfType) { SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, Sd
 
 namespace
 {
-static SdfFileFormatConstPtr
-_GetFileFormat(const TfToken& formatId)
-{
-    const SdfFileFormatConstPtr fileFormat = SdfFileFormat::FindById(formatId);
-    TF_VERIFY(fileFormat);
-    return fileFormat;
-}
 
-static const UsdUsdFileFormatConstPtr&
-_GetUsdFileFormat()
+static const SdfFileFormatConstPtr
+_GetOriginalFormat(const std::string& path)
 {
-    static const auto usdFormat = TfDynamic_cast<UsdUsdFileFormatConstPtr>(_GetFileFormat(UsdUsdFileFormatTokens->Id));
-    return usdFormat;
-}
-
-static const SdfFileFormatConstPtr&
-_GetMtlxFileFormat()
-{
-    static const auto mtlxFormat = _GetFileFormat(TfToken { "mtlx" });
-    return mtlxFormat;
+    std::string extension = std::filesystem::path(path).extension().string();
+    return SdfFileFormat::FindByExtension(extension);
 }
 
 static std::optional<RenderStudio::API::Event>
@@ -287,28 +275,31 @@ RenderStudioFileFormat::_InstantiateNewLayer(
 bool
 RenderStudioFileFormat::CanRead(const std::string& file) const
 {
-    // Delegate reading to USD
-    return _GetUsdFileFormat()->CanRead(file);
+    SdfFileFormatConstPtr format = _GetOriginalFormat(file);
+
+    if (format == nullptr)
+    {
+        return false;
+    }
+
+    return format->CanRead(file);
 }
 
 bool
 RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const
 {
-    if (mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) != nullptr)
+    SdfFileFormatConstPtr format = _GetOriginalFormat(resolvedPath);
+
+    if (format == nullptr)
     {
-        return true;
+        return false;
     }
 
-    bool result = false;
+    bool result = format->Read(layer, resolvedPath, metadataOnly);
 
-    // Delegate reading to USD
-    if (resolvedPath.rfind("gpuopen:/", 0) == 0)
+    if (!result)
     {
-        result = _GetMtlxFileFormat()->Read(layer, resolvedPath, metadataOnly);
-    }
-    else
-    {
-        result = _GetUsdFileFormat()->Read(layer, resolvedPath, metadataOnly);
+        return result;
     }
 
     // USD uses own format of data. Current approach is to copy it into RenderStudioData
@@ -318,8 +309,11 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
     SdfFileFormat::_SetLayerData(layer, renderStudioData);
 
     // Tell layer that loading is finished and all new updates would be considered as user edit
-    _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
-    mLayerRegistry.AddLayer(SdfLayerHandle { layer });
+    if (mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) == nullptr)
+    {
+        _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
+        mLayerRegistry.AddLayer(SdfLayerHandle { layer });
+    }
 
     return result;
 }
@@ -331,21 +325,15 @@ RenderStudioFileFormat::WriteToFile(
     const std::string& comment,
     const FileFormatArguments& args) const
 {
-    bool result = false;
+    std::string resolvedPath = RenderStudioResolver::ResolveImpl(filePath);
+    SdfFileFormatConstPtr format = _GetOriginalFormat(resolvedPath);
 
-    std::string resolvedPath = ArGetResolver().Resolve(filePath);
-
-    // Delegate writing to USD
-    if (filePath.rfind("gpuopen:/", 0) == 0)
+    if (format == nullptr)
     {
-        result = _GetMtlxFileFormat()->WriteToFile(layer, resolvedPath, comment, args);
-    }
-    else
-    {
-        result = _GetUsdFileFormat()->WriteToFile(layer, resolvedPath, comment, args);
+        return false;
     }
 
-    return result;
+    return format->WriteToFile(layer, resolvedPath, comment, args);
 }
 
 RenderStudioFileFormat::RenderStudioFileFormat()

@@ -77,8 +77,11 @@ RenderStudioResolver::IsRenderStudioPath(const std::string& path)
 }
 
 bool
-RenderStudioResolver::IsUnresovableToRenderStudioPath(const std::string& path)
+RenderStudioResolver::IsUnresolvable(const std::string& path)
 {
+    if (path.find("://") != std::string::npos)
+        return false;
+
     std::filesystem::path relative
         = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath());
     return !relative.empty() && *relative.begin() != "..";
@@ -201,22 +204,20 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         return ArResolvedPath(copy);
     }
 
-    // Regular case for studio files
-    // Commented since not triggers ours FileFormat
-    /* if (path.rfind("studio:/", 0) == 0)
-    {
-        std::string copy = path;
-        copy.erase(0, std::string("studio:/").size());
-        if (copy.at(0) == '/')
-        {
-            copy.erase(0, 1);
-        }
-        std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / copy;
-        return ArResolvedPath(resolved.string());
-    }*/
-
-    LOG_ERROR << "Asset resolver does nothing in Resolve()";
     return ArResolvedPath(path);
+}
+
+AR_API std::string
+RenderStudioResolver::ResolveImpl(const std::string& path)
+{
+    std::string copy = path;
+    copy.erase(0, std::string("studio:/").size());
+    if (copy.at(0) == '/')
+    {
+        copy.erase(0, 1);
+    }
+    std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / copy;
+    return resolved.string();
 }
 
 std::string

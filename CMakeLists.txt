@@ -30,3 +30,34 @@ add_subdirectory(Sources)
 
 # Install license
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_SOURCE_DIR}/NOTICE DESTINATION share/doc/${CMAKE_PROJECT_NAME})
+
+# Install RenderStudioTargets.cmake
+include(CMakePackageConfigHelpers)
+set(KIT_TARGETS RenderStudioKit RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioSchema)
+set(KIT_DEPENDENCIES fmt uriparser zip)
+
+install(TARGETS ${KIT_TARGETS} ${KIT_DEPENDENCIES}
+    EXPORT RenderStudioTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT RenderStudioTargets
+    FILE RenderStudioTargets.cmake
+    NAMESPACE RenderStudio::
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
+)
+
+# Install RenderStudioConfig.cmake
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/CMake/templates/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/
+)
