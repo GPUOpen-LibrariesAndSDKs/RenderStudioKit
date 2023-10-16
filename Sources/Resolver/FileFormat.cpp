@@ -48,7 +48,25 @@ namespace
 static const SdfFileFormatConstPtr
 _GetOriginalFormat(const std::string& path)
 {
-    std::string extension = std::filesystem::path(path).extension().string();
+    std::size_t separator = path.find_first_of('?');
+    std::string raw = path.substr(0, separator);
+    std::string extension = std::filesystem::path(raw).extension().string();
+
+    // Hardcoded cases if no extension provided
+    // TODO: Force usage of extensions
+    if (extension.empty())
+    {
+        if (path.find("gpuopen:/") != std::string::npos)
+        {
+            extension = ".mtlx";
+        }
+
+        if (path.find("storage:/") != std::string::npos)
+        {
+            extension = ".usda";
+        }
+    }
+
     return SdfFileFormat::FindByExtension(extension);
 }
 

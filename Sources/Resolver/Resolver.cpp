@@ -223,7 +223,7 @@ RenderStudioResolver::ResolveImpl(const std::string& path)
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    if (!sLiveModeInfo->storageUrl.empty())
+    if (sLiveModeInfo != nullptr && !sLiveModeInfo->storageUrl.empty())
     {
         return sLiveModeInfo->storageUrl;
     }
@@ -236,7 +236,14 @@ RenderStudioResolver::GetLocalStorageUrl()
 std::string
 RenderStudioResolver::GetCurrentUserId()
 {
-    return sLiveModeInfo->userId;
+    if (sLiveModeInfo != nullptr)
+    {
+        return sLiveModeInfo->userId;
+    }
+    else
+    {
+        return "";
+    }
 }
 
 static std::string
@@ -346,6 +353,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
+
         std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Storage" / name;
         return LocalStorageAsset::Open(name, saveLocation);
     }
