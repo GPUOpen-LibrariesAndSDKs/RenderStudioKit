@@ -14,6 +14,8 @@
 
 #include "Kit.h"
 
+#include <Logger/Logger.h>
+#include <Networking/Syncthing.h>
 #include <Resolver/Resolver.h>
 
 namespace RenderStudio::Kit
@@ -22,50 +24,57 @@ namespace RenderStudio::Kit
 void
 LiveSessionConnect(const LiveSessionInfo& info)
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::StartLiveMode(info);
+    pxr::RenderStudioResolver::StartLiveMode(info);
 }
 
 bool
 LiveSessionUpdate()
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::ProcessLiveUpdates();
+    return pxr::RenderStudioResolver::ProcessLiveUpdates();
 }
 
 void
 LiveSessionDisconnect()
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::StopLiveMode();
+    pxr::RenderStudioResolver::StopLiveMode();
+}
+
+void
+SharedWorkspaceConnect()
+{
+    RenderStudio::Networking::Syncthing::LaunchInstance();
+}
+
+void
+SharedWorkspaceDisconnect()
+{
+    RenderStudio::Networking::Syncthing::KillInstance();
 }
 
 bool
 IsUnresolvable(const std::string& path)
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::IsUnresolvable(path);
+    return pxr::RenderStudioResolver::IsUnresolvable(path);
 }
 
 std::string
 Unresolve(const std::string& path)
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::Unresolve(path);
+    return pxr::RenderStudioResolver::Unresolve(path);
 }
 
 bool
 IsRenderStudioPath(const std::string& path)
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::IsRenderStudioPath(path);
+    return pxr::RenderStudioResolver::IsRenderStudioPath(path);
 }
 
 void
 SetWorkspacePath(const std::string& path)
 {
-    PXR_NAMESPACE_USING_DIRECTIVE
-    return RenderStudioResolver::SetWorkspacePath(path);
+    pxr::RenderStudioResolver::SetWorkspacePath(path);
+    RenderStudio::Networking::Syncthing::SetWorkspacePath(path);
+    LOG_INFO << "[RenderStudio Kit] Set workspace path to: " << path;
 }
 
 } // namespace RenderStudio::Kit
