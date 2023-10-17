@@ -66,8 +66,8 @@ Syncthing::LaunchInstance()
     LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspace;
 
     mProcess = Syncthing::LaunchProcess(
-        syncthingExe.string(),
-        "--home " + syncthingConfig.string()
+        syncthingExe.make_preferred().string(),
+        "--home " + syncthingConfig.make_preferred().string()
             + " "
               "--no-default-folder "
               "--skip-port-probing "
@@ -147,7 +147,7 @@ Syncthing::LaunchProcess(std::string app, std::string arg)
     std::wstring arg_w;
     Syncthing::Widen(arg, arg_w);
 
-    std::wstring input = app_w + L" " + arg_w;
+    std::wstring input = L"\"" + app_w + L"\" " + arg_w;
     wchar_t* arg_concat = const_cast<wchar_t*>(input.c_str());
     const wchar_t* app_const = app_w.c_str();
 
