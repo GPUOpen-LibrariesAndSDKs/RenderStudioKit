@@ -77,3 +77,20 @@ target_include_directories(${PROJECT_NAME}
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
     "$<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include>"
 )
+
+# Downlaod syncthing
+include(FetchContent)
+
+FetchContent_Declare(
+    syncthing
+    URL https://github.com/syncthing/syncthing/releases/download/v1.25.0/syncthing-windows-amd64-v1.25.0.zip
+    URL_HASH SHA256=fbd89a9e2893f778b8379f151b50c922c72ac73e8af03317480f3a2ad9eb7aeb
+)
+
+FetchContent_GetProperties(syncthing)
+
+if(NOT syncthing_POPULATED)
+    FetchContent_Populate(syncthing)
+endif()
+
+install(FILES ${syncthing_SOURCE_DIR}/syncthing.exe DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/)

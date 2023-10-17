@@ -66,7 +66,6 @@ RenderStudioLayerRegistry::GetByIdentifier(const std::string& identifier)
     }
     else
     {
-        LOG_WARNING << "Can't find layer with id: " << identifier;
         return {};
     }
 }

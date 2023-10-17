@@ -38,6 +38,14 @@ bool LiveSessionUpdate();
 /// @brief Disconnects from remote live server.
 void LiveSessionDisconnect();
 
+// ========== File Syncing API ==========
+
+/// @brief Starts file sharing for inside workspace directory.
+void SharedWorkspaceConnect();
+
+/// @brief Stops file sharing for inside workspace directory.
+void SharedWorkspaceDisconnect();
+
 // ========== SdfPath Utils API ==========
 
 /// @brief Checks if provided path could be transformed into RenderStudio path

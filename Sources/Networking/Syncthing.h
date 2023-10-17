@@ -14,37 +14,32 @@
 
 #pragma once
 
-#pragma warning(push, 0)
-#include <map>
+#include <cstddef>
+#include <filesystem>
+#include <string>
 
-#include <boost/asio/io_context.hpp>
-#include <boost/beast/http.hpp>
-#pragma warning(pop)
-
-#include "Url.h"
+#include <windows.h>
 
 namespace RenderStudio::Networking
 {
 
-class RestClient
+class Syncthing
 {
 public:
-    std::string Get(const std::string& request);
-    std::string Post(const std::string& request, const std::string& body);
-    std::string Put(const std::string& request, const std::string& body);
-
-    enum class Parameters
-    {
-        ContentType,
-        Authorization
-    };
-
-    RestClient() = default;
-    RestClient(const std::map<Parameters, std::string>& parameters);
+    static void SetWorkspacePath(const std::string& path);
+    static void LaunchInstance();
+    static void KillInstance();
 
 private:
-    boost::asio::io_context mIoContext;
-    std::map<Parameters, std::string> mParameters;
+    static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
+    static bool CheckIfProcessIsActive(PROCESS_INFORMATION pi);
+    static bool StopProcess(PROCESS_INFORMATION& pi);
+    static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
+    static std::filesystem::path GetDocumentsDirectory();
+    static std::filesystem::path GetRootPath();
+
+    static inline PROCESS_INFORMATION mProcess = {};
+    static inline std::filesystem::path sWorkspacePath;
 };
 
 } // namespace RenderStudio::Networking
