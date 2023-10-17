@@ -7,7 +7,7 @@ function(SetMaxWarningLevel Target)
             /w14640
             /wd4506)
 
-        if (MAYA_SUPPORT)
+        if (MAYA_SUPPORT OR HOUDINI_SUPPORT)
             target_compile_options(${Target} PRIVATE
                 /Zc:inline-
                 /bigobj)

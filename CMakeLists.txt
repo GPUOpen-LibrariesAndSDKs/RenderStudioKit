@@ -33,8 +33,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_SOURCE_DIR}/NOTICE DESTINATION
 
 # Install RenderStudioTargets.cmake
 include(CMakePackageConfigHelpers)
-set(KIT_TARGETS RenderStudioKit RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioSchema)
+set(KIT_TARGETS RenderStudioKit RenderStudioResolver RenderStudioNetworking RenderStudioLogger)
 set(KIT_DEPENDENCIES fmt uriparser zip)
+
+if(NOT HOUDINI_SUPPORT)
+    list(APPEND KIT_TARGETS RenderStudioSchema)
+endif()
 
 install(TARGETS ${KIT_TARGETS} ${KIT_DEPENDENCIES}
     EXPORT RenderStudioTargets

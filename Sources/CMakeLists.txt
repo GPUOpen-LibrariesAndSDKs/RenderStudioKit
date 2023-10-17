@@ -29,7 +29,11 @@ if(MAYA_SUPPORT)
     find_package(Boost REQUIRED COMPONENTS python log)
 else()
     find_package(Boost REQUIRED COMPONENTS python log)
-    find_package(USDMonolithic REQUIRED)
+    if(HOUDINI_SUPPORT)
+        find_package(HoudiniUSD REQUIRED)
+    else()
+        find_package(USDMonolithic REQUIRED)
+    endif()
 endif()
 
 
@@ -39,8 +43,12 @@ add_subdirectory(Logger)
 add_subdirectory(Networking)
 add_subdirectory(Serialization)
 add_subdirectory(Server)
-add_subdirectory(Schema)
 add_subdirectory(Resolver)
+
+if(NOT HOUDINI_SUPPORT)
+    add_subdirectory(Schema)
+    target_link_libraries(${PROJECT_NAME} PRIVATE RenderStudioSchema)
+endif()
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -50,7 +58,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioResolver
     RenderStudioNetworking
     RenderStudioLogger
-    RenderStudioSchema
 )
 
 # Set compile options
