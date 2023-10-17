@@ -42,10 +42,15 @@ add_subdirectory(Server)
 add_subdirectory(Schema)
 add_subdirectory(Resolver)
 
+if (PXR_ENABLE_PYTHON_SUPPORT)
+    add_subdirectory(Bindings)
+endif()
+
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     $<BUILD_INTERFACE:Boost::python>
     $<BUILD_INTERFACE:Boost::boost>
+    $<BUILD_INTERFACE:Boost::log>
     $<BUILD_INTERFACE:usd>
     RenderStudioResolver
     RenderStudioNetworking

@@ -30,7 +30,7 @@
 #include "RestClient.h"
 
 #include <Logger/Logger.h>
-#include <boost/json.hpp>
+#include <boost/json/src.hpp>
 #pragma comment(lib, "shell32.lib")
 
 namespace RenderStudio::Networking
