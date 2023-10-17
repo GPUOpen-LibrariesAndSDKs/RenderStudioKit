@@ -118,7 +118,16 @@ Syncthing::LaunchInstance()
 void
 Syncthing::KillInstance()
 {
-    StopProcess(mProcess);
+    try
+    {
+        RestClient client({ { RestClient::Parameters::Authorization, "Bearer render-studio-key" } });
+        LOG_INFO << "[RenderStudio Kit] Exited syncthing with status: "
+                 << client.Post("http://localhost:45454/rest/system/shutdown", "");
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_ERROR << "[RenderStudio Kit] Exited syncthing with error: " << ex.what();
+    }
 }
 
 PROCESS_INFORMATION
