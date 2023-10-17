@@ -47,18 +47,19 @@ HttpImpl(
     // Process body
     if (!body.empty())
     {
-        if (parameters.count(RestClient::Parameters::ContentType) > 0)
-        {
-            request.set(boost::beast::http::field::content_type, parameters.at(RestClient::Parameters::ContentType));
-        }
-
-        if (parameters.count(RestClient::Parameters::Authorization) > 0)
-        {
-            request.set(boost::beast::http::field::authorization, parameters.at(RestClient::Parameters::Authorization));
-        }
-
         request.body() = body;
         request.prepare_payload();
+    }
+
+    // Process parameters
+    if (parameters.count(RestClient::Parameters::ContentType) > 0)
+    {
+        request.set(boost::beast::http::field::content_type, parameters.at(RestClient::Parameters::ContentType));
+    }
+
+    if (parameters.count(RestClient::Parameters::Authorization) > 0)
+    {
+        request.set(boost::beast::http::field::authorization, parameters.at(RestClient::Parameters::Authorization));
     }
 
     boost::beast::http::write(stream, request);
@@ -206,11 +207,56 @@ PostImpl(
 }
 
 std::string
+PutImpl(
+    boost::asio::io_context& context,
+    const std::string& request,
+    const std::string& body,
+    const std::map<RestClient::Parameters, std::string>& parameters)
+{
+    const Url url = Url::Parse(request);
+
+    // Resolve
+    boost::asio::ip::tcp::resolver resolver { context };
+    const auto results = resolver.resolve(url.Host(), url.Port());
+
+    // Perform request
+    const auto response = url.Ssl() ? SslImpl(context, url, results, boost::beast::http::verb::put, body, parameters)
+                                    : TcpImpl(context, url, results, boost::beast::http::verb::put, body, parameters);
+
+    // Check redirect
+    const std::set<boost::beast::http::status> redirectCodes { boost::beast::http::status::moved_permanently,
+                                                               boost::beast::http::status::found,
+                                                               boost::beast::http::status::temporary_redirect };
+
+    if (redirectCodes.count(response.result()) > 0)
+    {
+        return PutImpl(context, response[boost::beast::http::field::location].to_string(), body, parameters);
+    }
+
+    return boost::beast::buffers_to_string(response.body().data());
+}
+
+std::string
 RestClient::Post(const std::string& request, const std::string& body)
 {
     try
     {
         return PostImpl(mIoContext, Url::Encode(request), body, mParameters);
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_ERROR << ex.what();
+    }
+
+    return "[Error]";
+}
+
+std::string
+RestClient::Put(const std::string& request, const std::string& body)
+{
+    try
+    {
+        return PutImpl(mIoContext, Url::Encode(request), body, mParameters);
     }
     catch (const std::exception& ex)
     {

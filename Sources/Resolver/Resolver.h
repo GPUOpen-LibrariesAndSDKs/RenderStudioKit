@@ -25,6 +25,11 @@
 
 #include "FileFormat.h"
 
+namespace RenderStudio::Kit
+{
+struct LiveSessionInfo;
+}
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class RenderStudioResolver : public ArDefaultResolver
@@ -36,16 +41,8 @@ public:
     AR_API
     virtual ~RenderStudioResolver();
 
-    struct LiveModeInfo
-    {
-        std::string liveUrl;
-        std::string storageUrl;
-        std::string channelId;
-        std::string userId;
-    };
-
     AR_API
-    static void StartLiveMode(const LiveModeInfo& info);
+    static void StartLiveMode(const RenderStudio::Kit::LiveSessionInfo& info);
 
     AR_API
     static bool ProcessLiveUpdates();
@@ -63,7 +60,10 @@ public:
     static bool IsRenderStudioPath(const std::string& path);
 
     AR_API
-    static bool IsUnresovableToRenderStudioPath(const std::string& path);
+    static bool IsUnresolvable(const std::string& path);
+
+    AR_API
+    static void SetWorkspacePath(const std::string& path);
 
     AR_API
     static std::string Unresolve(const std::string& path);
@@ -73,6 +73,9 @@ public:
 
     AR_API
     virtual ArResolvedPath _Resolve(const std::string& path) const override;
+
+    AR_API
+    static std::string ResolveImpl(const std::string& path);
 
 protected:
     AR_API
@@ -85,8 +88,9 @@ private:
     static std::filesystem::path GetDocumentsDirectory();
     static std::filesystem::path GetRootPath();
 
-    static inline LiveModeInfo sLiveModeInfo;
+    static std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;
+    static inline std::filesystem::path sWorkspacePath;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

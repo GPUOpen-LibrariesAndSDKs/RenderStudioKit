@@ -40,6 +40,7 @@
 #endif
 #pragma warning(pop)
 
+#include "../Kit.h"
 #include "Asset.h"
 
 #include <Logger/Logger.h>
@@ -51,6 +52,8 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 AR_DEFINE_RESOLVER(RenderStudioResolver, ArResolver)
+
+std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> RenderStudioResolver::sLiveModeInfo = nullptr;
 
 bool
 RenderStudioResolver::IsRenderStudioPath(const std::string& path)
@@ -74,11 +77,20 @@ RenderStudioResolver::IsRenderStudioPath(const std::string& path)
 }
 
 bool
-RenderStudioResolver::IsUnresovableToRenderStudioPath(const std::string& path)
+RenderStudioResolver::IsUnresolvable(const std::string& path)
 {
+    if (path.find("://") != std::string::npos)
+        return false;
+
     std::filesystem::path relative
         = std::filesystem::path { path }.lexically_relative(RenderStudioResolver::GetRootPath());
     return !relative.empty() && *relative.begin() != "..";
+}
+
+void
+RenderStudioResolver::SetWorkspacePath(const std::string& path)
+{
+    sWorkspacePath = path;
 }
 
 std::string
@@ -111,7 +123,7 @@ RenderStudioResolver::RenderStudioResolver()
         throw std::runtime_error("Can't access RenderStudioFileFormat");
     }
 
-    LOG_INFO << "RenderStudioResolver successfully created. Home folder: " << rootPath;
+    LOG_INFO << "[RenderStudioResolver] Workspace folder: " << rootPath;
 }
 
 RenderStudioResolver::~RenderStudioResolver() { }
@@ -123,9 +135,9 @@ RenderStudioResolver::ProcessLiveUpdates()
 }
 
 void
-RenderStudioResolver::StartLiveMode(const LiveModeInfo& info)
+RenderStudioResolver::StartLiveMode(const RenderStudio::Kit::LiveSessionInfo& info)
 {
-    sLiveModeInfo = info;
+    sLiveModeInfo = std::make_unique<RenderStudio::Kit::LiveSessionInfo>(info);
 
     // Connect here for now
     sFileFormat->Connect(info.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
@@ -195,12 +207,25 @@ RenderStudioResolver::_Resolve(const std::string& path) const
     return ArResolvedPath(path);
 }
 
+AR_API std::string
+RenderStudioResolver::ResolveImpl(const std::string& path)
+{
+    std::string copy = path;
+    copy.erase(0, std::string("studio:/").size());
+    if (copy.at(0) == '/')
+    {
+        copy.erase(0, 1);
+    }
+    std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / copy;
+    return resolved.string();
+}
+
 std::string
 RenderStudioResolver::GetLocalStorageUrl()
 {
-    if (!sLiveModeInfo.storageUrl.empty())
+    if (sLiveModeInfo != nullptr && !sLiveModeInfo->storageUrl.empty())
     {
-        return sLiveModeInfo.storageUrl;
+        return sLiveModeInfo->storageUrl;
     }
     else
     {
@@ -211,7 +236,14 @@ RenderStudioResolver::GetLocalStorageUrl()
 std::string
 RenderStudioResolver::GetCurrentUserId()
 {
-    return sLiveModeInfo.userId;
+    if (sLiveModeInfo != nullptr)
+    {
+        return sLiveModeInfo->userId;
+    }
+    else
+    {
+        return "";
+    }
 }
 
 static std::string
@@ -321,6 +353,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
+
         std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Storage" / name;
         return LocalStorageAsset::Open(name, saveLocation);
     }
@@ -374,6 +407,11 @@ RenderStudioResolver::GetDocumentsDirectory()
 std::filesystem::path
 RenderStudioResolver::GetRootPath()
 {
+    if (!sWorkspacePath.empty())
+    {
+        return sWorkspacePath;
+    }
+
     return RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
 }
 

@@ -1,11 +1,11 @@
 # Copyright 2023 Advanced Micro Devices, Inc
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,33 +27,27 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-# Find packages
-find_package(Boost REQUIRED)
-find_package(OpenSSL REQUIRED)
-
 if (WIN32)
     find_package(BinaryOpenSSL REQUIRED)
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
 endif()
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-    Boost::boost 
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Boost::boost
     OpenSSL::SSL
+    uriparser
+    zip::zip
+    fmt::fmt
     RenderStudioLogger
-    RenderStudioExternal)
+    $<BUILD_INTERFACE:usd>
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE ..)
 
 if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE Crypt32)
 endif()
-
-# Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
-    HAVE_SNPRINTF 
-    WIN32_LEAN_AND_MEAN NOMINMAX
-    _WIN32_WINNT=0x0601)
-
-SetMaxWarningLevel(${PROJECT_NAME})
 
 if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
@@ -61,15 +55,10 @@ endif()
 
 # Install headers
 install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
-    DESTINATION include/RenderStudioResolver/Networking)
+    DESTINATION include/RenderStudio/)
 
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
     DESTINATION lib)
 
-# Export CMake target
-set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME Networking)
-
-export(
-    TARGETS ${PROJECT_NAME}
-    NAMESPACE RenderStudio::
-    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioNetworkingConfig.cmake)
+SetDefaultCompileDefinitions(${PROJECT_NAME})
+SetMaxWarningLevel(${PROJECT_NAME})

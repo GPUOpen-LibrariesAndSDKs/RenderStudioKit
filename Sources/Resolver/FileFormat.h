@@ -62,6 +62,12 @@ public:
     AR_API
     virtual bool Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const override;
 
+    AR_API
+    virtual bool WriteToFile(const SdfLayer& layer,
+        const std::string& filePath,
+        const std::string& comment = std::string(),
+        const FileFormatArguments& args = FileFormatArguments()) const override;
+
 private:
     SDF_FILE_FORMAT_FACTORY_ACCESS;
 

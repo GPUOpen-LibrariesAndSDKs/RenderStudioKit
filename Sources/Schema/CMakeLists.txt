@@ -13,16 +13,14 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-set (CMAKE_CXX_STANDARD 20)
+project(RenderStudioSchema)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
 add_library(RenderStudioSchema SHARED ${SOURCES})
 
 # Link libraries
-
-target_link_libraries(RenderStudioSchema PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE
     Boost::boost
     usdGeom
     usd
@@ -30,28 +28,25 @@ target_link_libraries(RenderStudioSchema PRIVATE
     RenderStudioNetworking
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE ..)
+
 if(MAYA_SUPPORT)
-    target_link_libraries(RenderStudioSchema PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         ${PYTHON_LIBRARIES}
     )
 else()
-    target_link_libraries(RenderStudioSchema PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE
         Boost::python
     )
 endif()
 
 # Set compile options
-target_compile_definitions(RenderStudioSchema PRIVATE 
-    HAVE_SNPRINTF 
-    WIN32_LEAN_AND_MEAN 
-    NOMINMAX
-    _WIN32_WINNT=0x0601
+target_compile_definitions(${PROJECT_NAME} PRIVATE 
     RENDERSTUDIOSCHEMA_EXPORTS
-    VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
 )
 
 # Install library
-install(TARGETS RenderStudioSchema
+install(TARGETS ${PROJECT_NAME}
     DESTINATION plugin/usd)
 
 # Install plugInfo
@@ -70,12 +65,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
 file(GLOB HEADERS *.h)
 install(FILES ${HEADERS} DESTINATION include/RenderStudioResolver)
 
-# Export CMake target
-set_target_properties(RenderStudioSchema PROPERTIES
-    EXPORT_NAME Schema
-)
+SetDefaultCompileDefinitions(${PROJECT_NAME})
 
-export(TARGETS RenderStudioSchema
-    NAMESPACE RenderStudio::
-    FILE ${CMAKE_INSTALL_PREFIX}/cmake/RenderStudioSchemaConfig.cmake
-)
+install(TARGETS ${PROJECT_NAME})

@@ -17,21 +17,21 @@ function(SetVisualStudioDebuggerOptions)
     list(APPEND RS_RUNTIME_PATH ${Python3_RUNTIME_LIBRARY_DIRS})
 
     # Visual Studio debugger options
-    set(RS_VS_DEBUGGER_COMMAND_ARGUMENTS 
+    set(RS_VS_DEBUGGER_COMMAND_ARGUMENTS
         "--log-level=debug --storage-service-url=${RS_STORAGE_SERVICE_URL} --thumbnail-service-url=${RS_THUMBNAIL_SERVICE_URL}")
 
-    set(RS_VS_DEBUGGER_ENVIRONMENT 
+    set(RS_VS_DEBUGGER_ENVIRONMENT
         "PATH=${RS_RUNTIME_PATH}")
 
     if (EXISTS "${RS_BUILD_DIR}/Engine/StreamingApp/RelWithDebInfo")
-        set(RS_VS_DEBUGGER_COMMAND 
+        set(RS_VS_DEBUGGER_COMMAND
             "${RS_BUILD_DIR}/Engine/StreamingApp/RelWithDebInfo/StreamingApp.exe")
     else()
-        set(RS_VS_DEBUGGER_COMMAND 
+        set(RS_VS_DEBUGGER_COMMAND
             "${RS_BUILD_DIR}/Engine/StreamingApp/Release/StreamingApp.exe")
     endif()
 
-    set(RS_VS_DEBUGGER_WORKING_DIRECTORY 
+    set(RS_VS_DEBUGGER_WORKING_DIRECTORY
         "${RS_INSTALL_DIR}/Engine/StreamingApp")
 
     configure_file(../CMake/templates/INSTALL.vcxproj.user.in ../INSTALL.vcxproj.user)

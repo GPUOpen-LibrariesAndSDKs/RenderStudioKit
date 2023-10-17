@@ -244,7 +244,7 @@ RenderStudioData::OnLoaded()
 bool
 RenderStudioData::StreamsData() const
 {
-    return true;
+    return false;
 }
 
 bool
