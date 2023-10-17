@@ -50,10 +50,15 @@ if(NOT HOUDINI_SUPPORT)
     target_link_libraries(${PROJECT_NAME} PRIVATE RenderStudioSchema)
 endif()
 
+if (PXR_ENABLE_PYTHON_SUPPORT)
+    add_subdirectory(Bindings)
+endif()
+
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     $<BUILD_INTERFACE:Boost::python>
     $<BUILD_INTERFACE:Boost::boost>
+    $<BUILD_INTERFACE:Boost::log>
     $<BUILD_INTERFACE:usd>
     RenderStudioResolver
     RenderStudioNetworking

@@ -30,7 +30,7 @@
 #include "RestClient.h"
 
 #include <Logger/Logger.h>
-#include <boost/json.hpp>
+#include <boost/json/src.hpp>
 #pragma comment(lib, "shell32.lib")
 
 namespace RenderStudio::Networking
@@ -66,8 +66,8 @@ Syncthing::LaunchInstance()
     LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspace;
 
     mProcess = Syncthing::LaunchProcess(
-        syncthingExe.string(),
-        "--home " + syncthingConfig.string()
+        syncthingExe.make_preferred().string(),
+        "--home " + syncthingConfig.make_preferred().string()
             + " "
               "--no-default-folder "
               "--skip-port-probing "
@@ -118,7 +118,16 @@ Syncthing::LaunchInstance()
 void
 Syncthing::KillInstance()
 {
-    StopProcess(mProcess);
+    try
+    {
+        RestClient client({ { RestClient::Parameters::Authorization, "Bearer render-studio-key" } });
+        LOG_INFO << "[RenderStudio Kit] Exited syncthing with status: "
+                 << client.Post("http://localhost:45454/rest/system/shutdown", "");
+    }
+    catch (const std::exception& ex)
+    {
+        LOG_ERROR << "[RenderStudio Kit] Exited syncthing with error: " << ex.what();
+    }
 }
 
 PROCESS_INFORMATION
@@ -138,7 +147,7 @@ Syncthing::LaunchProcess(std::string app, std::string arg)
     std::wstring arg_w;
     Syncthing::Widen(arg, arg_w);
 
-    std::wstring input = app_w + L" " + arg_w;
+    std::wstring input = L"\"" + app_w + L"\" " + arg_w;
     wchar_t* arg_concat = const_cast<wchar_t*>(input.c_str());
     const wchar_t* app_const = app_w.c_str();
 
