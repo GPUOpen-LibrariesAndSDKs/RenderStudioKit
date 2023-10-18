@@ -28,6 +28,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     sdf
 )
 
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 # Install headers
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h ${CMAKE_CURRENT_SOURCE_DIR}/Api.h
 DESTINATION include/RenderStudioResolver/Serialization)

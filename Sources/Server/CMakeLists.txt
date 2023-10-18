@@ -31,6 +31,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     tf
 )
 
+if (TBB_INCLUDE_DIR)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TBB_LIBRARY})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 if (MAYA_SUPPORT)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         ${PYTHON_LIBRARIES}

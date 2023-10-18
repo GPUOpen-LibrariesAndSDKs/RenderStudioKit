@@ -28,6 +28,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioNetworking
 )
 
+if (TBB_INCLUDE_DIR)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TBB_LIBRARY})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 target_include_directories(${PROJECT_NAME} PRIVATE ..)
 
 if(MAYA_SUPPORT)
