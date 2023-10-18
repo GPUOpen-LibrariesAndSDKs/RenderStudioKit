@@ -21,6 +21,9 @@ using namespace hboost::python;
 #else
 #include <boost/python/class.hpp>
 #include <boost/python/def.hpp>
+#include <boost/python/reference_existing_object.hpp>
+#include <boost/python/return_value_policy.hpp>
+#include <boost/python/tuple.hpp>
 using namespace boost::python;
 #endif
 
