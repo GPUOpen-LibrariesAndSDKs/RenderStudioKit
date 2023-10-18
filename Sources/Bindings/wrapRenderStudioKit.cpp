@@ -19,6 +19,7 @@
 #include <hboost/python/def.hpp>
 using namespace hboost::python;
 #else
+#include <boost/noncopyable.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/def.hpp>
 #include <boost/python/reference_existing_object.hpp>
