@@ -166,6 +166,7 @@ if(HoudiniUSD_FOUND AND NOT TARGET hd)
     # linking library dependencies
     target_link_libraries(ar INTERFACE arch tf gf js trace work plug vt kind sdf ndr sdr pcp usd)
     target_link_libraries(sdf INTERFACE arch tf gf js trace work plug vt ar kind ndr sdr pcp usd)
+    target_link_libraries(usd INTERFACE arch tf gf js trace work plug vt ar kind ndr sdr pcp sdf)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         # Houdini builds with the old ABI. We need to match.
@@ -176,7 +177,6 @@ if(HoudiniUSD_FOUND AND NOT TARGET hd)
     endif(APPLE)
 
     target_include_directories(tf INTERFACE ${Houdini_Python_INCLUDE_DIR})
-    target_include_directories(usd INTERFACE ${Houdini_Python_INCLUDE_DIR})
     target_link_libraries(tf INTERFACE ${Houdini_Python_LIB})
     # Add Boost.Python to tf, vt. Should actually be in many more but that's
     # more than enough to get it linked in for us.
@@ -186,7 +186,7 @@ if(HoudiniUSD_FOUND AND NOT TARGET hd)
         target_link_libraries(tf INTERFACE ${Houdini_TBB_LIB})
     endif(APPLE)
     # By default Boost links libraries implicitly for the user via pragma's, we do not want this
-    target_compile_definitions(tf INTERFACE -DHBOOST_ALL_NO_LIB)
+    target_compile_definitions(tf INTERFACE -DHBOOST_ALL_NO_LIB -DHOUDINI_SUPPORT)
 
     add_library(hboost INTERFACE)
     target_link_libraries(hboost INTERFACE ${Houdini_Boostlog_LIB} ${Houdini_Boostpython_LIB} ${Houdini_Python_LIB})
