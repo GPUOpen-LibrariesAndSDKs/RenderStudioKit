@@ -65,6 +65,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     RenderStudioLogger
 )
 
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 # Set compile options
 SetDefaultCompileDefinitions(${PROJECT_NAME})
 SetMaxWarningLevel(${PROJECT_NAME})

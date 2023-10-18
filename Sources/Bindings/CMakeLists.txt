@@ -33,6 +33,10 @@ target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE
     usd
 )
 
+if (TBB_LIBRARY)
+    target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE ${TBB_LIBRARY})
+endif()
+
 target_compile_definitions(${USDPLUGIN_PYTHON_NAME}
 PRIVATE
     MFB_PACKAGE_NAME=${USDPLUGIN_NAME}
@@ -48,5 +52,5 @@ set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY PREFIX "")
 set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY SUFFIX ".pyd")
 
 # Install python wrapper
-install(TARGETS ${USDPLUGIN_PYTHON_NAME} DESTINATION lib/python/${USDPLUGIN_NAME})
-install(FILES __init__.py DESTINATION lib/python/${USDPLUGIN_NAME})
+install(TARGETS ${USDPLUGIN_PYTHON_NAME} DESTINATION lib/python/rs/${USDPLUGIN_NAME})
+install(FILES __init__.py DESTINATION lib/python/rs/${USDPLUGIN_NAME})

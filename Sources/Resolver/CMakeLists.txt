@@ -28,6 +28,11 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioSerialization
 )
 
+if (TBB_INCLUDE_DIR)
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE ${TBB_LIBRARY})
+    target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 if (MAYA_SUPPORT)
     target_link_libraries(${KIT_TARGET_NAME} PRIVATE
        ${PYTHON_LIBRARIES}

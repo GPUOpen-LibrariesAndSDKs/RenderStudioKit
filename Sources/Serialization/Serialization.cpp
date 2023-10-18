@@ -507,7 +507,11 @@ tag_invoke(const value_to_tag<VtDictionary>&, const value& json)
 
     for (const auto& item : jsonObject)
     {
+#if BOOST_VERSION >= 108000
+        result[item.key()] = value_to<VtValue>(item.value());
+#else
         result[item.key().to_string()] = value_to<VtValue>(item.value());
+#endif
     }
 
     return result;
