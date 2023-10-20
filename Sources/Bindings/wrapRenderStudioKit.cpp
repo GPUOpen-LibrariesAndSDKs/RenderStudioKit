@@ -46,8 +46,9 @@ wrapRenderStudioKit()
     def("Unresolve", &Unresolve, args("path"));
     def("IsRenderStudioPath", &IsRenderStudioPath, args("path"));
     def("SetWorkspacePath", &SetWorkspacePath, args("path"));
+    def("SetWorkspaceUrl", &SetWorkspaceUrl, args("url"));
 
-    class_<LiveSessionInfo>("LiveSessionInfo")
+    class_<LiveSessionInfo>("LiveSessionInfo", init<string, string, string, string>())
         .add_property("liveUrl", &LiveSessionInfo::liveUrl)
         .add_property("storageUrl", &LiveSessionInfo::storageUrl)
         .add_property("channelId", &LiveSessionInfo::channelId)
