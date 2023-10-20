@@ -61,7 +61,7 @@ Syncthing::LaunchInstance()
     std::filesystem::path syncthingExe = std::filesystem::path(plug->GetPath()).parent_path() / "syncthing.exe";
     std::filesystem::path syncthingConfig = Syncthing::GetRootPath().parent_path() / ".syncthing";
     std::filesystem::path workspace = Syncthing::GetRootPath();
-    std::string workspaceUrl = Syncthing::GetRemoteUrl();
+    std::string workspaceUrl = sWorkspaceUrl;
 
     if (!std::filesystem::exists(workspace))
     {
@@ -308,17 +308,6 @@ Syncthing::GetRootPath()
     }
 
     return Syncthing::GetDocumentsDirectory() / "AMD RenderStudio Home";
-}
-
-std::string
-Syncthing::GetRemoteUrl()
-{
-    if (!sWorkspaceUrl.empty())
-    {
-        return sWorkspaceUrl;
-    }
-
-    return "https://renderstudio.luxoft.com";
 }
 
 } // namespace RenderStudio::Networking

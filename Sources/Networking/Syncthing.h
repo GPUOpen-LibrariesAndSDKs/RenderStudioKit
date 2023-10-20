@@ -38,7 +38,6 @@ private:
     static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
     static std::filesystem::path GetDocumentsDirectory();
     static std::filesystem::path GetRootPath();
-    static std::string GetRemoteUrl();
 
     static inline PROCESS_INFORMATION mProcess = {};
     static inline std::filesystem::path sWorkspacePath;
