@@ -67,4 +67,8 @@ bool IsRenderStudioPath(const std::string& path);
 /// @param path Directory to syncronize
 void SetWorkspacePath(const std::string& path);
 
+/// @brief Set remote URL for remote workspace server
+/// @param url URL of remote workspace server
+void SetWorkspaceUrl(const std::string& url);
+
 } // namespace RenderStudio::Kit

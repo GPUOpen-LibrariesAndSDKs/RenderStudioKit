@@ -27,6 +27,7 @@ class Syncthing
 {
 public:
     static void SetWorkspacePath(const std::string& path);
+    static void SetWorkspaceUrl(const std::string& url);
     static void LaunchInstance();
     static void KillInstance();
 
@@ -40,6 +41,7 @@ private:
 
     static inline PROCESS_INFORMATION mProcess = {};
     static inline std::filesystem::path sWorkspacePath;
+    static inline std::string sWorkspaceUrl;
 };
 
 } // namespace RenderStudio::Networking

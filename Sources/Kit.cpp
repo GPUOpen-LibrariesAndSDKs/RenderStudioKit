@@ -77,4 +77,11 @@ SetWorkspacePath(const std::string& path)
     LOG_INFO << "[RenderStudio Kit] Set workspace path to: " << path;
 }
 
+void
+SetWorkspaceUrl(const std::string& url)
+{
+    RenderStudio::Networking::Syncthing::SetWorkspaceUrl(url);
+    LOG_INFO << "[RenderStudio Kit] Set URL of remote workspace server to: " << url;
+}
+
 } // namespace RenderStudio::Kit

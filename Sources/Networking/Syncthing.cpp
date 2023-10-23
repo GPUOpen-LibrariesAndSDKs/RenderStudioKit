@@ -43,6 +43,12 @@ Syncthing::SetWorkspacePath(const std::string& path)
 }
 
 void
+Syncthing::SetWorkspaceUrl(const std::string& url)
+{
+    sWorkspaceUrl = url;
+}
+
+void
 Syncthing::LaunchInstance()
 {
     if (CheckIfProcessIsActive(mProcess))
@@ -55,6 +61,7 @@ Syncthing::LaunchInstance()
     std::filesystem::path syncthingExe = std::filesystem::path(plug->GetPath()).parent_path() / "syncthing.exe";
     std::filesystem::path syncthingConfig = Syncthing::GetRootPath().parent_path() / ".syncthing";
     std::filesystem::path workspace = Syncthing::GetRootPath();
+    std::string workspaceUrl = sWorkspaceUrl;
 
     if (!std::filesystem::exists(workspace))
     {
@@ -83,7 +90,7 @@ Syncthing::LaunchInstance()
 
     boost::json::object config = boost::json::parse(client.Get("http://localhost:45454/rest/config")).as_object();
     boost::json::object remote
-        = boost::json::parse(client.Get("https://renderstudio.luxoft.com/storage/api/syncthing/info")).as_object();
+        = boost::json::parse(client.Get(workspaceUrl + "/storage/api/syncthing/info")).as_object();
     std::string id = boost::json::value_to<std::string>(
         boost::json::parse(client.Get("http://localhost:45454/rest/system/status")).at("myID"));
 
@@ -111,7 +118,7 @@ Syncthing::LaunchInstance()
 
     // Update remote config
     client.Post(
-        "https://renderstudio.luxoft.com/storage/api/syncthing/connect",
+        workspaceUrl + "/storage/api/syncthing/connect",
         boost::json::serialize(boost::json::object { { "device_id", id } }));
 }
 
