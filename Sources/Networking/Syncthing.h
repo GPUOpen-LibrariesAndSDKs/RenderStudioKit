@@ -28,6 +28,8 @@ class Syncthing
 public:
     static void SetWorkspacePath(const std::string& path);
     static void SetWorkspaceUrl(const std::string& url);
+    static std::string GetWorkspaceUrl();
+
     static void LaunchInstance();
     static void KillInstance();
 

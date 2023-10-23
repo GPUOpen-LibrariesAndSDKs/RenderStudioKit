@@ -90,4 +90,10 @@ GetWorkspacePath()
     return pxr::RenderStudioResolver::GetWorkspacePath();
 }
 
+std::string
+GetWorkspaceUrl()
+{
+    return RenderStudio::Networking::Syncthing::GetWorkspaceUrl();
+}
+
 } // namespace RenderStudio::Kit
