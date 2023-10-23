@@ -10,5 +10,5 @@ if (pxr_FOUND)
 
    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
        ${PYTHON_LIBRARIES}
-       usd)
+       $<BUILD_INTERFACE:usd>)
 endif()
