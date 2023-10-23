@@ -55,6 +55,7 @@ wrapRenderStudioKit()
     def("SetWorkspacePath", &SetWorkspacePath, args("path"));
     def("GetWorkspacePath", &GetWorkspacePath);
     def("SetWorkspaceUrl", &SetWorkspaceUrl, args("url"));
+    def("GetWorkspaceUrl", &GetWorkspaceUrl);
 
     class_<LiveSessionInfo>("LiveSessionInfo", init<string, string, string, string>())
         .add_property("liveUrl", &LiveSessionInfo::liveUrl)
