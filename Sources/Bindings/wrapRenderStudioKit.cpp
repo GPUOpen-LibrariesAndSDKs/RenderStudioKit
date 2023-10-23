@@ -14,15 +14,22 @@
 
 #include "../Kit.h"
 
+#ifdef HOUDINI_SUPPORT
+#include <hboost/python/class.hpp>
+#include <hboost/python/def.hpp>
+using namespace hboost::python;
+#else
 #include <boost/noncopyable.hpp>
 #include <boost/python/class.hpp>
 #include <boost/python/def.hpp>
 #include <boost/python/reference_existing_object.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
+using namespace boost::python;
+#endif
 
 using std::string;
-using namespace boost::python;
+
 
 std::int32_t
 sum(std::int32_t lhs, std::int32_t rhs)
