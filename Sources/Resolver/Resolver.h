@@ -66,6 +66,9 @@ public:
     static void SetWorkspacePath(const std::string& path);
 
     AR_API
+    static std::string GetWorkspacePath();
+
+    AR_API
     static std::string Unresolve(const std::string& path);
 
     AR_API
