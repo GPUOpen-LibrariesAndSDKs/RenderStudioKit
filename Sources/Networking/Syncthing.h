@@ -32,6 +32,7 @@ public:
     static void SetWorkspaceUrl(const std::string& url);
     static void Connect();
     static void Disconnect();
+    static std::string GetWorkspaceUrl();
 
 private:
     static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);

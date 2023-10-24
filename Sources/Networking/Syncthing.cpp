@@ -62,6 +62,12 @@ Syncthing::SetWorkspaceUrl(const std::string& url)
     sWorkspaceUrl = url;
 }
 
+std::string
+Syncthing::GetWorkspaceUrl()
+{
+    return sWorkspaceUrl;
+}
+
 void
 Syncthing::Connect()
 {

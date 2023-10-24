@@ -84,4 +84,16 @@ SetWorkspaceUrl(const std::string& url)
     LOG_INFO << "[RenderStudio Kit] Set URL of remote workspace server to: " << url;
 }
 
+std::string
+GetWorkspacePath()
+{
+    return pxr::RenderStudioResolver::GetWorkspacePath();
+}
+
+std::string
+GetWorkspaceUrl()
+{
+    return RenderStudio::Networking::Syncthing::GetWorkspaceUrl();
+}
+
 } // namespace RenderStudio::Kit

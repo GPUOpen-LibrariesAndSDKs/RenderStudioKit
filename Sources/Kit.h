@@ -46,6 +46,20 @@ void SharedWorkspaceConnect();
 /// @brief Stops file sharing for inside workspace directory.
 void SharedWorkspaceDisconnect();
 
+/// @brief Set directory which would be synchronized for all connected users
+/// @param path Directory to syncronize
+void SetWorkspacePath(const std::string& path);
+
+/// @brief Set remote URL for remote workspace server
+/// @param url URL of remote workspace server
+void SetWorkspaceUrl(const std::string& url);
+
+/// @brief Get current directory which would be synchronized for all connected users
+std::string GetWorkspacePath();
+
+/// @brief Get current remote URL for remote workspace server
+std::string GetWorkspaceUrl();
+
 // ========== SdfPath Utils API ==========
 
 /// @brief Checks if provided path could be transformed into RenderStudio path
@@ -62,13 +76,5 @@ std::string Unresolve(const std::string& path);
 /// @param path Path to check
 /// @return True if path is RenderStudio path
 bool IsRenderStudioPath(const std::string& path);
-
-/// @brief Set directory which would be synchronized for all connected users
-/// @param path Directory to syncronize
-void SetWorkspacePath(const std::string& path);
-
-/// @brief Set remote URL for remote workspace server
-/// @param url URL of remote workspace server
-void SetWorkspaceUrl(const std::string& url);
 
 } // namespace RenderStudio::Kit
