@@ -17,6 +17,7 @@ project(RenderStudioKit VERSION 0.3 LANGUAGES CXX)
 
 # Options
 option(WITH_SHARED_WORKSPACE_SUPPORT "Enables shared workspace feature. Requires pyinstaller to be installed" ON)
+option(WITH_PYTHON_DEPENDENCIES_INSTALL "Enables automatic install for all build requirements for Python" ON)
 
 # Config
 set(CMAKE_CXX_STANDARD 20)
@@ -73,12 +74,16 @@ install(FILES
 # Build watchdog
 if (WITH_SHARED_WORKSPACE_SUPPORT)
     # Install build dependencies with pip
-    find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
-    add_custom_target(
-        InstallPythonDeps ALL
-        COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
-        COMMENT "Installing python dependencies with pip"
-    )
+    if (WITH_PYTHON_DEPENDENCIES_INSTALL)
+        find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
+        add_custom_target(
+            InstallPythonDeps ALL
+            COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
+            COMMENT "Installing python dependencies with pip"
+        )
+    else()
+        find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
+    endif()
 
     # Build executable with pyinstaller
     add_custom_target(
