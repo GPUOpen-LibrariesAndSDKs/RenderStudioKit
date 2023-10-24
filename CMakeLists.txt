@@ -15,6 +15,11 @@
 cmake_minimum_required(VERSION 3.12)
 project(RenderStudioKit VERSION 0.3 LANGUAGES CXX)
 
+# Options
+option(WITH_SHARED_WORKSPACE_SUPPORT "Enables shared workspace feature. Requires pyinstaller to be installed" ON)
+option(WITH_PYTHON_DEPENDENCIES_INSTALL "Enables automatic install for all build requirements for Python" ON)
+
+# Config
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -65,3 +70,34 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
     DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/
 )
+
+# Build watchdog
+if (WITH_SHARED_WORKSPACE_SUPPORT)
+    # Install build dependencies with pip
+    if (WITH_PYTHON_DEPENDENCIES_INSTALL)
+        find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
+        add_custom_target(
+            InstallPythonDeps ALL
+            COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
+            COMMENT "Installing python dependencies with pip"
+        )
+    else()
+        find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
+    endif()
+
+    # Build executable with pyinstaller
+    add_custom_target(
+        ExecutePyinstaller ALL
+        COMMAND
+            pyinstaller
+            --distpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist
+            --workpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/build
+            ${CMAKE_SOURCE_DIR}/Watchdog/watchdog.spec
+        COMMENT "Building executable of RenderStudioWatchdog using pyinstaller"
+        DEPENDS InstallPythonDeps
+    )
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
+    )
+endif()

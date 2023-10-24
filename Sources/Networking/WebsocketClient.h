@@ -17,6 +17,7 @@
 #pragma warning(push, 0)
 #include <cstdlib>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <queue>
@@ -61,6 +62,7 @@ public:
     void Connect(const Url& endpoint);
     void Disconnect();
     void Send(const std::string& message);
+    std::future<bool> GetConnectionStatus();
 
 private:
     explicit WebsocketClient(const OnMessageFn& fn);
@@ -94,6 +96,7 @@ private:
     std::string mSslHost;
 
     std::queue<std::string> mWriteQueue;
+    std::promise<bool> mConnectionPromise;
 };
 
 } // namespace RenderStudio::Networking

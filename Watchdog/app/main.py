@@ -1,0 +1,39 @@
+# Copyright 2023 Advanced Micro Devices, Inc
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import asyncio
+import sys
+
+from app.logger import logger
+from app.settings import settings
+from app.connection_manager import connection_manager
+from app.syncthing_manager import syncthing_manager
+
+app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(connection_manager.check_clients())
+    logger.info("Watchdog started")
+
+@app.websocket("/studio/watchdog")
+async def watchdog(websocket: WebSocket):
+    await connection_manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+            await connection_manager.receive_ping(websocket)
+    except WebSocketDisconnect:
+        await connection_manager.disconnect(websocket)

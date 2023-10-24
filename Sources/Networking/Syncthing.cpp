@@ -37,6 +37,20 @@ namespace RenderStudio::Networking
 {
 
 void
+Syncthing::BackgroundPolling()
+{
+    while (true)
+    {
+        std::lock_guard<std::mutex> lock(sBackgroundMutex);
+        if (sClient != nullptr)
+        {
+            sClient->Send("ping");
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(25));
+    }
+}
+
+void
 Syncthing::SetWorkspacePath(const std::string& path)
 {
     sWorkspacePath = path;
@@ -55,91 +69,80 @@ Syncthing::GetWorkspaceUrl()
 }
 
 void
-Syncthing::LaunchInstance()
+Syncthing::Connect()
 {
-    if (CheckIfProcessIsActive(mProcess))
+    Disconnect();
+
+    // Aquire here to prevent deadlock from Disconnect()
+    std::lock_guard<std::mutex> lock(sBackgroundMutex);
+
+    // Check if watchdog already running
+    auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
+    auto client = WebsocketClient::Create([](const std::string& message) { (void)message; });
+    client->Connect(endpoint);
+
+    if (client->GetConnectionStatus().get())
     {
+        LOG_WARNING << "Watchdog already launched, skipping";
         return;
     }
 
+    // Launch watchdog
     pxr::TfType type = pxr::PlugRegistry::FindTypeByName("RenderStudioResolver");
     pxr::PlugPluginPtr plug = pxr::PlugRegistry::GetInstance().GetPluginForType(type);
-    std::filesystem::path syncthingExe = std::filesystem::path(plug->GetPath()).parent_path() / "syncthing.exe";
-    std::filesystem::path syncthingConfig = Syncthing::GetRootPath().parent_path() / ".syncthing";
-    std::filesystem::path workspace = Syncthing::GetRootPath();
+    std::filesystem::path watchdogExePath
+        = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog.exe";
+    std::filesystem::path workspacePath = Syncthing::GetRootPath();
     std::string workspaceUrl = sWorkspaceUrl;
 
-    if (!std::filesystem::exists(workspace))
+    if (!std::filesystem::exists(workspacePath))
     {
-        std::filesystem::create_directories(workspace);
+        std::filesystem::create_directories(workspacePath);
     }
 
-    LOG_INFO << "[RenderStudio Kit] Syncthing exe path: " << syncthingExe;
-    LOG_INFO << "[RenderStudio Kit] Syncthing config path: " << syncthingConfig;
-    LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspace;
+    LOG_INFO << "[RenderStudio Kit] Watchdog exe path: " << watchdogExePath;
+    LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspacePath;
+    LOG_INFO << "[RenderStudio Kit] Workspace url: " << workspaceUrl;
 
-    mProcess = Syncthing::LaunchProcess(
-        syncthingExe.make_preferred().string(),
-        "--home " + syncthingConfig.make_preferred().string()
-            + " "
-              "--no-default-folder "
-              "--skip-port-probing "
-              "--gui-address http://localhost:45454 "
-              "--gui-apikey render-studio-key "
-              "--no-browser "
-              "--no-restart "
-              "--no-upgrade "
-              "--log-max-size=0 "
-              "--log-max-old-files=0 ");
+    try
+    {
+        Syncthing::LaunchProcess(
+            watchdogExePath.make_preferred().string(),
+            "--workspace \"" + workspacePath.make_preferred().string()
+                + "\" "
+                  "--remote-url "
+                + workspaceUrl
+                + " "
+                  "--ping-interval 30");
+    }
+    catch (const std::exception& e)
+    {
+        LOG_FATAL << e.what();
+    }
 
-    RestClient client({ { RestClient::Parameters::Authorization, "Bearer render-studio-key" } });
+    sClient = WebsocketClient::Create([](const std::string& message) { (void)message; });
+    sClient->Connect(endpoint);
+    sClient->GetConnectionStatus().get();
+    sClient->Send("ping");
 
-    boost::json::object config = boost::json::parse(client.Get("http://localhost:45454/rest/config")).as_object();
-    boost::json::object remote
-        = boost::json::parse(client.Get(workspaceUrl + "/storage/api/syncthing/info")).as_object();
-    std::string id = boost::json::value_to<std::string>(
-        boost::json::parse(client.Get("http://localhost:45454/rest/system/status")).at("myID"));
+    if (sBackgroundThread == nullptr)
+    {
+        sBackgroundThread = std::make_shared<std::thread>(Syncthing::BackgroundPolling);
 
-    // Setup folder
-    boost::json::object folder
-        = boost::json::parse(client.Get("http://localhost:45454/rest/config/defaults/folder")).as_object();
-    folder.at("id") = remote.at("folder_id");
-    folder.at("label") = remote.at("folder_name");
-    folder.at("path") = workspace.string();
-    folder.at("devices").as_array().push_back({
-        { "deviceID", remote.at("device_id") },
-        { "introducedBy", "" },
-        { "encryptionPassword", "" },
-    });
-    config.at("folders").as_array().push_back(folder);
-
-    // Trust remote device
-    boost::json::object device
-        = boost::json::parse(client.Get("http://localhost:45454/rest/config/defaults/device")).as_object();
-    device.at("deviceID") = remote.at("device_id");
-    device.at("name") = remote.at("device_name");
-    config.at("devices").as_array().push_back(device);
-
-    client.Put("http://localhost:45454/rest/config", boost::json::serialize(config));
-
-    // Update remote config
-    client.Post(
-        workspaceUrl + "/storage/api/syncthing/connect",
-        boost::json::serialize(boost::json::object { { "device_id", id } }));
+        // Detaching to run forever even if Disconnect() was called
+        sBackgroundThread->detach();
+    }
 }
 
 void
-Syncthing::KillInstance()
+Syncthing::Disconnect()
 {
-    try
+    std::lock_guard<std::mutex> lock(sBackgroundMutex);
+
+    if (sClient != nullptr)
     {
-        RestClient client({ { RestClient::Parameters::Authorization, "Bearer render-studio-key" } });
-        LOG_INFO << "[RenderStudio Kit] Exited syncthing with status: "
-                 << client.Post("http://localhost:45454/rest/system/shutdown", "");
-    }
-    catch (const std::exception& ex)
-    {
-        LOG_ERROR << "[RenderStudio Kit] Exited syncthing with error: " << ex.what();
+        sClient->Disconnect();
+        sClient.reset();
     }
 }
 
@@ -178,93 +181,15 @@ Syncthing::LaunchProcess(std::string app, std::string arg)
             &pi)        // Pointer to PROCESS_INFORMATION structure
     )
     {
-        printf("CreateProcess failed (%d).\n", GetLastError());
         throw std::exception("Could not create child process");
     }
     else
     {
-        std::cout << "[          ] Successfully launched child process" << std::endl;
+        LOG_INFO << "Launched child process " << app << " " << arg;
     }
 
     // Return process handle
     return pi;
-}
-
-bool
-Syncthing::CheckIfProcessIsActive(PROCESS_INFORMATION pi)
-{
-    // Check if handle is closed
-    if (pi.hProcess == NULL)
-    {
-        printf("Process handle is closed or invalid (%d).\n", GetLastError());
-        return FALSE;
-    }
-
-    // If handle open, check if process is active
-    DWORD lpExitCode = 0;
-    if (GetExitCodeProcess(pi.hProcess, &lpExitCode) == 0)
-    {
-        printf("Cannot return exit code (%d).\n", GetLastError());
-        throw std::exception("Cannot return exit code");
-    }
-    else
-    {
-        if (lpExitCode == STILL_ACTIVE)
-        {
-            return TRUE;
-        }
-        else
-        {
-            return FALSE;
-        }
-    }
-}
-
-bool
-Syncthing::StopProcess(PROCESS_INFORMATION& pi)
-{
-    // Check if handle is invalid or has allready been closed
-    if (pi.hProcess == NULL)
-    {
-        printf("Process handle invalid. Possibly allready been closed (%d).\n", GetLastError());
-        return 0;
-    }
-
-    // Terminate Process
-    if (!TerminateProcess(pi.hProcess, 1))
-    {
-        printf("ExitProcess failed (%d).\n", GetLastError());
-        return 0;
-    }
-
-    // Wait until child process exits.
-    if (WaitForSingleObject(pi.hProcess, INFINITE) == WAIT_FAILED)
-    {
-        printf("Wait for exit process failed(%d).\n", GetLastError());
-        return 0;
-    }
-
-    // Close process and thread handles.
-    if (!CloseHandle(pi.hProcess))
-    {
-        printf("Cannot close process handle(%d).\n", GetLastError());
-        return 0;
-    }
-    else
-    {
-        pi.hProcess = NULL;
-    }
-
-    if (!CloseHandle(pi.hThread))
-    {
-        printf("Cannot close thread handle (%d).\n", GetLastError());
-        return 0;
-    }
-    else
-    {
-        pi.hProcess = NULL;
-    }
-    return 1;
 }
 
 // helper to widen a narrow UTF8 string in Win32
