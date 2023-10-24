@@ -95,6 +95,12 @@ RenderStudioResolver::SetWorkspacePath(const std::string& path)
 }
 
 std::string
+RenderStudioResolver::GetWorkspacePath()
+{
+    return GetRootPath().string();
+}
+
+std::string
 RenderStudioResolver::Unresolve(const std::string& path)
 {
     std::string relative
