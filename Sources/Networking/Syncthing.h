@@ -20,6 +20,8 @@
 
 #include <windows.h>
 
+#include "WebsocketClient.h"
+
 namespace RenderStudio::Networking
 {
 
@@ -28,20 +30,22 @@ class Syncthing
 public:
     static void SetWorkspacePath(const std::string& path);
     static void SetWorkspaceUrl(const std::string& url);
-    static void LaunchInstance();
-    static void KillInstance();
+    static void Connect();
+    static void Disconnect();
 
 private:
     static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
-    static bool CheckIfProcessIsActive(PROCESS_INFORMATION pi);
-    static bool StopProcess(PROCESS_INFORMATION& pi);
     static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
     static std::filesystem::path GetDocumentsDirectory();
     static std::filesystem::path GetRootPath();
 
-    static inline PROCESS_INFORMATION mProcess = {};
+    static void BackgroundPolling();
+    static inline std::mutex sBackgroundMutex;
+    static inline std::shared_ptr<std::thread> sBackgroundThread;
+
     static inline std::filesystem::path sWorkspacePath;
     static inline std::string sWorkspaceUrl;
+    static inline std::shared_ptr<WebsocketClient> sClient;
 };
 
 } // namespace RenderStudio::Networking

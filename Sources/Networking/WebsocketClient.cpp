@@ -132,6 +132,12 @@ WebsocketClient::Send(const std::string& message)
         mWebsocketStream);
 }
 
+std::future<bool>
+WebsocketClient::GetConnectionStatus()
+{
+    return mConnectionPromise.get_future();
+}
+
 void
 WebsocketClient::Write(const std::string& message)
 {
@@ -139,6 +145,7 @@ WebsocketClient::Write(const std::string& message)
 
     if (!mConnected)
     {
+        LOG_INFO << "Not connected in Write";
         return;
     }
 
@@ -183,6 +190,7 @@ WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::re
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
+        mConnectionPromise.set_value(false);
         return Disconnect();
     }
 
@@ -204,6 +212,7 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
+        mConnectionPromise.set_value(false);
         return Disconnect();
     }
 
@@ -255,6 +264,7 @@ WebsocketClient::OnSslHandshake(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
+        mConnectionPromise.set_value(false);
         return Disconnect();
     }
 
@@ -275,12 +285,14 @@ WebsocketClient::OnHandshake(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
+        mConnectionPromise.set_value(false);
         return Disconnect();
     }
 
     LOG_INFO << "[Networking] Connected to " << mEndpoint.Host();
 
     mConnected = true;
+    mConnectionPromise.set_value(true);
     OnPing({});
     OnRead({}, 0);
 }

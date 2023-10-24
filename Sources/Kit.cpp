@@ -42,13 +42,13 @@ LiveSessionDisconnect()
 void
 SharedWorkspaceConnect()
 {
-    RenderStudio::Networking::Syncthing::LaunchInstance();
+    RenderStudio::Networking::Syncthing::Connect();
 }
 
 void
 SharedWorkspaceDisconnect()
 {
-    RenderStudio::Networking::Syncthing::KillInstance();
+    RenderStudio::Networking::Syncthing::Disconnect();
 }
 
 bool

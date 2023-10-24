@@ -15,6 +15,10 @@
 cmake_minimum_required(VERSION 3.12)
 project(RenderStudioKit VERSION 0.3 LANGUAGES CXX)
 
+# Options
+option(WITH_SHARED_WORKSPACE_SUPPORT "Enables shared workspace feature. Requires pyinstaller to be installed" ON)
+
+# Config
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -65,3 +69,37 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/RenderStudioConfig.cmake"
     DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/
 )
+
+# Build watchdog
+if (WITH_SHARED_WORKSPACE_SUPPORT)
+    find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
+    set(DUMMY_OUTPUT ${CMAKE_BINARY_DIR}/dummy)
+    set(WATCHDOG_EXE ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe)
+
+    # Dummy output which is never actually produced. Anything that depends on this will always be rebuilt.
+    add_custom_command(
+        OUTPUT always_rebuild
+        COMMAND cmake -E echo
+    )
+
+    add_custom_command(
+        OUTPUT ${WATCHDOG_EXE}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/
+        COMMAND
+            ${PYINSTALLER_EXECUTABLE}
+            --distpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist
+            --workpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/build
+            ${CMAKE_SOURCE_DIR}/Watchdog/watchdog.spec
+        COMMENT "Building executable of RenderStudioWatchdog using pyinstaller"
+        DEPENDS always_rebuild
+        VERBATIM
+    )
+
+    add_custom_target(RenderStudioWatchdog ALL
+        DEPENDS ${WATCHDOG_EXE}
+    )
+
+    install(FILES ${WATCHDOG_EXE}
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
+    )
+endif()
