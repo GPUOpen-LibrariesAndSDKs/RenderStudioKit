@@ -98,14 +98,21 @@ Syncthing::Connect()
     LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspacePath;
     LOG_INFO << "[RenderStudio Kit] Workspace url: " << workspaceUrl;
 
-    Syncthing::LaunchProcess(
-        watchdogExePath.make_preferred().string(),
-        "--workspace \"" + workspacePath.make_preferred().string()
-            + "\" "
-              "--remote-url "
-            + workspaceUrl
-            + " "
-              "--ping-interval 30");
+    try
+    {
+        Syncthing::LaunchProcess(
+            watchdogExePath.make_preferred().string(),
+            "--workspace \"" + workspacePath.make_preferred().string()
+                + "\" "
+                  "--remote-url "
+                + workspaceUrl
+                + " "
+                  "--ping-interval 30");
+    }
+    catch (const std::exception& e)
+    {
+        LOG_FATAL << e.what();
+    }
 
     sClient = WebsocketClient::Create([](const std::string& message) { (void)message; });
     sClient->Connect(endpoint);
@@ -168,12 +175,11 @@ Syncthing::LaunchProcess(std::string app, std::string arg)
             &pi)        // Pointer to PROCESS_INFORMATION structure
     )
     {
-        printf("CreateProcess failed (%d).\n", GetLastError());
         throw std::exception("Could not create child process");
     }
     else
     {
-        std::cout << "[          ] Successfully launched child process" << std::endl;
+        LOG_INFO << "Launched child process " << app << " " << arg;
     }
 
     // Return process handle
