@@ -73,30 +73,25 @@ install(FILES
 # Build watchdog
 if (WITH_SHARED_WORKSPACE_SUPPORT)
     find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
-    set(DUMMY_OUTPUT ${CMAKE_BINARY_DIR}/dummy)
+    find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
+
     set(WATCHDOG_EXE ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe)
 
-    # Dummy output which is never actually produced. Anything that depends on this will always be rebuilt.
-    add_custom_command(
-        OUTPUT always_rebuild
-        COMMAND cmake -E echo
+    add_custom_target(
+        InstallPythonDeps ALL
+        COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
+        COMMENT "Installing python dependencies with pip"
     )
 
-    add_custom_command(
-        OUTPUT ${WATCHDOG_EXE}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/
+    add_custom_target(
+        ExecutePyinstaller ALL
         COMMAND
             ${PYINSTALLER_EXECUTABLE}
             --distpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist
             --workpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/build
             ${CMAKE_SOURCE_DIR}/Watchdog/watchdog.spec
         COMMENT "Building executable of RenderStudioWatchdog using pyinstaller"
-        DEPENDS always_rebuild
-        VERBATIM
-    )
-
-    add_custom_target(RenderStudioWatchdog ALL
-        DEPENDS ${WATCHDOG_EXE}
+        DEPENDS InstallPythonDeps
     )
 
     install(FILES ${WATCHDOG_EXE}
