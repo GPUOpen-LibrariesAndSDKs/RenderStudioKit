@@ -72,21 +72,19 @@ install(FILES
 
 # Build watchdog
 if (WITH_SHARED_WORKSPACE_SUPPORT)
-    find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
+    # Install build dependencies with pip
     find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
-
-    set(WATCHDOG_EXE ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe)
-
     add_custom_target(
         InstallPythonDeps ALL
         COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
         COMMENT "Installing python dependencies with pip"
     )
 
+    # Build executable with pyinstaller
     add_custom_target(
         ExecutePyinstaller ALL
         COMMAND
-            ${PYINSTALLER_EXECUTABLE}
+            pyinstaller
             --distpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist
             --workpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/build
             ${CMAKE_SOURCE_DIR}/Watchdog/watchdog.spec
@@ -94,7 +92,7 @@ if (WITH_SHARED_WORKSPACE_SUPPORT)
         DEPENDS InstallPythonDeps
     )
 
-    install(FILES ${WATCHDOG_EXE}
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe
         DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
     )
 endif()
