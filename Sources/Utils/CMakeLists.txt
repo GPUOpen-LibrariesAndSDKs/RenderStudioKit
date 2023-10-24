@@ -13,53 +13,20 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-project(RenderStudioNetworking)
+project(RenderStudioUtils)
 
 set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-
-if (NOT WIN32)
-    list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Certificates.h)
-    list(REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Certificates.cpp)
-endif()
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-
-if (WIN32)
-    find_package(BinaryOpenSSL REQUIRED)
-    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
-endif()
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    Boost::boost
-    OpenSSL::SSL
-    uriparser
-    zip::zip
-    fmt::fmt
     RenderStudioLogger
-    RenderStudioUtils
-    $<BUILD_INTERFACE:usd>
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ..)
-
-if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Crypt32)
-endif()
-
-if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
-endif()
-
-# Install headers
-install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
-    DESTINATION include/RenderStudio/)
-
-install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
-    DESTINATION lib)
 
 SetDefaultCompileDefinitions(${PROJECT_NAME})
 SetMaxWarningLevel(${PROJECT_NAME})

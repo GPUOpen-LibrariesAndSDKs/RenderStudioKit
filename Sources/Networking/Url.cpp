@@ -63,7 +63,12 @@ Url::Parse(const std::string& request)
     }
 
     // Parse target = path + query
-    result.mTarget = result.mPath + "?" + query;
+    result.mTarget = result.mPath;
+
+    if (!query.empty())
+    {
+        result.mTarget += "?" + query;
+    }
 
     // Set port from protocol
     if (result.mPort.empty())

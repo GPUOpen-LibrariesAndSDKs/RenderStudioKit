@@ -44,6 +44,7 @@ add_subdirectory(Networking)
 add_subdirectory(Serialization)
 add_subdirectory(Server)
 add_subdirectory(Resolver)
+add_subdirectory(Utils)
 
 if(NOT HOUDINI_SUPPORT)
     add_subdirectory(Schema)

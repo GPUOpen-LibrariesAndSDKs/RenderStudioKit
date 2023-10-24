@@ -26,6 +26,7 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioNetworking
     RenderStudioLogger
     RenderStudioSerialization
+    RenderStudioUtils
 )
 
 if (TBB_INCLUDE_DIR)

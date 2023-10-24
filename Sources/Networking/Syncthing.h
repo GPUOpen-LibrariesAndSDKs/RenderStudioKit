@@ -36,8 +36,6 @@ public:
 private:
     static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
     static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
-    static std::filesystem::path GetDocumentsDirectory();
-    static std::filesystem::path GetRootPath();
 
     static void BackgroundPolling();
     static inline std::mutex sBackgroundMutex;

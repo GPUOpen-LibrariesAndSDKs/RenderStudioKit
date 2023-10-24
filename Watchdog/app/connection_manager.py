@@ -19,6 +19,7 @@ from typing import List
 from app.logger import logger
 from app.logic import on_first_client_connected, on_last_client_disconnected
 from app.settings import settings
+from app.syncthing_manager import syncthing_manager
 
 class ConnectionManager:
     def __init__(self):
@@ -26,9 +27,10 @@ class ConnectionManager:
         self.last_ping_times = {}
 
     async def connect(self, websocket: WebSocket):
-        if not self.active_connections:
-            on_first_client_connected()
         await websocket.accept()
+        if not self.active_connections:
+            asyncio.create_task(self.poll_syncthing())
+            on_first_client_connected()
         self.active_connections.append(websocket)
         self.last_ping_times[websocket] = asyncio.get_running_loop().time()
         logger.info(f"Connected client. Active count: {len(self.active_connections)}")
@@ -50,5 +52,29 @@ class ConnectionManager:
                 if current_time - last_ping_time > settings.REQUIRED_PING_INTERVAL_SECONDS:
                     await ws.close()
             await asyncio.sleep(5)
+
+    async def broadcast(self, message):
+        for ws, last_ping_time in list(self.last_ping_times.items()):
+            await ws.send_json(message)
+
+    async def poll_syncthing(self):
+        while True:
+            logger.info("Polling")
+            events = syncthing_manager.get_events()
+            for event in events:
+                if event['type'] == 'ItemFinished':
+                    path = 'studio://' + event['data']['item'].replace('\\', '/')
+                    logger.info(path)
+                    await self.broadcast({
+                        'event': 'Event::FileUpdated',
+                        'path': path
+                    })
+                elif event['type'] == 'StateChanged':
+                    state = event['data']['to']
+                    logger.info(state)
+                    await self.broadcast({
+                        'event': 'Event::StateChanged',
+                        'state': state
+                    })
 
 connection_manager = ConnectionManager()
