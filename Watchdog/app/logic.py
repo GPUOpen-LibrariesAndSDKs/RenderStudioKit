@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+import os
 
 from app.syncthing_manager import syncthing_manager
 from app.logger import logger
@@ -27,4 +27,4 @@ def on_first_client_connected():
 def on_last_client_disconnected():
     logger.info("Last client disconnected. Terminating syncthing")
     syncthing_manager.terminate()
-    sys.exit(0)
+    os._exit(0)
