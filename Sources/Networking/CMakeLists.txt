@@ -45,6 +45,10 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     $<BUILD_INTERFACE:usd>
 )
 
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 
 if(WIN32)

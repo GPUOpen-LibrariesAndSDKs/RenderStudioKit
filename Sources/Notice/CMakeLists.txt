@@ -26,6 +26,10 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioLogger
 )
 
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+endif()
+
 target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 target_compile_definitions(${KIT_TARGET_NAME} PRIVATE AR_EXPORTS)
 
