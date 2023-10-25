@@ -13,14 +13,14 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-project(RenderStudioSchema)
+set(KIT_TARGET_NAME "RenderStudioSchema")
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(RenderStudioSchema SHARED ${SOURCES})
+add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     Boost::boost
     usdGeom
     usd
@@ -29,29 +29,29 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 if (TBB_INCLUDE_DIR)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${TBB_LIBRARY})
-    target_include_directories(${PROJECT_NAME} PRIVATE ${TBB_INCLUDE_DIR})
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE ${TBB_LIBRARY})
+    target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE ..)
+target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 
 if(MAYA_SUPPORT)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE
         ${PYTHON_LIBRARIES}
     )
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE
         Boost::python
     )
 endif()
 
 # Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE 
+target_compile_definitions(${KIT_TARGET_NAME} PRIVATE 
     RENDERSTUDIOSCHEMA_EXPORTS
 )
 
 # Install library
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${KIT_TARGET_NAME}
     DESTINATION plugin/usd)
 
 # Install plugInfo
@@ -70,6 +70,6 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
 file(GLOB HEADERS *.h)
 install(FILES ${HEADERS} DESTINATION include/RenderStudioResolver)
 
-SetDefaultCompileDefinitions(${PROJECT_NAME})
+SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 
-install(TARGETS ${PROJECT_NAME})
+install(TARGETS ${KIT_TARGET_NAME})

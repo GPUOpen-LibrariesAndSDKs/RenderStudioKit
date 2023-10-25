@@ -38,7 +38,7 @@ install(FILES ${CMAKE_SOURCE_DIR}/LICENSE ${CMAKE_SOURCE_DIR}/NOTICE DESTINATION
 
 # Install RenderStudioTargets.cmake
 include(CMakePackageConfigHelpers)
-set(KIT_TARGETS RenderStudioKit RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioUtils)
+set(KIT_TARGETS RenderStudioKit RenderStudioResolver RenderStudioNetworking RenderStudioLogger RenderStudioUtils RenderStudioNotice)
 set(KIT_DEPENDENCIES fmt uriparser zip)
 
 if(NOT HOUDINI_SUPPORT)

@@ -33,6 +33,7 @@
 #include "RestClient.h"
 
 #include <Logger/Logger.h>
+#include <Notice/Notice.h>
 #include <Utils/FileUtils.h>
 
 namespace RenderStudio::Networking
@@ -131,12 +132,12 @@ Syncthing::Connect()
             if (event == "Event::FileUpdated")
             {
                 std::string path = boost::json::value_to<std::string>(json.at("path"));
-                LOG_INFO << "Updated file: " << path;
+                pxr::RenderStudioWorkspaceFileNotice(path).Send();
             }
             else if (event == "Event::StateChanged")
             {
                 std::string state = boost::json::value_to<std::string>(json.at("state"));
-                LOG_INFO << "Changed state: " << state;
+                pxr::RenderStudioWorkspaceStateNotice(state).Send();
             }
         });
     sClient->Connect(endpoint);

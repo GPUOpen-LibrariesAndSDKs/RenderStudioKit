@@ -27,8 +27,8 @@
 #include <pxr/usd/usd/stage.h>
 #pragma warning(pop)
 
-#include "Notice.h"
-#include "Serialization/Api.h"
+#include <Notice/Notice.h>
+#include <Serialization/Api.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 

@@ -26,6 +26,8 @@ PXR_NAMESPACE_OPEN_SCOPE
 TF_INSTANTIATE_TYPE(RenderStudioPrimitiveNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioLoadingNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioOwnerNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioWorkspaceStateNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioWorkspaceFileNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 
 namespace uuid
 {
@@ -157,6 +159,48 @@ std::optional<std::string>
 RenderStudioOwnerNotice::GetOwner() const
 {
     return mOwner;
+}
+
+RenderStudioWorkspaceStateNotice::RenderStudioWorkspaceStateNotice(RenderStudioWorkspaceStateNotice::State state)
+    : mState(state)
+{
+}
+
+RenderStudioWorkspaceStateNotice::RenderStudioWorkspaceStateNotice(const std::string& state)
+{
+    static std::map<std::string, State> states {
+        { "idle", State::Idle },
+        { "syncing", State::Syncing },
+        { "error", State::Error },
+    };
+
+    auto it = states.find(state);
+
+    if (it != states.end())
+    {
+        mState = states.at(state);
+    }
+    else
+    {
+        mState = State::Other;
+    }
+}
+
+RenderStudioWorkspaceStateNotice::State
+RenderStudioWorkspaceStateNotice::GetState() const
+{
+    return mState;
+}
+
+RenderStudioWorkspaceFileNotice::RenderStudioWorkspaceFileNotice(const std::string& path)
+    : mPath(path)
+{
+}
+
+std::string
+RenderStudioWorkspaceFileNotice::GetPath() const
+{
+    return mPath;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

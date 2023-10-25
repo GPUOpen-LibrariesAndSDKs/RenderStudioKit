@@ -13,24 +13,24 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-project(RenderStudioLogger)
+set(KIT_TARGET_NAME "RenderStudioLogger")
 
 set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     Boost::boost
     Boost::log
     fmt::fmt
 )
 
-target_link_libraries(${PROJECT_NAME} INTERFACE
+target_link_libraries(${KIT_TARGET_NAME} INTERFACE
     Boost::log
 )
 
-SetDefaultCompileDefinitions(${PROJECT_NAME})
-SetMaxWarningLevel(${PROJECT_NAME})
+SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
+SetMaxWarningLevel(${KIT_TARGET_NAME})

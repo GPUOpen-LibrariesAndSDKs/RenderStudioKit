@@ -59,19 +59,16 @@ class ConnectionManager:
 
     async def poll_syncthing(self):
         while True:
-            logger.info("Polling")
             events = syncthing_manager.get_events()
             for event in events:
                 if event['type'] == 'ItemFinished':
-                    path = 'studio://' + event['data']['item'].replace('\\', '/')
-                    logger.info(path)
+                    path = 'studio:/' + event['data']['item'].replace('\\', '/')
                     await self.broadcast({
                         'event': 'Event::FileUpdated',
                         'path': path
                     })
                 elif event['type'] == 'StateChanged':
                     state = event['data']['to']
-                    logger.info(state)
                     await self.broadcast({
                         'event': 'Event::StateChanged',
                         'state': state

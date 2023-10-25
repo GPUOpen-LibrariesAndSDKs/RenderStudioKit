@@ -13,20 +13,20 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-project(RenderStudioUtils)
+set(KIT_TARGET_NAME "RenderStudioUtils")
 
 set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
 
 # Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioLogger
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ..)
+target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 
-SetDefaultCompileDefinitions(${PROJECT_NAME})
-SetMaxWarningLevel(${PROJECT_NAME})
+SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
+SetMaxWarningLevel(${KIT_TARGET_NAME})

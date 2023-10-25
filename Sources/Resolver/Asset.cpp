@@ -14,11 +14,11 @@
 
 #include "Asset.h"
 
-#include "Notice.h"
 #include "Resolver.h"
 
 #include <Logger/Logger.h>
 #include <Networking/MaterialLibraryApi.h>
+#include <Notice/Notice.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
