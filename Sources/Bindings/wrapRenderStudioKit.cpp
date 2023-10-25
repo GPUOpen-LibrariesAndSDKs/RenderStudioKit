@@ -54,6 +54,7 @@ wrapRenderStudioKit()
     def("IsRenderStudioPath", &IsRenderStudioPath, args("path"));
     def("SetWorkspacePath", &SetWorkspacePath, args("path"));
     def("GetWorkspacePath", &GetWorkspacePath);
+    def("GetDefaultWorkspacePath", &GetDefaultWorkspacePath);
     def("SetWorkspaceUrl", &SetWorkspaceUrl, args("url"));
     def("GetWorkspaceUrl", &GetWorkspaceUrl);
 

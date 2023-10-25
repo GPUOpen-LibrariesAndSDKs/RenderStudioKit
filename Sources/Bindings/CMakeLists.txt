@@ -30,6 +30,7 @@ target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE
     RenderStudioKit
     RenderStudioResolver
     RenderStudioNetworking
+    RenderStudioUtils
     usd
 )
 
