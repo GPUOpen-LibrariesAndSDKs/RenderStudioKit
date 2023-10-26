@@ -28,15 +28,6 @@ using namespace hboost::python;
 using namespace boost::python;
 #endif
 
-using std::string;
-
-
-std::int32_t
-sum(std::int32_t lhs, std::int32_t rhs)
-{
-    return lhs + rhs;
-}
-
 void
 wrapRenderStudioKit()
 {
@@ -58,7 +49,7 @@ wrapRenderStudioKit()
     def("SetWorkspaceUrl", &SetWorkspaceUrl, args("url"));
     def("GetWorkspaceUrl", &GetWorkspaceUrl);
 
-    class_<LiveSessionInfo>("LiveSessionInfo", init<string, string, string, string>())
+    class_<LiveSessionInfo>("LiveSessionInfo" /*, init<std::string, std::string, std::string, std::string>()*/)
         .add_property("liveUrl", &LiveSessionInfo::liveUrl)
         .add_property("storageUrl", &LiveSessionInfo::storageUrl)
         .add_property("channelId", &LiveSessionInfo::channelId)

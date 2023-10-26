@@ -23,11 +23,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_INSTANTIATE_TYPE(RenderStudioPrimitiveNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
-TF_INSTANTIATE_TYPE(RenderStudioLoadingNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
-TF_INSTANTIATE_TYPE(RenderStudioOwnerNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
-TF_INSTANTIATE_TYPE(RenderStudioWorkspaceStateNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
-TF_INSTANTIATE_TYPE(RenderStudioWorkspaceFileNotice, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::PrimitiveChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::LiveHistoryStatus, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::OwnerChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceState, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::FileUpdated, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceConnectionChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 
 namespace uuid
 {
@@ -71,7 +72,7 @@ generate_uuid_v4()
 }
 } // namespace uuid
 
-RenderStudioPrimitiveNotice::RenderStudioPrimitiveNotice(const SdfPath& path, bool resynced)
+RenderStudioNotice::PrimitiveChanged::PrimitiveChanged(const SdfPath& path, bool resynced)
     : mChangedPrim(path)
     , mWasResynched(resynced)
 {
@@ -87,86 +88,86 @@ RenderStudioPrimitiveNotice::RenderStudioPrimitiveNotice(const SdfPath& path, bo
 }
 
 SdfPath
-RenderStudioPrimitiveNotice::GetChangedPrim() const
+RenderStudioNotice::PrimitiveChanged::GetChangedPrim() const
 {
     return mChangedPrim;
 }
 
 bool
-RenderStudioPrimitiveNotice::WasResynched() const
+RenderStudioNotice::PrimitiveChanged::WasResynched() const
 {
     return mWasResynched;
 }
 
 bool
-RenderStudioPrimitiveNotice::IsValid() const
+RenderStudioNotice::PrimitiveChanged::IsValid() const
 {
     return mIsValid;
 }
 
-RenderStudioLoadingNotice::RenderStudioLoadingNotice(const std::string& name, const std::string& category)
+RenderStudioNotice::LiveHistoryStatus::LiveHistoryStatus(const std::string& name, const std::string& category)
     : mName(name)
     , mCategory(category)
     , mUuid(uuid::generate_uuid_v4())
 {
-    mAction = RenderStudioLoadingNotice::Action::Started;
+    mAction = RenderStudioNotice::LiveHistoryStatus::Action::Started;
     Send();
 }
 
-RenderStudioLoadingNotice::~RenderStudioLoadingNotice()
+RenderStudioNotice::LiveHistoryStatus::~LiveHistoryStatus()
 {
-    mAction = RenderStudioLoadingNotice::Action::Finished;
+    mAction = RenderStudioNotice::LiveHistoryStatus::Action::Finished;
     Send();
 }
 
 std::string
-RenderStudioLoadingNotice::GetName() const
+RenderStudioNotice::LiveHistoryStatus::GetName() const
 {
     return mName;
 }
 
 std::string
-RenderStudioLoadingNotice::GetCategory() const
+RenderStudioNotice::LiveHistoryStatus::GetCategory() const
 {
     return mCategory;
 }
 
 std::string
-RenderStudioLoadingNotice::GetUuid() const
+RenderStudioNotice::LiveHistoryStatus::GetUuid() const
 {
     return mUuid;
 }
 
-RenderStudioLoadingNotice::Action
-RenderStudioLoadingNotice::GetAction() const
+RenderStudioNotice::LiveHistoryStatus::Action
+RenderStudioNotice::LiveHistoryStatus::GetAction() const
 {
     return mAction;
 }
 
-RenderStudioOwnerNotice::RenderStudioOwnerNotice(const SdfPath& path, const std::optional<std::string> owner)
+RenderStudioNotice::OwnerChanged::OwnerChanged(const SdfPath& path, const std::optional<std::string> owner)
     : mPath(path)
     , mOwner(owner)
 {
 }
 
 SdfPath
-RenderStudioOwnerNotice::GetPath() const
+RenderStudioNotice::OwnerChanged::GetPath() const
 {
     return mPath;
 }
 
 std::optional<std::string>
-RenderStudioOwnerNotice::GetOwner() const
+RenderStudioNotice::OwnerChanged::GetOwner() const
 {
     return mOwner;
 }
 
-RenderStudioWorkspaceStateNotice::RenderStudioWorkspaceStateNotice(RenderStudioWorkspaceStateNotice::State state)
+RenderStudioNotice::WorkspaceState::WorkspaceState(RenderStudioNotice::WorkspaceState::State state)
     : mState(state)
 {
 }
 
-RenderStudioWorkspaceStateNotice::RenderStudioWorkspaceStateNotice(const std::string& state)
+RenderStudioNotice::WorkspaceState::WorkspaceState(const std::string& state)
 {
     static std::map<std::string, State> states {
         { "idle", State::Idle },
@@ -186,21 +187,32 @@ RenderStudioWorkspaceStateNotice::RenderStudioWorkspaceStateNotice(const std::st
     }
 }
 
-RenderStudioWorkspaceStateNotice::State
-RenderStudioWorkspaceStateNotice::GetState() const
+RenderStudioNotice::WorkspaceState::State
+RenderStudioNotice::WorkspaceState::GetState() const
 {
     return mState;
 }
 
-RenderStudioWorkspaceFileNotice::RenderStudioWorkspaceFileNotice(const std::string& path)
+RenderStudioNotice::FileUpdated::FileUpdated(const std::string& path)
     : mPath(path)
 {
 }
 
 std::string
-RenderStudioWorkspaceFileNotice::GetPath() const
+RenderStudioNotice::FileUpdated::GetPath() const
 {
     return mPath;
+}
+
+RenderStudioNotice::WorkspaceConnectionChanged::WorkspaceConnectionChanged(bool status)
+    : mStatus(status)
+{
+}
+
+bool
+RenderStudioNotice::WorkspaceConnectionChanged::IsConnected() const
+{
+    return mStatus;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

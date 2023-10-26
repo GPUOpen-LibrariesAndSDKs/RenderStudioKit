@@ -152,7 +152,7 @@ RenderStudioFileFormat::OnMessage(const std::string& message)
                    {
                        // Send history notice
                        (void)v;
-                       RenderStudioLoadingNotice("History", "RenderStudio::Internal");
+                       RenderStudioNotice::LiveHistoryStatus("History", "RenderStudio::Internal");
                    },
                    [this](const RenderStudio::API::AcknowledgeEvent& v)
                    {

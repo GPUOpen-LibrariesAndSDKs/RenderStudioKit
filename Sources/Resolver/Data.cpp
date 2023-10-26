@@ -47,7 +47,7 @@ RenderStudioData::~RenderStudioData()
 void
 RenderStudioData::ApplyDelta(
     SdfLayerHandle& layer,
-    std::vector<RenderStudioPrimitiveNotice>& notices,
+    std::vector<RenderStudioNotice::PrimitiveChanged>& notices,
     const SdfPath& path,
     const TfToken& key,
     const VtValue& value,
@@ -59,7 +59,7 @@ RenderStudioData::ApplyDelta(
         layer->GetStateDelegate()->CreateSpec(path, spec, false);
         if (path.IsPrimPath())
         {
-            notices.push_back(RenderStudioPrimitiveNotice(path, true));
+            notices.push_back(RenderStudioNotice::PrimitiveChanged(path, true));
         }
     }
 
@@ -82,7 +82,7 @@ RenderStudioData::ApplyDelta(
                 }
             }();
 
-            RenderStudioOwnerNotice(path, owner).Send();
+            RenderStudioNotice::OwnerChanged(path, owner).Send();
         }
     }
 
@@ -145,7 +145,7 @@ RenderStudioData::ApplyDelta(
 
     if (key == SdfFieldKeys->Active)
     {
-        notices.push_back(RenderStudioPrimitiveNotice(path, true));
+        notices.push_back(RenderStudioNotice::PrimitiveChanged(path, true));
     }
 }
 
@@ -158,7 +158,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
 
     // Change block should gain performance
     std::unique_ptr<SdfChangeBlock> block = std::make_unique<SdfChangeBlock>();
-    std::vector<RenderStudioPrimitiveNotice> notices;
+    std::vector<RenderStudioNotice::PrimitiveChanged> notices;
 
     // Apply all the deltas (in sequence order)
     std::size_t nextRequestedSequence = mLatestAppliedSequence + 1;
@@ -182,7 +182,7 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
                 ApplyDelta(layer, notices, delta.first, field.first, field.second, delta.second.specType);
             }
 
-            notices.push_back(RenderStudioPrimitiveNotice(delta.first, false));
+            notices.push_back(RenderStudioNotice::PrimitiveChanged(delta.first, false));
         }
 
         mLatestAppliedSequence = nextRequestedSequence;
@@ -193,8 +193,8 @@ RenderStudioData::ProcessRemoteUpdates(SdfLayerHandle& layer)
     block.reset();
 
     // Deduplicate notices
-    std::map<SdfPath, std::vector<RenderStudioPrimitiveNotice>> noticesMap;
-    for (const RenderStudioPrimitiveNotice& notice : notices)
+    std::map<SdfPath, std::vector<RenderStudioNotice::PrimitiveChanged>> noticesMap;
+    for (const RenderStudioNotice::PrimitiveChanged& notice : notices)
     {
         if (notice.IsValid())
         {
