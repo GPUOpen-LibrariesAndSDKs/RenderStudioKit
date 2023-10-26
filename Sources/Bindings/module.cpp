@@ -17,4 +17,8 @@
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
-TF_WRAP_MODULE { TF_WRAP(RenderStudioKit); }
+TF_WRAP_MODULE
+{
+    TF_WRAP(RenderStudioKit);
+    TF_WRAP(RenderStudioNotice);
+}

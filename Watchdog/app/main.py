@@ -23,17 +23,11 @@ from app.syncthing_manager import syncthing_manager
 
 app = FastAPI()
 
-@app.on_event("startup")
-async def startup_event():
-    asyncio.create_task(connection_manager.check_clients())
-    logger.info("Watchdog started")
-
 @app.websocket("/studio/watchdog")
 async def watchdog(websocket: WebSocket):
     await connection_manager.connect(websocket)
     try:
         while True:
-            await websocket.receive_text()
-            await connection_manager.receive_ping(websocket)
+            await connection_manager.receive_text(websocket)
     except WebSocketDisconnect:
-        await connection_manager.disconnect(websocket)
+        await connection_manager.disconnect(websocket, should_close=False)

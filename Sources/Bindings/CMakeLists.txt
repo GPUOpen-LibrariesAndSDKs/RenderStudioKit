@@ -21,6 +21,7 @@ add_library(${USDPLUGIN_PYTHON_NAME} SHARED
     module.cpp
     moduleDeps.cpp
     wrapRenderStudioKit.cpp
+    wrapRenderStudioNotice.cpp
 )
 
 target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE
@@ -31,18 +32,22 @@ target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE
     RenderStudioResolver
     RenderStudioNetworking
     RenderStudioUtils
+    RenderStudioNotice
     usd
 )
-
-if (TBB_LIBRARY)
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${USDPLUGIN_PYTHON_NAME} PRIVATE ${TBB_INCLUDE_DIR})
     target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE ${TBB_LIBRARY})
 endif()
+
+target_include_directories(${USDPLUGIN_PYTHON_NAME} PRIVATE ..)
 
 target_compile_definitions(${USDPLUGIN_PYTHON_NAME}
 PRIVATE
     MFB_PACKAGE_NAME=${USDPLUGIN_NAME}
     MFB_ALT_PACKAGE_NAME=${USDPLUGIN_NAME}
     MFB_PACKAGE_MODULE=rs.${USDPLUGIN_NAME}
+    NOMINMAX
 )
 
 set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY PREFIX "")

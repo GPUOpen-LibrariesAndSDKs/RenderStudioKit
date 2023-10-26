@@ -25,113 +25,130 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class RenderStudioPrimitiveNotice : public TfNotice
+class RenderStudioNotice
 {
 public:
-    AR_API
-    RenderStudioPrimitiveNotice(const SdfPath& path, bool resynched = false);
-
-    AR_API
-    SdfPath GetChangedPrim() const;
-
-    AR_API
-    bool WasResynched() const;
-
-    AR_API
-    bool IsValid() const;
-
-private:
-    SdfPath mChangedPrim;
-    bool mWasResynched = false;
-    bool mIsValid = true;
-};
-
-class RenderStudioLoadingNotice : public TfNotice
-{
-public:
-    enum class Action
+    class PrimitiveChanged : public TfNotice
     {
-        Started,
-        Finished
+    public:
+        AR_API
+        PrimitiveChanged(const SdfPath& path, bool resynched = false);
+
+        AR_API
+        SdfPath GetChangedPrim() const;
+
+        AR_API
+        bool WasResynched() const;
+
+        AR_API
+        bool IsValid() const;
+
+    private:
+        SdfPath mChangedPrim;
+        bool mWasResynched = false;
+        bool mIsValid = true;
     };
 
-    AR_API
-    RenderStudioLoadingNotice(const std::string& name, const std::string& category);
-
-    AR_API
-    ~RenderStudioLoadingNotice();
-
-    AR_API
-    std::string GetName() const;
-
-    AR_API
-    std::string GetCategory() const;
-
-    AR_API
-    std::string GetUuid() const;
-
-    AR_API
-    Action GetAction() const;
-
-private:
-    std::string mName;
-    std::string mCategory;
-    std::string mUuid;
-    Action mAction;
-};
-
-class RenderStudioOwnerNotice : public TfNotice
-{
-public:
-    AR_API
-    RenderStudioOwnerNotice(const SdfPath& path, const std::optional<std::string> owner);
-
-    AR_API
-    SdfPath GetPath() const;
-
-    AR_API
-    std::optional<std::string> GetOwner() const;
-
-private:
-    SdfPath mPath;
-    std::optional<std::string> mOwner;
-};
-
-class RenderStudioWorkspaceStateNotice : public TfNotice
-{
-public:
-    enum class State
+    class LiveHistoryStatus : public TfNotice
     {
-        Idle,
-        Syncing,
-        Error,
-        Other
+    public:
+        enum class Action
+        {
+            Started,
+            Finished
+        };
+
+        AR_API
+        LiveHistoryStatus(const std::string& name, const std::string& category);
+
+        AR_API
+        ~LiveHistoryStatus();
+
+        AR_API
+        std::string GetName() const;
+
+        AR_API
+        std::string GetCategory() const;
+
+        AR_API
+        std::string GetUuid() const;
+
+        AR_API
+        Action GetAction() const;
+
+    private:
+        std::string mName;
+        std::string mCategory;
+        std::string mUuid;
+        Action mAction;
     };
 
-    AR_API
-    RenderStudioWorkspaceStateNotice(State state);
+    class OwnerChanged : public TfNotice
+    {
+    public:
+        AR_API
+        OwnerChanged(const SdfPath& path, const std::optional<std::string> owner);
 
-    AR_API
-    RenderStudioWorkspaceStateNotice(const std::string& state);
+        AR_API
+        SdfPath GetPath() const;
 
-    AR_API
-    State GetState() const;
+        AR_API
+        std::optional<std::string> GetOwner() const;
 
-private:
-    State mState;
-};
+    private:
+        SdfPath mPath;
+        std::optional<std::string> mOwner;
+    };
 
-class RenderStudioWorkspaceFileNotice : public TfNotice
-{
-public:
-    AR_API
-    RenderStudioWorkspaceFileNotice(const std::string& path);
+    class WorkspaceState : public TfNotice
+    {
+    public:
+        enum class State
+        {
+            Idle,
+            Syncing,
+            Error,
+            Other
+        };
 
-    AR_API
-    std::string GetPath() const;
+        AR_API
+        WorkspaceState(State state);
 
-private:
-    std::string mPath;
+        AR_API
+        WorkspaceState(const std::string& state);
+
+        AR_API
+        State GetState() const;
+
+    private:
+        State mState;
+    };
+
+    class FileUpdated : public TfNotice
+    {
+    public:
+        AR_API
+        FileUpdated(const std::string& path);
+
+        AR_API
+        std::string GetPath() const;
+
+    private:
+        std::string mPath;
+    };
+
+    class WorkspaceConnectionChanged : public TfNotice
+    {
+    public:
+        AR_API
+        WorkspaceConnectionChanged(bool status);
+
+        AR_API
+        bool IsConnected() const;
+
+    private:
+        bool mStatus;
+    };
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

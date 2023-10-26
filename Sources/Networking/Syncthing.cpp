@@ -49,7 +49,7 @@ Syncthing::BackgroundPolling()
         {
             sClient->Send("ping");
         }
-        std::this_thread::sleep_for(std::chrono::seconds(25));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
 
@@ -86,6 +86,7 @@ Syncthing::Connect()
 
     if (client->GetConnectionStatus().get())
     {
+        pxr::RenderStudioNotice::WorkspaceConnectionChanged(true).Send();
         LOG_WARNING << "Watchdog already launched, skipping";
         return;
     }
@@ -132,16 +133,17 @@ Syncthing::Connect()
             if (event == "Event::FileUpdated")
             {
                 std::string path = boost::json::value_to<std::string>(json.at("path"));
-                pxr::RenderStudioWorkspaceFileNotice(path).Send();
+                pxr::RenderStudioNotice::FileUpdated(path).Send();
             }
             else if (event == "Event::StateChanged")
             {
                 std::string state = boost::json::value_to<std::string>(json.at("state"));
-                pxr::RenderStudioWorkspaceStateNotice(state).Send();
+                pxr::RenderStudioNotice::WorkspaceState(state).Send();
             }
         });
+
     sClient->Connect(endpoint);
-    LOG_INFO << "[RenderStudio Kit] Watchdog connection status: " << sClient->GetConnectionStatus().get();
+    pxr::RenderStudioNotice::WorkspaceConnectionChanged(sClient->GetConnectionStatus().get()).Send();
 
     if (sBackgroundThread == nullptr)
     {
@@ -154,12 +156,12 @@ void
 Syncthing::Disconnect()
 {
     std::lock_guard<std::mutex> lock(sBackgroundMutex);
-
     if (sClient != nullptr)
     {
         sClient->Disconnect();
         sClient.reset();
     }
+    pxr::RenderStudioNotice::WorkspaceConnectionChanged(false).Send();
 }
 
 PROCESS_INFORMATION

@@ -14,5 +14,50 @@
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+LOGGING_CONFIG = {
+    "version": 1,
+    "handlers": {
+        "default": {
+            "class": "logging.StreamHandler",
+            "formatter": "watchdog",
+            "stream": "ext://sys.stderr"
+        },
+        "syncthing": {
+            "class": "logging.StreamHandler",
+            "formatter": "syncthing",
+            "stream": "ext://sys.stderr"
+        }
+    },
+    "formatters": {
+        "watchdog": {
+            "format": "\033[94m[watchdog]\033[0m %(message)s",
+            "datefmt": "%H:%M:%S",
+        },
+        "syncthing": {
+            "format": "\033[95m[syncthing]\033[0m %(message)s",
+            "datefmt": "%H:%M:%S",
+        }
+    },
+    'loggers': {
+        'httpx': {
+            'handlers': ['default'],
+            'level': 'WARN',
+        },
+        'httpcore': {
+            'handlers': ['default'],
+            'level': 'WARN',
+        },
+        'default': {
+            'handlers': ['default'],
+            'level': 'INFO',
+        },
+        'syncthing': {
+            'handlers': ['syncthing'],
+            'level': 'INFO',
+        }
+    }
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
+logger = logging.getLogger('default')
+syncthing_logger = logging.getLogger('syncthing')

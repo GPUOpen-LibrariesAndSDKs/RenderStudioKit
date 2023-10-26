@@ -140,7 +140,7 @@ private:
 private:
     void ApplyDelta(
         SdfLayerHandle& layer,
-        std::vector<RenderStudioPrimitiveNotice>& notices,
+        std::vector<RenderStudioNotice::PrimitiveChanged>& notices,
         const SdfPath& path,
         const TfToken& key,
         const VtValue& value,

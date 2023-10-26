@@ -325,7 +325,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("studio:/", 0) == 0)
     {
-        RenderStudioLoadingNotice notice(_path, "primitive");
+        RenderStudioNotice::LiveHistoryStatus notice(_path, "primitive");
 
         _path.erase(0, std::string("studio:/").size());
         std::filesystem::path resolved = RenderStudioResolver::GetRootPath() / _path;
@@ -334,7 +334,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("gpuopen:/", 0) == 0)
     {
-        std::optional<RenderStudioLoadingNotice> notice;
+        std::optional<RenderStudioNotice::LiveHistoryStatus> notice;
 
         const RenderStudio::Networking::Url url = RenderStudio::Networking::Url::Parse(resolvedPath.GetPathString());
 
@@ -356,7 +356,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
 
     if (resolvedPath.GetPathString().rfind("storage:/", 0) == 0)
     {
-        RenderStudioLoadingNotice notice(_path, "light");
+        RenderStudioNotice::LiveHistoryStatus notice(_path, "light");
 
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());

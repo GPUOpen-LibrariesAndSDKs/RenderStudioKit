@@ -21,7 +21,7 @@ from app.settings import settings
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="AMD RenderStudio watchdog service", allow_abbrev=False)
     parser.add_argument('-p', '--port', help="Port for watchdog", type=str, required=False, default=52700)
-    parser.add_argument('-i', '--ping-interval', help="Required ping interval", type=int, required=False, default=30)
+    parser.add_argument('-i', '--ping-interval', help="Required ping interval", type=int, required=False, default=10)
     parser.add_argument('-s', '--syncthing-url', help="Syncthing API url", type=str, required=False, default="http://localhost:52701")
     parser.add_argument('-r', '--remote-url', help="Remote Syncthing API url", type=str, required=True)
     parser.add_argument('-k', '--syncthing-api-key', help="Local Syncthing API key", type=str, required=False, default="render-studio-key")
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     settings.WORKSPACE_DIR = args.workspace
     settings.REMOTE_URL = args.remote_url
 
-    fields = "\n".join(f"{key}: {value}" for key, value in settings.get_declared_fields().items())
-    logger.info(f"Applied settings\n{fields}")
+    for key, value in settings.get_declared_fields().items():
+        logger.info(f"{key}: {value}")
 
     import app.main
     uvicorn.run("app.main:app", port=settings.WEBSOCKET_PORT, log_level="warning")
