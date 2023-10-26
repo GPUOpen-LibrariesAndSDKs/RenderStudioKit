@@ -97,4 +97,41 @@ private:
     std::optional<std::string> mOwner;
 };
 
+class RenderStudioWorkspaceStateNotice : public TfNotice
+{
+public:
+    enum class State
+    {
+        Idle,
+        Syncing,
+        Error,
+        Other
+    };
+
+    AR_API
+    RenderStudioWorkspaceStateNotice(State state);
+
+    AR_API
+    RenderStudioWorkspaceStateNotice(const std::string& state);
+
+    AR_API
+    State GetState() const;
+
+private:
+    State mState;
+};
+
+class RenderStudioWorkspaceFileNotice : public TfNotice
+{
+public:
+    AR_API
+    RenderStudioWorkspaceFileNotice(const std::string& path);
+
+    AR_API
+    std::string GetPath() const;
+
+private:
+    std::string mPath;
+};
+
 PXR_NAMESPACE_CLOSE_SCOPE

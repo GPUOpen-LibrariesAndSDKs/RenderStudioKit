@@ -27,11 +27,14 @@
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/thisPlugin.h>
 
+#include <boost/json/src.hpp>
+#pragma comment(lib, "shell32.lib")
+
 #include "RestClient.h"
 
 #include <Logger/Logger.h>
-#include <boost/json/src.hpp>
-#pragma comment(lib, "shell32.lib")
+#include <Notice/Notice.h>
+#include <Utils/FileUtils.h>
 
 namespace RenderStudio::Networking
 {
@@ -78,7 +81,7 @@ Syncthing::Connect()
 
     // Check if watchdog already running
     auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
-    auto client = WebsocketClient::Create([](const std::string& message) { (void)message; });
+    auto client = WebsocketClient::Create([](const std::string& message) { LOG_FATAL << message; });
     client->Connect(endpoint);
 
     if (client->GetConnectionStatus().get())
@@ -92,7 +95,8 @@ Syncthing::Connect()
     pxr::PlugPluginPtr plug = pxr::PlugRegistry::GetInstance().GetPluginForType(type);
     std::filesystem::path watchdogExePath
         = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog.exe";
-    std::filesystem::path workspacePath = Syncthing::GetRootPath();
+    std::filesystem::path workspacePath
+        = sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
     std::string workspaceUrl = sWorkspaceUrl;
 
     if (!std::filesystem::exists(workspacePath))
@@ -120,17 +124,29 @@ Syncthing::Connect()
         LOG_FATAL << e.what();
     }
 
-    sClient = WebsocketClient::Create([](const std::string& message) { (void)message; });
+    sClient = WebsocketClient::Create(
+        [](const std::string& message)
+        {
+            boost::json::object json = boost::json::parse(message).as_object();
+            std::string event = boost::json::value_to<std::string>(json.at("event"));
+            if (event == "Event::FileUpdated")
+            {
+                std::string path = boost::json::value_to<std::string>(json.at("path"));
+                pxr::RenderStudioWorkspaceFileNotice(path).Send();
+            }
+            else if (event == "Event::StateChanged")
+            {
+                std::string state = boost::json::value_to<std::string>(json.at("state"));
+                pxr::RenderStudioWorkspaceStateNotice(state).Send();
+            }
+        });
     sClient->Connect(endpoint);
-    sClient->GetConnectionStatus().get();
-    sClient->Send("ping");
+    LOG_INFO << "[RenderStudio Kit] Watchdog connection status: " << sClient->GetConnectionStatus().get();
 
     if (sBackgroundThread == nullptr)
     {
         sBackgroundThread = std::make_shared<std::thread>(Syncthing::BackgroundPolling);
-
-        // Detaching to run forever even if Disconnect() was called
-        sBackgroundThread->detach();
+        sBackgroundThread->detach(); // Detaching to run forever even if Disconnect() was called
     }
 }
 
@@ -210,35 +226,6 @@ Syncthing::Widen(const std::string& narrow, std::wstring& wide)
     }
 
     return wide.c_str();
-}
-
-std::filesystem::path
-Syncthing::GetDocumentsDirectory()
-{
-    wchar_t folder[1024];
-    HRESULT hr = SHGetFolderPathW(0, CSIDL_MYDOCUMENTS, 0, 0, folder);
-    if (SUCCEEDED(hr))
-    {
-        char str[1024];
-        std::size_t count;
-        wcstombs_s(&count, str, sizeof(str), folder, sizeof(folder) / sizeof(wchar_t) - 1);
-        return std::filesystem::path(str);
-    }
-    else
-    {
-        throw std::runtime_error("Can't find Documents folder on Windows");
-    }
-}
-
-std::filesystem::path
-Syncthing::GetRootPath()
-{
-    if (!sWorkspacePath.empty())
-    {
-        return sWorkspacePath;
-    }
-
-    return Syncthing::GetDocumentsDirectory() / "AMD RenderStudio Home";
 }
 
 } // namespace RenderStudio::Networking

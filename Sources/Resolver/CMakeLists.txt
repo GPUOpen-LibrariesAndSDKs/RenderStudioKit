@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Create target
+cmake_minimum_required(VERSION 3.12)
 set(KIT_TARGET_NAME "RenderStudioResolver")
+
+# Create target
 file(GLOB SOURCES *.h *.cpp)
 add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 
@@ -26,6 +28,8 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioNetworking
     RenderStudioLogger
     RenderStudioSerialization
+    RenderStudioUtils
+    RenderStudioNotice
 )
 
 if (TBB_INCLUDE_DIR)
@@ -86,6 +90,3 @@ configure_file(plugInfo.json plugInfo.json @ONLY)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
     DESTINATION plugin/usd/${KIT_TARGET_NAME}/resources)
-
-# Install headers
-install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)

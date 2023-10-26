@@ -17,6 +17,7 @@
 #include <Logger/Logger.h>
 #include <Networking/Syncthing.h>
 #include <Resolver/Resolver.h>
+#include <Utils/FileUtils.h>
 
 namespace RenderStudio::Kit
 {
@@ -88,6 +89,12 @@ std::string
 GetWorkspacePath()
 {
     return pxr::RenderStudioResolver::GetWorkspacePath();
+}
+
+std::string
+GetDefaultWorkspacePath()
+{
+    return RenderStudio::Utils::GetDefaultWorkspacePath().string();
 }
 
 std::string

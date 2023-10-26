@@ -57,6 +57,9 @@ void SetWorkspaceUrl(const std::string& url);
 /// @brief Get current directory which would be synchronized for all connected users
 std::string GetWorkspacePath();
 
+/// @brief Get default directory which would be synchronized for all connected users
+std::string GetDefaultWorkspacePath();
+
 /// @brief Get current remote URL for remote workspace server
 std::string GetWorkspaceUrl();
 

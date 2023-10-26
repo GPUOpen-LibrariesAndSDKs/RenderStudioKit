@@ -48,6 +48,7 @@
 #include <Networking/MaterialLibraryApi.h>
 #include <Networking/RestClient.h>
 #include <Networking/Url.h>
+#include <Utils/FileUtils.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -375,50 +376,9 @@ RenderStudioResolver::_GetExtension(const std::string& assetPath) const
 }
 
 std::filesystem::path
-RenderStudioResolver::GetDocumentsDirectory()
-{
-#ifdef PLATFORM_WINDOWS
-    wchar_t folder[1024];
-    HRESULT hr = SHGetFolderPathW(0, CSIDL_MYDOCUMENTS, 0, 0, folder);
-    if (SUCCEEDED(hr))
-    {
-        char str[1024];
-        std::size_t count;
-        wcstombs_s(&count, str, sizeof(str), folder, sizeof(folder) / sizeof(wchar_t) - 1);
-        return std::filesystem::path(str);
-    }
-    else
-    {
-        throw std::runtime_error("Can't find Documents folder on Windows");
-    }
-#elif PLATFORM_UNIX
-    const char* homedir = nullptr;
-
-    if ((homedir = getenv("HOME")) == NULL)
-    {
-        homedir = getpwuid(getuid())->pw_dir;
-    }
-
-    if (homedir != nullptr)
-    {
-        return std::filesystem::path(homedir) / "Documents";
-    }
-    else
-    {
-        throw std::runtime_error("Can't find Documents folder on Linux");
-    }
-#endif
-}
-
-std::filesystem::path
 RenderStudioResolver::GetRootPath()
 {
-    if (!sWorkspacePath.empty())
-    {
-        return sWorkspacePath;
-    }
-
-    return RenderStudioResolver::GetDocumentsDirectory() / "AMD RenderStudio Home";
+    return sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

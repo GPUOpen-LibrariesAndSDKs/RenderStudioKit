@@ -13,7 +13,7 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.12)
-set(KIT_TARGET_NAME "RenderStudioSerialization")
+set(KIT_TARGET_NAME "RenderStudioUtils")
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -23,19 +23,10 @@ add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
 
 # Link libraries
 target_link_libraries(${KIT_TARGET_NAME} PRIVATE
-    Boost::boost
-    Boost::python
-    sdf
+    RenderStudioLogger
 )
 
-if (TBB_INCLUDE_DIR)
-    target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
-endif()
-
-# Install headers
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h ${CMAKE_CURRENT_SOURCE_DIR}/Api.h
-DESTINATION include/RenderStudioResolver/Serialization)
+target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)
 
 SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 SetMaxWarningLevel(${KIT_TARGET_NAME})
-SetDefaultCompileDefinitions(${KIT_TARGET_NAME})

@@ -26,6 +26,7 @@ class SyncthingManager:
         self.process = None
         self.exe_path = exe_path
         self.workspace_path = Path(workspace_path)
+        self.max_event_id = 0
 
     def start(self):
         self.process = subprocess.Popen([
@@ -88,5 +89,11 @@ class SyncthingManager:
         self.process.communicate()
         self.process = None
 
+    def get_events(self):
+        events = requests.get(f"{settings.SYNCTHING_URL}/rest/events?since={self.max_event_id}", headers={'Authorization': F'Bearer {settings.SYNCTHING_API_KEY}'}).json()
+        first_poll = self.max_event_id == 0
+        for event in events:
+            self.max_event_id = max(self.max_event_id, event['id'])
+        return [] if first_poll else events
 
 syncthing_manager = SyncthingManager("syncthing.exe", settings.WORKSPACE_DIR)

@@ -88,7 +88,6 @@ protected:
     virtual std::shared_ptr<ArAsset> _OpenAsset(const ArResolvedPath& resolvedPath) const override;
 
 private:
-    static std::filesystem::path GetDocumentsDirectory();
     static std::filesystem::path GetRootPath();
 
     static std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> sLiveModeInfo;

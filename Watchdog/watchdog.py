@@ -38,7 +38,5 @@ if __name__ == '__main__':
     fields = "\n".join(f"{key}: {value}" for key, value in settings.get_declared_fields().items())
     logger.info(f"Applied settings\n{fields}")
 
-    logger.info("Remove hardcoded UdRL!")
-
     import app.main
     uvicorn.run("app.main:app", port=settings.WEBSOCKET_PORT, log_level="warning")
