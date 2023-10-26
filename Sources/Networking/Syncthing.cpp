@@ -49,7 +49,7 @@ Syncthing::BackgroundPolling()
         {
             sClient->Send("ping");
         }
-        std::this_thread::sleep_for(std::chrono::seconds(25));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
 
@@ -154,7 +154,6 @@ void
 Syncthing::Disconnect()
 {
     std::lock_guard<std::mutex> lock(sBackgroundMutex);
-
     if (sClient != nullptr)
     {
         sClient->Disconnect();
