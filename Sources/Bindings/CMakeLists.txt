@@ -32,11 +32,11 @@ target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE
     RenderStudioResolver
     RenderStudioNetworking
     RenderStudioUtils
-    RenderSTudioNotice
+    RenderStudioNotice
     usd
 )
-
-if (TBB_LIBRARY)
+if (TBB_INCLUDE_DIR)
+    target_include_directories(${USDPLUGIN_PYTHON_NAME} PRIVATE ${TBB_INCLUDE_DIR})
     target_link_libraries(${USDPLUGIN_PYTHON_NAME} PRIVATE ${TBB_LIBRARY})
 endif()
 
