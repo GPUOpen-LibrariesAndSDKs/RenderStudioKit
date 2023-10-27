@@ -59,9 +59,12 @@ WebsocketClient::~WebsocketClient()
     LOG_DEBUG << "Websocket client destroyed";
 }
 
-void
+std::future<bool>
 WebsocketClient::Connect(const Url& endpoint)
 {
+    auto promise = std::make_shared<std::promise<bool>>();
+    auto future = promise->get_future();
+
     mEndpoint = endpoint;
 
     if (endpoint.Ssl())
@@ -81,7 +84,7 @@ WebsocketClient::Connect(const Url& endpoint)
     mTcpResolver.async_resolve(
         mEndpoint.Host(),
         mEndpoint.Port(),
-        boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this()));
+        boost::beast::bind_front_handler(&WebsocketClient::OnResolve, shared_from_this(), promise));
 
     mThread = std::thread(
         [this]()
@@ -91,27 +94,37 @@ WebsocketClient::Connect(const Url& endpoint)
         });
 
     mThread.detach();
+    return future;
 }
 
-void
+std::future<bool>
 WebsocketClient::Disconnect()
 {
+    auto promise = std::make_shared<std::promise<bool>>();
+    auto future = promise->get_future();
+
     if (mConnected)
     {
         std::visit(
-            [this](auto& stream)
+            [this, promise](auto& stream)
             {
                 stream->async_close(
                     boost::beast::websocket::close_code::normal,
-                    boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this()));
+                    boost::beast::bind_front_handler(&WebsocketClient::OnClose, shared_from_this(), promise));
             },
             mWebsocketStream);
 
         LOG_DEBUG << "Websocket disconnected";
     }
+    else
+    {
+        promise->set_value(true);
+    }
 
     mPingTimer.cancel();
     mConnected = false;
+
+    return future;
 }
 
 void
@@ -130,12 +143,6 @@ WebsocketClient::Send(const std::string& message)
                 boost::beast::bind_front_handler(&WebsocketClient::Write, shared_from_this(), message));
         },
         mWebsocketStream);
-}
-
-std::future<bool>
-WebsocketClient::GetConnectionStatus()
-{
-    return mConnectionPromise.get_future();
 }
 
 void
@@ -175,7 +182,8 @@ WebsocketClient::Ping(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        return Disconnect();
+        Disconnect();
+        return;
     }
 
     std::visit(
@@ -185,35 +193,44 @@ WebsocketClient::Ping(boost::beast::error_code ec)
 }
 
 void
-WebsocketClient::OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results)
+WebsocketClient::OnResolve(
+    std::shared_ptr<std::promise<bool>> promise,
+    boost::beast::error_code ec,
+    boost::asio::ip::tcp::resolver::results_type results)
 {
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        mConnectionPromise.set_value(false);
-        return Disconnect();
+        promise->set_value(false);
+        Disconnect();
+        return;
     }
 
     std::visit(
-        [this, &results](auto& stream)
+        [this, &results, promise](auto& stream)
         {
             boost::beast::get_lowest_layer(*stream.get()).expires_after(std::chrono::seconds(30));
 
             boost::beast::get_lowest_layer(*stream.get())
                 .async_connect(
-                    results, boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this()));
+                    results,
+                    boost::beast::bind_front_handler(&WebsocketClient::OnConnect, shared_from_this(), promise));
         },
         mWebsocketStream);
 }
 
 void
-WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint)
+WebsocketClient::OnConnect(
+    std::shared_ptr<std::promise<bool>> promise,
+    boost::beast::error_code ec,
+    boost::asio::ip::tcp::resolver::endpoint_type endpoint)
 {
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        mConnectionPromise.set_value(false);
-        return Disconnect();
+        promise->set_value(false);
+        Disconnect();
+        return;
     }
 
     std::visit(
@@ -231,68 +248,71 @@ WebsocketClient::OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::re
         mWebsocketStream);
 
     std::visit(
-        Overload { [this, &endpoint](const std::shared_ptr<SslStream>& stream)
-                   {
-                       if (!SSL_set_tlsext_host_name(stream->next_layer().native_handle(), mEndpoint.Host().c_str()))
-                       {
-                           boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()),
-                                                            boost::asio::error::get_ssl_category() };
-                           throw boost::beast::system_error { sslEc };
-                       }
+        Overload {
+            [this, &endpoint, promise](const std::shared_ptr<SslStream>& stream)
+            {
+                if (!SSL_set_tlsext_host_name(stream->next_layer().native_handle(), mEndpoint.Host().c_str()))
+                {
+                    boost::beast::error_code sslEc { static_cast<int>(::ERR_get_error()),
+                                                     boost::asio::error::get_ssl_category() };
+                    throw boost::beast::system_error { sslEc };
+                }
 
-                       mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
+                mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
 
-                       stream->next_layer().async_handshake(
-                           boost::asio::ssl::stream_base::client,
-                           boost::beast::bind_front_handler(&WebsocketClient::OnSslHandshake, shared_from_this()));
-                   },
-                   [this, &endpoint](const std::shared_ptr<TcpStream>& stream)
-                   {
-                       mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
+                stream->next_layer().async_handshake(
+                    boost::asio::ssl::stream_base::client,
+                    boost::beast::bind_front_handler(&WebsocketClient::OnSslHandshake, shared_from_this(), promise));
+            },
+            [this, &endpoint, promise](const std::shared_ptr<TcpStream>& stream)
+            {
+                mSslHost = mEndpoint.Host() + ":" + std::to_string(endpoint.port());
 
-                       stream->async_handshake(
-                           mSslHost,
-                           mEndpoint.Target(),
-                           boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
-                   } },
+                stream->async_handshake(
+                    mSslHost,
+                    mEndpoint.Target(),
+                    boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this(), promise));
+            } },
         mWebsocketStream);
 }
 
 void
-WebsocketClient::OnSslHandshake(boost::beast::error_code ec)
+WebsocketClient::OnSslHandshake(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec)
 {
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        mConnectionPromise.set_value(false);
-        return Disconnect();
+        promise->set_value(false);
+        Disconnect();
+        return;
     }
 
     std::visit(
-        [this](auto& stream)
+        [this, promise](auto& stream)
         {
             stream->async_handshake(
                 mSslHost,
                 mEndpoint.Target(),
-                boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this()));
+                boost::beast::bind_front_handler(&WebsocketClient::OnHandshake, shared_from_this(), promise));
         },
         mWebsocketStream);
 }
 
 void
-WebsocketClient::OnHandshake(boost::beast::error_code ec)
+WebsocketClient::OnHandshake(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec)
 {
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        mConnectionPromise.set_value(false);
-        return Disconnect();
+        promise->set_value(false);
+        Disconnect();
+        return;
     }
 
     LOG_INFO << "[Networking] Connected to " << mEndpoint.Host();
 
     mConnected = true;
-    mConnectionPromise.set_value(true);
+    promise->set_value(true);
     OnPing({});
     OnRead({}, 0);
 }
@@ -308,7 +328,8 @@ WebsocketClient::OnPing(boost::beast::error_code ec)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        return Disconnect();
+        Disconnect();
+        return;
     }
 
     mPingTimer.expires_from_now(boost::posix_time::seconds(5));
@@ -324,7 +345,8 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        return Disconnect();
+        Disconnect();
+        return;
     }
 
     mWriteQueue.pop();
@@ -354,7 +376,8 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        return Disconnect();
+        Disconnect();
+        return;
     }
 
     if (transferred > 0)
@@ -372,17 +395,19 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 }
 
 void
-WebsocketClient::OnClose(boost::beast::error_code ec)
+WebsocketClient::OnClose(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec)
 {
     if (!mConnected)
     {
+        promise->set_value(true);
         return;
     }
 
     if (ec)
     {
         LOG_ERROR << "[Networking] " << ec.message();
-        return Disconnect();
+        promise->set_value(false);
+        Disconnect();
     }
 }
 
