@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 import asyncio
 import sys
 
@@ -35,3 +36,23 @@ async def watchdog(websocket: WebSocket):
             await connection_manager.receive_text(websocket)
     except WebSocketDisconnect:
         await connection_manager.disconnect(websocket, should_close=False)
+
+class ConnectionInfo(BaseModel):
+    device_id: str
+
+@app.get("/syncthing/info")
+async def info():
+    device = await syncthing_manager.get_device()
+    config = await syncthing_manager.get_config()
+    return {
+        'device_id': device['deviceID'],
+        'device_name': device['name'],
+        'folder_id': config['folders'][0]['id'],
+        'folder_name': config['folders'][0]['label']
+    }
+
+
+@app.post("/connect")
+async def connect(info: ConnectionInfo):
+    await syncthing_manager.append_device(info.device_id)
+    return {'status': 'ok'}

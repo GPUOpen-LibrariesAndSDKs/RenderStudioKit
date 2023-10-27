@@ -19,8 +19,9 @@
 #include <numeric>
 
 #include <boost/asio/ip/address.hpp>
-#include <boost/json/src.hpp>
 #pragma warning(pop)
+
+#include <Kit.h>
 
 #include "Logic.h"
 
@@ -34,6 +35,9 @@ try
     const boost::asio::ip::address address = boost::asio::ip::make_address("0.0.0.0");
     const std::uint16_t port = 10000;
     const std::int32_t threads = 10;
+
+    RenderStudio::Kit::SetWorkspaceUrl("localhost");
+    RenderStudio::Kit::SharedWorkspaceConnect();
 
     LOG_INFO << "Server started at " << address << ":" << port << " (threads: " << threads << ")";
 
