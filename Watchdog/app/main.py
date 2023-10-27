@@ -23,6 +23,10 @@ from app.syncthing_manager import syncthing_manager
 
 app = FastAPI()
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Startup event which should check remote")
+
 @app.websocket("/studio/watchdog")
 async def watchdog(websocket: WebSocket):
     await connection_manager.connect(websocket)

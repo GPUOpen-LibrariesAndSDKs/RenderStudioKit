@@ -40,20 +40,6 @@ namespace RenderStudio::Networking
 {
 
 void
-Syncthing::BackgroundPolling()
-{
-    while (true)
-    {
-        std::lock_guard<std::mutex> lock(sBackgroundMutex);
-        if (sClient != nullptr)
-        {
-            sClient->Send("ping");
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-    }
-}
-
-void
 Syncthing::SetWorkspacePath(const std::string& path)
 {
     sWorkspacePath = path;
@@ -74,93 +60,72 @@ Syncthing::GetWorkspaceUrl()
 void
 Syncthing::Connect()
 {
-    Disconnect();
+    // Create task
+    if (sPingTask != nullptr)
+    {
+        sPingTask->Stop();
+        LOG_DEBUG << "[RenderStudio Kit] Successfully killed old ping task";
+    }
 
-    // Aquire here to prevent deadlock from Disconnect()
-    std::lock_guard<std::mutex> lock(sBackgroundMutex);
+    sPingTask = std::make_shared<RenderStudio::Utils::BackgroundTask>([] { sClient->Send("ping"); }, 5);
+
+    // Create client
+    if (sClient != nullptr)
+    {
+        sClient->Disconnect().get();
+        LOG_DEBUG << "[RenderStudio Kit] Successfully disconnected old client";
+    }
+
+    auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
 
     // Check if watchdog already running
-    auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
-    auto client = WebsocketClient::Create([](const std::string& message) { LOG_FATAL << message; });
-    client->Connect(endpoint);
+    sClient = Syncthing::CreateClient();
+    bool connected = sClient->Connect(endpoint).get();
 
-    if (client->GetConnectionStatus().get())
+    if (connected)
     {
+        // Watchdog already running
         pxr::RenderStudioNotice::WorkspaceConnectionChanged(true).Send();
-        LOG_WARNING << "Watchdog already launched, skipping";
-        return;
+        sPingTask->Start();
+        LOG_INFO << "[RenderStudio Kit] Watchdog already launched, skipping";
     }
-
-    // Launch watchdog
-    pxr::TfType type = pxr::PlugRegistry::FindTypeByName("RenderStudioResolver");
-    pxr::PlugPluginPtr plug = pxr::PlugRegistry::GetInstance().GetPluginForType(type);
-    std::filesystem::path watchdogExePath
-        = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog.exe";
-    std::filesystem::path workspacePath
-        = sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
-    std::string workspaceUrl = sWorkspaceUrl;
-
-    if (!std::filesystem::exists(workspacePath))
+    else
     {
-        std::filesystem::create_directories(workspacePath);
-    }
+        // Launch new instance
+        bool status = Syncthing::LaunchWatchdog();
 
-    LOG_INFO << "[RenderStudio Kit] Watchdog exe path: " << watchdogExePath;
-    LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspacePath;
-    LOG_INFO << "[RenderStudio Kit] Workspace url: " << workspaceUrl;
-
-    try
-    {
-        Syncthing::LaunchProcess(
-            watchdogExePath.make_preferred().string(),
-            "--workspace \"" + workspacePath.make_preferred().string()
-                + "\" "
-                  "--remote-url "
-                + workspaceUrl
-                + " "
-                  "--ping-interval 30");
-    }
-    catch (const std::exception& e)
-    {
-        LOG_FATAL << e.what();
-    }
-
-    sClient = WebsocketClient::Create(
-        [](const std::string& message)
+        if (!status)
         {
-            boost::json::object json = boost::json::parse(message).as_object();
-            std::string event = boost::json::value_to<std::string>(json.at("event"));
-            if (event == "Event::FileUpdated")
-            {
-                std::string path = boost::json::value_to<std::string>(json.at("path"));
-                pxr::RenderStudioNotice::FileUpdated(path).Send();
-            }
-            else if (event == "Event::StateChanged")
-            {
-                std::string state = boost::json::value_to<std::string>(json.at("state"));
-                pxr::RenderStudioNotice::WorkspaceState(state).Send();
-            }
-        });
+            LOG_FATAL << "[RenderStudio Kit] Can't launch watchdog";
+            return;
+        }
 
-    sClient->Connect(endpoint);
-    pxr::RenderStudioNotice::WorkspaceConnectionChanged(sClient->GetConnectionStatus().get()).Send();
+        // To have more chances it's already launched
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    if (sBackgroundThread == nullptr)
-    {
-        sBackgroundThread = std::make_shared<std::thread>(Syncthing::BackgroundPolling);
-        sBackgroundThread->detach(); // Detaching to run forever even if Disconnect() was called
+        // Connect new client to that instance
+        sClient->Disconnect().get();
+        sClient = Syncthing::CreateClient();
+        connected = sClient->Connect(endpoint).get();
+
+        pxr::RenderStudioNotice::WorkspaceConnectionChanged(connected).Send();
+
+        if (!connected)
+        {
+            LOG_FATAL << "[RenderStudio Kit] Can't connect to watchdog";
+            return;
+        }
+
+        sPingTask->Start();
     }
 }
 
 void
 Syncthing::Disconnect()
 {
-    std::lock_guard<std::mutex> lock(sBackgroundMutex);
-    if (sClient != nullptr)
-    {
-        sClient->Disconnect();
-        sClient.reset();
-    }
+    sPingTask->Stop();
+    bool status = sClient->Disconnect().get();
+    (void)status; // Ignore disconnect status in notice
     pxr::RenderStudioNotice::WorkspaceConnectionChanged(false).Send();
 }
 
@@ -203,7 +168,7 @@ Syncthing::LaunchProcess(std::string app, std::string arg)
     }
     else
     {
-        LOG_INFO << "Launched child process " << app << " " << arg;
+        LOG_INFO << "[RenderStudio Kit] Launched child process " << app << " " << arg;
     }
 
     // Return process handle
@@ -228,6 +193,67 @@ Syncthing::Widen(const std::string& narrow, std::wstring& wide)
     }
 
     return wide.c_str();
+}
+
+bool
+Syncthing::LaunchWatchdog()
+{
+    pxr::TfType type = pxr::PlugRegistry::FindTypeByName("RenderStudioResolver");
+    pxr::PlugPluginPtr plug = pxr::PlugRegistry::GetInstance().GetPluginForType(type);
+    std::filesystem::path watchdogExePath
+        = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog.exe";
+    std::filesystem::path workspacePath
+        = sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
+    std::string workspaceUrl = sWorkspaceUrl;
+
+    if (!std::filesystem::exists(workspacePath))
+    {
+        std::filesystem::create_directories(workspacePath);
+    }
+
+    LOG_INFO << "[RenderStudio Kit] Watchdog exe path: " << watchdogExePath;
+    LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspacePath;
+    LOG_INFO << "[RenderStudio Kit] Workspace url: " << workspaceUrl;
+
+    try
+    {
+        Syncthing::LaunchProcess(
+            watchdogExePath.make_preferred().string(),
+            "--workspace \"" + workspacePath.make_preferred().string()
+                + "\" "
+                  "--remote-url "
+                + workspaceUrl
+                + " "
+                  "--ping-interval 10");
+
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        LOG_FATAL << "[RenderStudio Kit] " << e.what();
+        return false;
+    }
+}
+
+std::shared_ptr<WebsocketClient>
+Syncthing::CreateClient()
+{
+    return WebsocketClient::Create(
+        [](const std::string& message)
+        {
+            boost::json::object json = boost::json::parse(message).as_object();
+            std::string event = boost::json::value_to<std::string>(json.at("event"));
+            if (event == "Event::FileUpdated")
+            {
+                std::string path = boost::json::value_to<std::string>(json.at("path"));
+                pxr::RenderStudioNotice::FileUpdated(path).Send();
+            }
+            else if (event == "Event::StateChanged")
+            {
+                std::string state = boost::json::value_to<std::string>(json.at("state"));
+                pxr::RenderStudioNotice::WorkspaceState(state).Send();
+            }
+        });
 }
 
 } // namespace RenderStudio::Networking

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from threading import Lock
+
 class Settings:
     REQUIRED_PING_INTERVAL_SECONDS: int = None
     WEBSOCKET_PORT: int = None

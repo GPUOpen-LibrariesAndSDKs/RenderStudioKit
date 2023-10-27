@@ -56,7 +56,7 @@ WebsocketClient::WebsocketClient(const OnMessageFn& fn)
 WebsocketClient::~WebsocketClient()
 {
     Disconnect();
-    LOG_DEBUG << "Websocket client destroyed";
+    LOG_DEBUG << "[RenderStudio Kit] [WebsocketClient] Websocket client destroyed";
 }
 
 std::future<bool>
@@ -90,7 +90,7 @@ WebsocketClient::Connect(const Url& endpoint)
         [this]()
         {
             mIoContext.run();
-            LOG_DEBUG << "Websocket thread finished";
+            LOG_DEBUG << "[RenderStudio Kit] [WebsocketClient] Websocket thread finished";
         });
 
     mThread.detach();
@@ -114,7 +114,7 @@ WebsocketClient::Disconnect()
             },
             mWebsocketStream);
 
-        LOG_DEBUG << "Websocket disconnected";
+        LOG_DEBUG << "[RenderStudio Kit] [WebsocketClient] Websocket disconnected";
     }
     else
     {
@@ -152,7 +152,7 @@ WebsocketClient::Write(const std::string& message)
 
     if (!mConnected)
     {
-        LOG_INFO << "Not connected in Write";
+        LOG_INFO << "[RenderStudio Kit] [WebsocketClient] Not connected in Write";
         return;
     }
 
@@ -181,7 +181,7 @@ WebsocketClient::Ping(boost::beast::error_code ec)
 
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         Disconnect();
         return;
     }
@@ -200,7 +200,7 @@ WebsocketClient::OnResolve(
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient]  " << ec.message();
         promise->set_value(false);
         Disconnect();
         return;
@@ -227,7 +227,7 @@ WebsocketClient::OnConnect(
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         promise->set_value(false);
         Disconnect();
         return;
@@ -281,7 +281,7 @@ WebsocketClient::OnSslHandshake(std::shared_ptr<std::promise<bool>> promise, boo
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         promise->set_value(false);
         Disconnect();
         return;
@@ -303,13 +303,13 @@ WebsocketClient::OnHandshake(std::shared_ptr<std::promise<bool>> promise, boost:
 {
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         promise->set_value(false);
         Disconnect();
         return;
     }
 
-    LOG_INFO << "[Networking] Connected to " << mEndpoint.Host();
+    LOG_INFO << "[RenderStudio Kit] [WebsocketClient] Connected to " << mEndpoint.Host();
 
     mConnected = true;
     promise->set_value(true);
@@ -327,7 +327,7 @@ WebsocketClient::OnPing(boost::beast::error_code ec)
 
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         Disconnect();
         return;
     }
@@ -344,7 +344,7 @@ WebsocketClient::OnWrite(boost::beast::error_code ec, std::size_t transferred)
 
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         Disconnect();
         return;
     }
@@ -375,7 +375,7 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         Disconnect();
         return;
     }
@@ -405,7 +405,7 @@ WebsocketClient::OnClose(std::shared_ptr<std::promise<bool>> promise, boost::bea
 
     if (ec)
     {
-        LOG_ERROR << "[Networking] " << ec.message();
+        LOG_ERROR << "[RenderStudio Kit] [WebsocketClient] " << ec.message();
         promise->set_value(false);
         Disconnect();
     }

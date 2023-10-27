@@ -22,29 +22,36 @@
 
 #include "WebsocketClient.h"
 
+#include <Utils/BackgroundTask.h>
+
 namespace RenderStudio::Networking
 {
 
 class Syncthing
 {
 public:
-    static void SetWorkspacePath(const std::string& path);
-    static void SetWorkspaceUrl(const std::string& url);
     static void Connect();
     static void Disconnect();
+
+    static void SetWorkspacePath(const std::string& path);
+
+    static void SetWorkspaceUrl(const std::string& url);
     static std::string GetWorkspaceUrl();
 
 private:
-    static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
-    static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
-
-    static void BackgroundPolling();
-    static inline std::mutex sBackgroundMutex;
-    static inline std::shared_ptr<std::thread> sBackgroundThread;
-
+    // Configuration
     static inline std::filesystem::path sWorkspacePath;
     static inline std::string sWorkspaceUrl;
+
+    // Connection
     static inline std::shared_ptr<WebsocketClient> sClient;
+    static inline std::shared_ptr<RenderStudio::Utils::BackgroundTask> sPingTask;
+
+    // Process utils
+    static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
+    static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
+    static bool LaunchWatchdog();
+    static std::shared_ptr<WebsocketClient> CreateClient();
 };
 
 } // namespace RenderStudio::Networking

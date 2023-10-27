@@ -26,13 +26,15 @@ from app.syncthing_manager import syncthing_manager
 class ConnectionManager:
     def __init__(self):
         self.active_connections = {}
+        self.syncthing_was_launched = False
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         first_connection = not self.active_connections
         self.active_connections[websocket] = asyncio.get_running_loop().time()
         logger.info(f"Connected client, count: {len(self.active_connections)}")
-        if first_connection:
+        if first_connection and not self.syncthing_was_launched:
+            self.syncthing_was_launched = True
             logger.info("First client connected, starting everything")
             asyncio.create_task(connection_manager.on_first_client_connected())
             asyncio.create_task(connection_manager.auto_disconnect_clients_job())
@@ -46,6 +48,7 @@ class ConnectionManager:
 
         if websocket in self.active_connections:
             del self.active_connections[websocket]
+            await asyncio.sleep(5)
             last_connection = not self.active_connections
             if last_connection:
                 logger.info("Last client disconnected, killing everything")
