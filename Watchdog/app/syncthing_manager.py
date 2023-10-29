@@ -50,11 +50,13 @@ class SyncthingManager:
         elif __file__:
             application_path = os.path.dirname(__file__)
 
-        logger.info(f'Launching {self.exe_path} with home {self.workspace_path.parent / "Syncthing"}')
+        home = self.workspace_path.parent / 'Syncthing'
+        logger.info(f'Launching {self.exe_path} with home: {home}')
         try:
             self.process = await asyncio.create_subprocess_exec(
                 os.path.join(application_path, self.exe_path),
-                f"--home=\"{self.workspace_path.parent / 'Syncthing'}\"",
+                f"--home",
+                home,
                 "--no-default-folder",
                 "--skip-port-probing",
                 f"--gui-address={settings.SYNCTHING_URL}",
@@ -85,18 +87,17 @@ class SyncthingManager:
 
         try:
             async with httpx.AsyncClient() as client:
-                logger.info(f"Request: {settings.SYNCTHING_URL}/rest/config")
                 config = (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 local_id = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/status", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()['myID']
 
                 if settings.REMOTE_URL != 'localhost':
-                    remote = (await client.get(f"{settings.REMOTE_URL}/syncthing/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+                    remote = (await client.get(f"{settings.REMOTE_URL}/studio/watchdog/connect/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 else:
                     remote = {
                         'folder_id': 'main-rs-workspace',
                         'folder_name': 'AMD RenderStudio Workspace',
                         'device_id': local_id,
-                        'device_name': "AND RenderStudio Syncthing Server"
+                        'device_name': "AMD RenderStudio Syncthing Server"
                     }
 
                 # Setup folder
@@ -111,6 +112,7 @@ class SyncthingManager:
                         'introducedBy': '',
                         'encryptionPassword': ''
                     })
+                    folder['fsWatcherDelayS'] = 1
                     config['folders'].append(folder)
 
                 # Setup device
@@ -119,20 +121,21 @@ class SyncthingManager:
                     device = (await client.get(f"{settings.SYNCTHING_URL}/rest/config/defaults/device", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                     device['deviceID'] = remote['device_id']
                     device['name'] = remote['device_name']
-                    device['addresses'].append(settings.REMOTE_URL.replace('https:/', 'tcp:/') + '/syncthing:443')
+                    device['addresses'].append(settings.REMOTE_URL.replace('http:/', 'tcp:/'))
                     config['devices'].append(device)
                 else:
                     existing_device['name'] = remote['device_name']
 
-                # Disable relays for release
-                logger.info("Disable relays later")
-                # config['options']['relaysEnabled'] = False
+                # Optimizations
+                config['options']['relaysEnabled'] = False
+                if settings.REMOTE_URL == 'localhost':
+                    config['options']['setLowPriority'] = False
 
                 response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
                 logger.info(f"Local config update: {response.status_code==200}")
 
                 if settings.REMOTE_URL != 'localhost':
-                    response = await client.post(f"{settings.REMOTE_URL}/syncthing/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
+                    response = await client.post(f"{settings.REMOTE_URL}/studio/watchdog/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
                     logger.info(f"Remote config update: {response.status_code==200}")
         except Exception as e:
             logger.error(f"Caught exception on syncthing setup: {e}")
@@ -185,6 +188,6 @@ class SyncthingManager:
             })
 
             response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
-            logger.info(f"Local config update: {response.status_code==200}")
+            logger.info(f"Added remote device: {response.status_code==200}")
 
 syncthing_manager = SyncthingManager("syncthing", settings.WORKSPACE_DIR)
