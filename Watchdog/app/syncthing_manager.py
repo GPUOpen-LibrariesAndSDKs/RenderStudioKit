@@ -56,7 +56,7 @@ class SyncthingManager:
             self.process = await asyncio.create_subprocess_exec(
                 os.path.join(application_path, self.exe_path),
                 f"--home",
-                home,
+                str(home),
                 "--no-default-folder",
                 "--skip-port-probing",
                 f"--gui-address={settings.SYNCTHING_URL}",

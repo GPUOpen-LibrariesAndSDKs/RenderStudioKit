@@ -70,7 +70,7 @@ LaunchProcess(std::filesystem::path apppication, const std::vector<std::string>&
 void
 LaunchProcess(std::filesystem::path application, const std::vector<std::string>& args)
 {
-    std::string app = apppication.make_preferred().string();
+    std::string app = application.make_preferred().string();
     std::string arg = boost::algorithm::join(args, " ");
 
     // Prepare handles.
