@@ -61,7 +61,7 @@ endif()
 
 # Install headers
 install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
-    DESTINATION include/RenderStudio/)
+    DESTINATION include/RenderStudio/Networking)
 
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
     DESTINATION lib)

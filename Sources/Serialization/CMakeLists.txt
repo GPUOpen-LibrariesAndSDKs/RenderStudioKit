@@ -34,7 +34,7 @@ endif()
 
 # Install headers
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/Serialization.h ${CMAKE_CURRENT_SOURCE_DIR}/Api.h
-DESTINATION include/RenderStudioResolver/Serialization)
+    DESTINATION include/RenderStudio/Serialization)
 
 SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 SetMaxWarningLevel(${KIT_TARGET_NAME})

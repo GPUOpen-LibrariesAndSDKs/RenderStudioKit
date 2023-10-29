@@ -137,7 +137,11 @@ class SyncthingManager:
                 if settings.REMOTE_URL != 'localhost':
                     response = await client.post(f"{settings.REMOTE_URL}/studio/watchdog/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
                     logger.info(f"Remote config update: {response.status_code==200}")
+
+                from app.connection_manager import connection_manager
+                await connection_manager.notify_connection_state(True)
         except Exception as e:
+            await connection_manager.notify_connection_state(False)
             logger.error(f"Caught exception on syncthing setup: {e}")
             logger.info("Bye-bye")
             os._exit(0)
@@ -149,6 +153,9 @@ class SyncthingManager:
                 await self.process.wait()
         except Exception as e:
             logger.error(f"Caught exception on syncthing exit: {e}")
+        finally:
+            from app.connection_manager import connection_manager
+            await connection_manager.notify_connection_state(False)
 
     async def get_events(self, client):
         try:

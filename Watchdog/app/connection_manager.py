@@ -106,4 +106,10 @@ class ConnectionManager:
 
                 await asyncio.sleep(1)
 
+    async def notify_connection_state(self, status):
+        await self.broadcast({
+            'event': 'Event::Connection',
+            'connected': status
+        })
+
 connection_manager = ConnectionManager()

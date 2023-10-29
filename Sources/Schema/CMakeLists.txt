@@ -68,7 +68,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json
 
 # Install headers
 file(GLOB HEADERS *.h)
-install(FILES ${HEADERS} DESTINATION include/RenderStudio)
+install(FILES ${HEADERS} DESTINATION include/RenderStudio/Schema)
 
 SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 

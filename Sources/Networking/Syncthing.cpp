@@ -77,7 +77,6 @@ Syncthing::Connect()
     if (connected)
     {
         // Watchdog already running
-        pxr::RenderStudioNotice::WorkspaceConnectionChanged(true).Send();
         sPingTask->Start();
         LOG_INFO << "Watchdog already launched, skipping";
     }
@@ -107,8 +106,6 @@ Syncthing::Connect()
                 std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         } while (!connected && attempt < 5);
-
-        pxr::RenderStudioNotice::WorkspaceConnectionChanged(connected).Send();
 
         if (!connected)
         {
@@ -195,6 +192,12 @@ Syncthing::CreateClient()
             {
                 std::string state = boost::json::value_to<std::string>(json.at("state"));
                 pxr::RenderStudioNotice::WorkspaceState(state).Send();
+            }
+            else if (event == "Event::Connection")
+            {
+                bool connected = boost::json::value_to<bool>(json.at("connected"));
+                LOG_INFO << "Connection state: " << connected;
+                pxr::RenderStudioNotice::WorkspaceConnectionChanged(connected).Send();
             }
         });
 }

@@ -37,7 +37,7 @@ SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 SetMaxWarningLevel(${KIT_TARGET_NAME})
 
 # Install headers
-install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)
+install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio/Notice)
 
 # Install library
 install(TARGETS ${KIT_TARGET_NAME} DESTINATION plugin/usd)

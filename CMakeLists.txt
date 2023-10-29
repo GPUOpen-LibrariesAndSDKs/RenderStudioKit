@@ -50,7 +50,7 @@ install(TARGETS ${KIT_TARGETS} ${KIT_DEPENDENCIES}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     # RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} Commented out since we have duplication of dll's for now
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    # INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} Commented out since each target installs own includes
 )
 
 install(EXPORT RenderStudioTargets
