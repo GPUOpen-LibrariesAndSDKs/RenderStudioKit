@@ -36,7 +36,6 @@ else()
     endif()
 endif()
 
-
 # Add dependencies
 add_subdirectory(External)
 add_subdirectory(Logger)
@@ -92,11 +91,21 @@ target_include_directories(${PROJECT_NAME}
 # Downlaod syncthing
 include(FetchContent)
 
-FetchContent_Declare(
-    syncthing
-    URL https://github.com/syncthing/syncthing/releases/download/v1.25.0/syncthing-windows-amd64-v1.25.0.zip
-    URL_HASH SHA256=fbd89a9e2893f778b8379f151b50c922c72ac73e8af03317480f3a2ad9eb7aeb
-)
+if (WIN32)
+    FetchContent_Declare(
+        syncthing
+        URL https://github.com/syncthing/syncthing/releases/download/v1.25.0/syncthing-windows-amd64-v1.25.0.zip
+        URL_HASH SHA256=fbd89a9e2893f778b8379f151b50c922c72ac73e8af03317480f3a2ad9eb7aeb
+    )
+endif()
+
+if (UNIX)
+    FetchContent_Declare(
+        syncthing
+        URL https://github.com/syncthing/syncthing/releases/download/v1.25.0/syncthing-linux-amd64-v1.25.0.tar.gz
+        URL_HASH SHA256=c16d62bc54659c27728b3501786240a06e29dd553204fd01b2968cad0bb03e4e
+    )
+endif()
 
 FetchContent_GetProperties(syncthing)
 
@@ -104,4 +113,12 @@ if(NOT syncthing_POPULATED)
     FetchContent_Populate(syncthing)
 endif()
 
-install(FILES ${syncthing_SOURCE_DIR}/syncthing.exe DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/)
+if (WIN32)
+    install(FILES ${syncthing_SOURCE_DIR}/syncthing.exe DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/)
+endif()
+
+if (UNIX)
+    install(FILES ${syncthing_SOURCE_DIR}/syncthing
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
+endif()

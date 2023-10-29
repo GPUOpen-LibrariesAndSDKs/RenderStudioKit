@@ -12,37 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#pragma once
-
-#include <condition_variable>
-#include <functional>
-#include <mutex>
-#include <thread>
+#include <filesystem>
+#include <vector>
 
 namespace RenderStudio::Utils
 {
 
-class BackgroundTask
-{
-public:
-    using TaskFn = std::function<void()>;
+void LaunchProcess(std::filesystem::path application, const std::vector<std::string>& args);
 
-    BackgroundTask(TaskFn task, std::uint32_t interval);
-    ~BackgroundTask();
-
-    void Start();
-    void Stop();
-
-private:
-    void Run();
-    bool IsRunning() const;
-
-    TaskFn mTask;
-    bool mRunning { false };
-    mutable std::mutex mMutex;
-    std::condition_variable mCondition;
-    std::thread mThread;
-    std::uint32_t mInterval { 0 };
-};
+#ifdef PLATFORM_WINDOWS
+const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
+#endif
 
 } // namespace RenderStudio::Utils

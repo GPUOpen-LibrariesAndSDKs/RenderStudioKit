@@ -19,8 +19,8 @@ import sys
 
 from app.logger import logger
 from app.settings import settings
-from app.connection_manager import connection_manager
 from app.syncthing_manager import syncthing_manager
+from app.connection_manager import connection_manager
 
 app = FastAPI()
 
@@ -40,7 +40,7 @@ async def watchdog(websocket: WebSocket):
 class ConnectionInfo(BaseModel):
     device_id: str
 
-@app.get("/syncthing/info")
+@app.get("/studio/watchdog/connect/info")
 async def info():
     device = await syncthing_manager.get_device()
     config = await syncthing_manager.get_config()
@@ -52,7 +52,7 @@ async def info():
     }
 
 
-@app.post("/connect")
+@app.post("/studio/watchdog/connect")
 async def connect(info: ConnectionInfo):
     await syncthing_manager.append_device(info.device_id)
     return {'status': 'ok'}

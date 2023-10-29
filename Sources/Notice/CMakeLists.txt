@@ -18,7 +18,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
+add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 
 # Link libraries
 target_link_libraries(${KIT_TARGET_NAME} PRIVATE

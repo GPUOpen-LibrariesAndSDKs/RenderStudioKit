@@ -18,7 +18,6 @@ import httpx
 import traceback
 import asyncio
 import json
-import requests
 import os
 import sys
 
@@ -31,7 +30,12 @@ if sys.platform == "win32":
 class SyncthingManager:
     def __init__(self, exe_path: str, workspace_path: str):
         self.process = None
-        self.exe_path = exe_path
+
+        if sys.platform == "win32":
+            self.exe_path = f"{exe_path}.exe"
+        else:
+            self.exe_path = exe_path
+
         self.workspace_path = Path(workspace_path)
         self.max_event_id = 0
 
@@ -46,11 +50,11 @@ class SyncthingManager:
         elif __file__:
             application_path = os.path.dirname(__file__)
 
-        logger.info(f'Launching {self.exe_path}')
+        logger.info(f'Launching {self.exe_path} with home {self.workspace_path.parent / "Syncthing"}')
         try:
             self.process = await asyncio.create_subprocess_exec(
                 os.path.join(application_path, self.exe_path),
-                f"--home={self.workspace_path.parent / 'Syncthing'}",
+                f"--home=\"{self.workspace_path.parent / 'Syncthing'}\"",
                 "--no-default-folder",
                 "--skip-port-probing",
                 f"--gui-address={settings.SYNCTHING_URL}",
@@ -70,8 +74,18 @@ class SyncthingManager:
 
         asyncio.create_task(self.communicate())
 
+        async with httpx.AsyncClient() as client:
+            while True:
+                try:
+                    r = await client.get(f"{settings.SYNCTHING_URL}/rest/noauth/health")
+                    if r.status_code == httpx.codes.OK:
+                        break
+                except:
+                    pass
+
         try:
             async with httpx.AsyncClient() as client:
+                logger.info(f"Request: {settings.SYNCTHING_URL}/rest/config")
                 config = (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 local_id = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/status", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()['myID']
 
@@ -173,4 +187,4 @@ class SyncthingManager:
             response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
             logger.info(f"Local config update: {response.status_code==200}")
 
-syncthing_manager = SyncthingManager("syncthing.exe", settings.WORKSPACE_DIR)
+syncthing_manager = SyncthingManager("syncthing", settings.WORKSPACE_DIR)

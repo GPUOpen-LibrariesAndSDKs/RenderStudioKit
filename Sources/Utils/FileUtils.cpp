@@ -14,8 +14,10 @@
 
 #include "FileUtils.h"
 
+#ifdef PLATFORM_WINDOWS
 #include <shlobj.h>
 #include <windows.h>
+#endif
 
 #include <Logger/Logger.h>
 
@@ -25,6 +27,7 @@ namespace RenderStudio::Utils
 std::filesystem::path
 GetProgramDataPath()
 {
+#ifdef PLATFORM_WINDOWS
     PWSTR path = nullptr;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramData, 0, NULL, &path);
     if (SUCCEEDED(hr))
@@ -34,6 +37,11 @@ GetProgramDataPath()
         return result;
     }
     return {};
+#endif
+
+#ifdef PLATFORM_UNIX
+    return std::filesystem::path("/var/lib/");
+#endif
 }
 
 std::filesystem::path
@@ -47,7 +55,7 @@ GetDefaultWorkspacePath()
 
         if (!result)
         {
-            LOG_FATAL << "[RenderStudio Kit] Can't create workspace directory: " << path;
+            LOG_FATAL << "Can't create workspace directory: " << path;
         }
     }
 

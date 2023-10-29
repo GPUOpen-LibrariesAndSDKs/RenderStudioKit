@@ -48,22 +48,28 @@ coloring_formatter(logging::record_view const& rec, logging::formatting_ostream&
         switch (severity.get())
         {
         case logging::trivial::severity_level::trace:
-            strm << "trace";
+            strm << fmt::format(fg(fmt::color::light_steel_blue), "[studio]");
+            strm << " 🕵️‍♂️ ";
             break;
         case logging::trivial::severity_level::debug:
-            strm << "debug";
+            strm << fmt::format(fg(fmt::color::cornflower_blue), "[studio]");
+            strm << " 🔍 ";
             break;
         case logging::trivial::severity_level::info:
-            strm << "info ";
+            strm << fmt::format(fg(fmt::color::light_green), "[studio]");
+            strm << " ✅ ";
             break;
         case logging::trivial::severity_level::warning:
-            strm << "warn ";
+            strm << fmt::format(fg(fmt::color::yellow), "[studio]");
+            strm << fmt::format(fg(fmt::color::yellow) | fmt::emphasis::bold, " ⚠️ ");
             break;
         case logging::trivial::severity_level::error:
-            strm << "error";
+            strm << fmt::format(fg(fmt::color::orange_red), "[studio]");
+            strm << " ❌ ";
             break;
         case logging::trivial::severity_level::fatal:
-            strm << "fatal";
+            strm << fmt::format(fg(fmt::color::red), "[studio]");
+            strm << " ⛔ ";
             break;
         default:
             break;
@@ -71,10 +77,12 @@ coloring_formatter(logging::record_view const& rec, logging::formatting_ostream&
     }
 
     // Message section
-    strm << " | " << rec[expr::smessage] << " ";
+    strm << rec[expr::smessage] << " ";
+
     // Function and line section
-    strm << "(" << logging::extract<std::string>("Function", rec).get() << ":"
-         << std::to_string(logging::extract<unsigned long>("Line", rec).get()) << ")";
+    std::string function = "(" + logging::extract<std::string>("Function", rec).get() + ":"
+        + std::to_string(logging::extract<unsigned long>("Line", rec).get()) + ")";
+    strm << fmt::format(fg(fmt::color::dim_gray), function);
 }
 
 BOOST_LOG_GLOBAL_LOGGER_INIT(logger, RenderStudioLogger)

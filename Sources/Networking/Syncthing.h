@@ -18,8 +18,6 @@
 #include <filesystem>
 #include <string>
 
-#include <windows.h>
-
 #include "WebsocketClient.h"
 
 #include <Utils/BackgroundTask.h>
@@ -48,8 +46,6 @@ private:
     static inline std::shared_ptr<RenderStudio::Utils::BackgroundTask> sPingTask;
 
     // Process utils
-    static PROCESS_INFORMATION LaunchProcess(std::string app, std::string arg);
-    static const wchar_t* Widen(const std::string& narrow, std::wstring& wide);
     static bool LaunchWatchdog();
     static std::shared_ptr<WebsocketClient> CreateClient();
 };
