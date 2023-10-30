@@ -40,4 +40,4 @@ SetMaxWarningLevel(${KIT_TARGET_NAME})
 install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio/Notice)
 
 # Install library
-install(TARGETS ${KIT_TARGET_NAME} DESTINATION plugin/usd)
+install(TARGETS ${KIT_TARGET_NAME} DESTINATION lib)
