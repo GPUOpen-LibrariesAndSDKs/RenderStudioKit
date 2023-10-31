@@ -59,24 +59,29 @@ public:
 
     ~WebsocketClient();
 
-    void Connect(const Url& endpoint);
-    void Disconnect();
+    std::future<bool> Connect(const Url& endpoint);
+    std::future<bool> Disconnect();
     void Send(const std::string& message);
-    std::future<bool> GetConnectionStatus();
 
 private:
     explicit WebsocketClient(const OnMessageFn& fn);
 
     void Ping(boost::beast::error_code ec);
-    void OnResolve(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::results_type results);
-    void OnConnect(boost::beast::error_code ec, boost::asio::ip::tcp::resolver::endpoint_type endpoint);
-    void OnHandshake(boost::beast::error_code ec);
-    void OnSslHandshake(boost::beast::error_code ec);
+    void OnResolve(
+        std::shared_ptr<std::promise<bool>> promise,
+        boost::beast::error_code ec,
+        boost::asio::ip::tcp::resolver::results_type results);
+    void OnConnect(
+        std::shared_ptr<std::promise<bool>> promise,
+        boost::beast::error_code ec,
+        boost::asio::ip::tcp::resolver::endpoint_type endpoint);
+    void OnHandshake(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec);
+    void OnSslHandshake(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec);
     void OnPing(boost::beast::error_code ec);
     void Write(const std::string& message);
     void OnWrite(boost::beast::error_code ec, std::size_t transferred);
     void OnRead(boost::beast::error_code ec, std::size_t transferred);
-    void OnClose(boost::beast::error_code ec);
+    void OnClose(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec);
 
 private:
     Url mEndpoint;
@@ -96,7 +101,6 @@ private:
     std::string mSslHost;
 
     std::queue<std::string> mWriteQueue;
-    std::promise<bool> mConnectionPromise;
 };
 
 } // namespace RenderStudio::Networking

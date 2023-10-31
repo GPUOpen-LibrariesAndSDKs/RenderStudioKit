@@ -48,4 +48,12 @@ function(SetDefaultCompileDefinitions Target)
         NOMINMAX
         _WIN32_WINNT=0x0601
     )
+
+    if (WIN32)
+        target_compile_definitions(${Target} PRIVATE PLATFORM_WINDOWS)
+    endif()
+
+    if (UNIX)
+        target_compile_definitions(${Target} PRIVATE PLATFORM_UNIX)
+    endif()
 endfunction()

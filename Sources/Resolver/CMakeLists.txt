@@ -67,12 +67,6 @@ target_compile_definitions(${KIT_TARGET_NAME} PRIVATE
     VS_PLATFORM_TOOLSET=${VS_NUMERIC_PLATFORM_TOOLSET}
 )
 
-if (WIN32)
-    target_compile_definitions(${KIT_TARGET_NAME} PRIVATE PLATFORM_WINDOWS)
-elseif(UNIX)
-    target_compile_definitions(${KIT_TARGET_NAME} PRIVATE PLATFORM_UNIX)
-endif()
-
 SetMaxWarningLevel(${KIT_TARGET_NAME})
 
 # Install library

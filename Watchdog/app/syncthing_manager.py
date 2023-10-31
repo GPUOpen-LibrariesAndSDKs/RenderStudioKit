@@ -18,7 +18,6 @@ import httpx
 import traceback
 import asyncio
 import json
-import requests
 import os
 import sys
 
@@ -31,7 +30,12 @@ if sys.platform == "win32":
 class SyncthingManager:
     def __init__(self, exe_path: str, workspace_path: str):
         self.process = None
-        self.exe_path = exe_path
+
+        if sys.platform == "win32":
+            self.exe_path = f"{exe_path}.exe"
+        else:
+            self.exe_path = exe_path
+
         self.workspace_path = Path(workspace_path)
         self.max_event_id = 0
 
@@ -46,11 +50,13 @@ class SyncthingManager:
         elif __file__:
             application_path = os.path.dirname(__file__)
 
-        logger.info(f'Launching {self.exe_path}')
+        home = self.workspace_path.parent / 'Syncthing'
+        logger.info(f'Launching {self.exe_path} with home: {home}')
         try:
             self.process = await asyncio.create_subprocess_exec(
                 os.path.join(application_path, self.exe_path),
-                f"--home={self.workspace_path.parent / 'Syncthing'}",
+                f"--home",
+                str(home),
                 "--no-default-folder",
                 "--skip-port-probing",
                 f"--gui-address={settings.SYNCTHING_URL}",
@@ -64,15 +70,35 @@ class SyncthingManager:
                 stderr=asyncio.subprocess.PIPE
             )
         except Exception as e:
-            traceback.print_exc()
+            logger.error(traceback.format_exception(e))
+            logger.info('Bye-bye')
+            os._exit(1)
 
-        await asyncio.create_task(self.communicate())
+        asyncio.create_task(self.communicate())
+
+        async with httpx.AsyncClient() as client:
+            while True:
+                try:
+                    r = await client.get(f"{settings.SYNCTHING_URL}/rest/noauth/health")
+                    if r.status_code == httpx.codes.OK:
+                        break
+                except:
+                    pass
 
         try:
             async with httpx.AsyncClient() as client:
                 config = (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
-                remote = (await client.get(f"{settings.REMOTE_URL}/storage/api/syncthing/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 local_id = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/status", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()['myID']
+
+                if settings.REMOTE_URL != 'localhost':
+                    remote = (await client.get(f"{settings.REMOTE_URL}/studio/watchdog/connect/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+                else:
+                    remote = {
+                        'folder_id': 'main-rs-workspace',
+                        'folder_name': 'AMD RenderStudio Workspace',
+                        'device_id': local_id,
+                        'device_name': "AMD RenderStudio Syncthing Server"
+                    }
 
                 # Setup folder
                 existing_folder = next((folder for folder in config['folders'] if folder['id'] == remote['folder_id']), None)
@@ -86,6 +112,7 @@ class SyncthingManager:
                         'introducedBy': '',
                         'encryptionPassword': ''
                     })
+                    folder['fsWatcherDelayS'] = 1
                     config['folders'].append(folder)
 
                 # Setup device
@@ -94,20 +121,30 @@ class SyncthingManager:
                     device = (await client.get(f"{settings.SYNCTHING_URL}/rest/config/defaults/device", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                     device['deviceID'] = remote['device_id']
                     device['name'] = remote['device_name']
-                    device['addresses'].append(settings.REMOTE_URL.replace('https:/', 'tcp:/') + '/syncthing:443')
+                    device['addresses'].append(settings.REMOTE_URL.replace('http:/', 'tcp:/'))
                     config['devices'].append(device)
+                else:
+                    existing_device['name'] = remote['device_name']
 
-                # Disable relays for release
-                logger.info("Disable relays later")
-                # config['options']['relaysEnabled'] = False
+                # Optimizations
+                config['options']['relaysEnabled'] = False
+                if settings.REMOTE_URL == 'localhost':
+                    config['options']['setLowPriority'] = False
 
                 response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
                 logger.info(f"Local config update: {response.status_code==200}")
 
-                response = await client.post(f"{settings.REMOTE_URL}/storage/api/syncthing/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
-                logger.info(f"Remote config update: {response.status_code==200}")
+                if settings.REMOTE_URL != 'localhost':
+                    response = await client.post(f"{settings.REMOTE_URL}/studio/watchdog/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
+                    logger.info(f"Remote config update: {response.status_code==200}")
+
+                from app.connection_manager import connection_manager
+                await connection_manager.notify_connection_state(True)
         except Exception as e:
+            await connection_manager.notify_connection_state(False)
             logger.error(f"Caught exception on syncthing setup: {e}")
+            logger.info("Bye-bye")
+            os._exit(0)
 
     async def terminate(self):
         try:
@@ -116,6 +153,9 @@ class SyncthingManager:
                 await self.process.wait()
         except Exception as e:
             logger.error(f"Caught exception on syncthing exit: {e}")
+        finally:
+            from app.connection_manager import connection_manager
+            await connection_manager.notify_connection_state(False)
 
     async def get_events(self, client):
         try:
@@ -127,4 +167,34 @@ class SyncthingManager:
             self.max_event_id = max(self.max_event_id, event['id'])
         return [] if first_poll else events
 
-syncthing_manager = SyncthingManager("syncthing.exe", settings.WORKSPACE_DIR)
+    async def get_device(self):
+        async with httpx.AsyncClient() as client:
+            config = (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+            local_id = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/status", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()['myID']
+            existing_device = next((device for device in config['devices'] if device['deviceID'] == local_id), None)
+            if not existing_device:
+                logger.error("Can't find local device")
+            return existing_device
+
+    async def get_config(self):
+        async with httpx.AsyncClient() as client:
+            return (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+
+    async def append_device(self, device_id):
+        async with httpx.AsyncClient() as client:
+            config = (await client.get(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+            device = (await client.get(f"{settings.SYNCTHING_URL}/rest/config/defaults/device", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+            device['deviceID'] = device_id
+            device['name'] = f'Client #{device_id}'
+
+            config['devices'].append(device)
+            config['folders'][0]['devices'].append({
+                'deviceID': device_id,
+                'introducedBy': '',
+                'encryptionPassword': ''
+            })
+
+            response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
+            logger.info(f"Added remote device: {response.status_code==200}")
+
+syncthing_manager = SyncthingManager("syncthing", settings.WORKSPACE_DIR)

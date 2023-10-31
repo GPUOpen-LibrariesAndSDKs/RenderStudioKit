@@ -12,18 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from threading import Lock
+import time
+from rs import RenderStudioKit as kit
 
-class Settings:
-    REQUIRED_PING_INTERVAL_SECONDS: int = None
-    WEBSOCKET_PORT: int = None
-    SYNCTHING_URL: str = None
-    REMOTE_URL: str = None
-    SYNCTHING_API_KEY: str = None
-    WORKSPACE_DIR: str = None
+kit.SetWorkspacePath("/mnt/WorkspaceTest")
+# kit.SetWorkspaceUrl("http://...")
+kit.SharedWorkspaceConnect()
 
-    def get_declared_fields(self):
-        class_annotations = self.__annotations__
-        return {field: getattr(self, field) for field in class_annotations}
-
-settings = Settings()
+time.sleep(90)

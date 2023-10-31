@@ -51,7 +51,10 @@ PRIVATE
 )
 
 set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY PREFIX "")
-set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY SUFFIX ".pyd")
+
+if (WIN32)
+    set_property(TARGET ${USDPLUGIN_PYTHON_NAME} PROPERTY SUFFIX ".pyd")
+endif()
 
 # Install python wrapper
 install(TARGETS ${USDPLUGIN_PYTHON_NAME} DESTINATION lib/python/rs/${USDPLUGIN_NAME})

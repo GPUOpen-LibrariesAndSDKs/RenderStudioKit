@@ -18,7 +18,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Create target
 file(GLOB SOURCES *.h *.cpp)
-add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
+add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 
 # Link libraries
 target_link_libraries(${KIT_TARGET_NAME} PRIVATE
@@ -27,6 +27,7 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
 )
 
 if (TBB_INCLUDE_DIR)
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE ${TBB_LIBRARY})
     target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
 endif()
 
@@ -37,4 +38,7 @@ SetDefaultCompileDefinitions(${KIT_TARGET_NAME})
 SetMaxWarningLevel(${KIT_TARGET_NAME})
 
 # Install headers
-install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio)
+install(FILES Notice.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/RenderStudio/Notice)
+
+# Install library
+install(TARGETS ${KIT_TARGET_NAME} DESTINATION lib)

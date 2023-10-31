@@ -50,7 +50,7 @@ install(TARGETS ${KIT_TARGETS} ${KIT_DEPENDENCIES}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     # RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} Commented out since we have duplication of dll's for now
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    # INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} Commented out since each target installs own includes
 )
 
 install(EXPORT RenderStudioTargets
@@ -97,7 +97,16 @@ if (WITH_SHARED_WORKSPACE_SUPPORT)
         DEPENDS InstallPythonDeps
     )
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/RenderStudioWatchdog.exe
+    if (WIN32)
+        set(WATCHDOG_EXE_NAME "RenderStudioWatchdog.exe")
+    endif()
+
+    if (UNIX)
+        set(WATCHDOG_EXE_NAME "RenderStudioWatchdog")
+    endif()
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/${WATCHDOG_EXE_NAME}
         DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
     )
 endif()

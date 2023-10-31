@@ -19,39 +19,17 @@
 #include <iostream>
 #include <string>
 
-#include <shlobj.h>
-#include <stdio.h>
-#include <tchar.h>
-#include <windows.h>
-
 #include <pxr/base/plug/plugin.h>
 #include <pxr/base/plug/thisPlugin.h>
-
-#include <boost/json/src.hpp>
-#pragma comment(lib, "shell32.lib")
-
-#include "RestClient.h"
 
 #include <Logger/Logger.h>
 #include <Notice/Notice.h>
 #include <Utils/FileUtils.h>
+#include <Utils/ProcessUtils.h>
+#include <boost/json/src.hpp>
 
 namespace RenderStudio::Networking
 {
-
-void
-Syncthing::BackgroundPolling()
-{
-    while (true)
-    {
-        std::lock_guard<std::mutex> lock(sBackgroundMutex);
-        if (sClient != nullptr)
-        {
-            sClient->Send("ping");
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-    }
-}
 
 void
 Syncthing::SetWorkspacePath(const std::string& path)
@@ -74,28 +52,96 @@ Syncthing::GetWorkspaceUrl()
 void
 Syncthing::Connect()
 {
-    Disconnect();
-
-    // Aquire here to prevent deadlock from Disconnect()
-    std::lock_guard<std::mutex> lock(sBackgroundMutex);
-
-    // Check if watchdog already running
-    auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
-    auto client = WebsocketClient::Create([](const std::string& message) { LOG_FATAL << message; });
-    client->Connect(endpoint);
-
-    if (client->GetConnectionStatus().get())
+    // Create task
+    if (sPingTask != nullptr)
     {
-        pxr::RenderStudioNotice::WorkspaceConnectionChanged(true).Send();
-        LOG_WARNING << "Watchdog already launched, skipping";
-        return;
+        sPingTask->Stop();
+        LOG_DEBUG << "Successfully killed old ping task";
     }
 
-    // Launch watchdog
+    sPingTask = std::make_shared<RenderStudio::Utils::BackgroundTask>([] { sClient->Send("ping"); }, 5);
+
+    // Create client
+    if (sClient != nullptr)
+    {
+        sClient->Disconnect().get();
+        LOG_DEBUG << "Successfully disconnected old client";
+    }
+
+    auto endpoint = RenderStudio::Networking::Url::Parse("ws://127.0.0.1:52700/studio/watchdog");
+
+    // Check if watchdog already running
+    sClient = Syncthing::CreateClient();
+    bool connected = sClient->Connect(endpoint).get();
+
+    if (connected)
+    {
+        // Watchdog already running
+        sPingTask->Start();
+        LOG_INFO << "Watchdog already launched, skipping";
+    }
+    else
+    {
+        // Launch new instance
+        bool status = Syncthing::LaunchWatchdog();
+
+        if (!status)
+        {
+            LOG_FATAL << "Can't launch watchdog";
+            return;
+        }
+
+        // Connect new client to that instance
+        std::size_t attempt = 0;
+        do
+        {
+            sClient->Disconnect().get();
+            sClient = Syncthing::CreateClient();
+            connected = sClient->Connect(endpoint).get();
+
+            if (!connected)
+            {
+                attempt += 1;
+                LOG_WARNING << "No connect to watchdog yet, attempt [" << attempt << "/5]";
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        } while (!connected && attempt < 5);
+
+        if (!connected)
+        {
+            LOG_FATAL << "Can't connect to watchdog";
+            return;
+        }
+
+        sPingTask->Start();
+    }
+}
+
+void
+Syncthing::Disconnect()
+{
+    sPingTask->Stop();
+    bool status = sClient->Disconnect().get();
+    (void)status; // Ignore disconnect status in notice
+    pxr::RenderStudioNotice::WorkspaceConnectionChanged(false).Send();
+}
+
+bool
+Syncthing::LaunchWatchdog()
+{
     pxr::TfType type = pxr::PlugRegistry::FindTypeByName("RenderStudioResolver");
     pxr::PlugPluginPtr plug = pxr::PlugRegistry::GetInstance().GetPluginForType(type);
+
+#ifdef PLATFORM_WINDOWS
     std::filesystem::path watchdogExePath
         = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog.exe";
+#endif
+
+#ifdef PLATFORM_UNIX
+    std::filesystem::path watchdogExePath
+        = std::filesystem::path(plug->GetPath()).parent_path() / "RenderStudioWatchdog";
+#endif
+
     std::filesystem::path workspacePath
         = sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
     std::string workspaceUrl = sWorkspaceUrl;
@@ -105,27 +151,34 @@ Syncthing::Connect()
         std::filesystem::create_directories(workspacePath);
     }
 
-    LOG_INFO << "[RenderStudio Kit] Watchdog exe path: " << watchdogExePath;
-    LOG_INFO << "[RenderStudio Kit] Workspace path: " << workspacePath;
-    LOG_INFO << "[RenderStudio Kit] Workspace url: " << workspaceUrl;
+    LOG_INFO << "Watchdog path: " << watchdogExePath;
+    LOG_INFO << "Workspace path: " << workspacePath;
+    LOG_INFO << "Workspace url: " << workspaceUrl;
 
     try
     {
-        Syncthing::LaunchProcess(
-            watchdogExePath.make_preferred().string(),
-            "--workspace \"" + workspacePath.make_preferred().string()
-                + "\" "
-                  "--remote-url "
-                + workspaceUrl
-                + " "
-                  "--ping-interval 30");
+        RenderStudio::Utils::LaunchProcess(
+            watchdogExePath,
+            { "--workspace",
+              "\"" + workspacePath.make_preferred().string() + "\"",
+              "--remote-url",
+              workspaceUrl,
+              "--ping-interval",
+              "10" });
     }
     catch (const std::exception& e)
     {
-        LOG_FATAL << e.what();
+        LOG_FATAL << "" << e.what();
+        return false;
     }
 
-    sClient = WebsocketClient::Create(
+    return true;
+}
+
+std::shared_ptr<WebsocketClient>
+Syncthing::CreateClient()
+{
+    return WebsocketClient::Create(
         [](const std::string& message)
         {
             boost::json::object json = boost::json::parse(message).as_object();
@@ -140,94 +193,13 @@ Syncthing::Connect()
                 std::string state = boost::json::value_to<std::string>(json.at("state"));
                 pxr::RenderStudioNotice::WorkspaceState(state).Send();
             }
+            else if (event == "Event::Connection")
+            {
+                bool connected = boost::json::value_to<bool>(json.at("connected"));
+                LOG_INFO << "Connection state: " << connected;
+                pxr::RenderStudioNotice::WorkspaceConnectionChanged(connected).Send();
+            }
         });
-
-    sClient->Connect(endpoint);
-    pxr::RenderStudioNotice::WorkspaceConnectionChanged(sClient->GetConnectionStatus().get()).Send();
-
-    if (sBackgroundThread == nullptr)
-    {
-        sBackgroundThread = std::make_shared<std::thread>(Syncthing::BackgroundPolling);
-        sBackgroundThread->detach(); // Detaching to run forever even if Disconnect() was called
-    }
-}
-
-void
-Syncthing::Disconnect()
-{
-    std::lock_guard<std::mutex> lock(sBackgroundMutex);
-    if (sClient != nullptr)
-    {
-        sClient->Disconnect();
-        sClient.reset();
-    }
-    pxr::RenderStudioNotice::WorkspaceConnectionChanged(false).Send();
-}
-
-PROCESS_INFORMATION
-Syncthing::LaunchProcess(std::string app, std::string arg)
-{
-    // Prepare handles.
-    STARTUPINFOW si;
-    PROCESS_INFORMATION pi; // The function returns this
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
-
-    // Prepare CreateProcess args
-    std::wstring app_w;
-    Syncthing::Widen(app, app_w);
-
-    std::wstring arg_w;
-    Syncthing::Widen(arg, arg_w);
-
-    std::wstring input = L"\"" + app_w + L"\" " + arg_w;
-    wchar_t* arg_concat = const_cast<wchar_t*>(input.c_str());
-    const wchar_t* app_const = app_w.c_str();
-
-    // Start the child process.
-    if (!CreateProcessW(
-            app_const,  // app path
-            arg_concat, // Command line (needs to include app path as first argument. args seperated by whitepace)
-            NULL,       // Process handle not inheritable
-            NULL,       // Thread handle not inheritable
-            FALSE,      // Set handle inheritance to FALSE
-            0,          // No creation flags
-            NULL,       // Use parent's environment block
-            NULL,       // Use parent's starting directory
-            &si,        // Pointer to STARTUPINFO structure
-            &pi)        // Pointer to PROCESS_INFORMATION structure
-    )
-    {
-        throw std::exception("Could not create child process");
-    }
-    else
-    {
-        LOG_INFO << "Launched child process " << app << " " << arg;
-    }
-
-    // Return process handle
-    return pi;
-}
-
-// helper to widen a narrow UTF8 string in Win32
-const wchar_t*
-Syncthing::Widen(const std::string& narrow, std::wstring& wide)
-{
-    size_t length = narrow.size();
-
-    if (length > 0)
-    {
-        wide.resize(length);
-        length = MultiByteToWideChar(CP_UTF8, 0, narrow.c_str(), (int)length, (wchar_t*)wide.c_str(), (int)length);
-        wide.resize(length);
-    }
-    else
-    {
-        wide.clear();
-    }
-
-    return wide.c_str();
 }
 
 } // namespace RenderStudio::Networking
