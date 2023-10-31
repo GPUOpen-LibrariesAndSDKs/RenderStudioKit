@@ -26,6 +26,14 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioLogger
 )
 
+if (MAYA_SUPPORT)
+    cmake_policy(SET CMP0079 NEW)
+
+    target_link_libraries(${KIT_TARGET_NAME} PRIVATE
+        ${PYTHON_LIBRARIES}
+    )
+endif()
+
 if (TBB_INCLUDE_DIR)
     target_link_libraries(${KIT_TARGET_NAME} PRIVATE ${TBB_LIBRARY})
     target_include_directories(${KIT_TARGET_NAME} PRIVATE ${TBB_INCLUDE_DIR})
