@@ -41,6 +41,7 @@ TF_DECLARE_PUBLIC_TOKENS(RenderStudioFileFormatTokens, AR_API, RENDER_STUDIO_FIL
 TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
 
 class ArAsset;
+class Logic;
 
 class RenderStudioFileFormat : public SdfFileFormat
 {
@@ -63,7 +64,8 @@ public:
     virtual bool Read(SdfLayer* layer, const std::string& resolvedPath, bool metadataOnly) const override;
 
     AR_API
-    virtual bool WriteToFile(const SdfLayer& layer,
+    virtual bool WriteToFile(
+        const SdfLayer& layer,
         const std::string& filePath,
         const std::string& comment = std::string(),
         const FileFormatArguments& args = FileFormatArguments()) const override;
@@ -83,6 +85,25 @@ private:
     friend class RenderStudioResolver;
     mutable RenderStudioLayerRegistry mLayerRegistry;
     std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
+    std::shared_ptr<Logic> mLogic;
+
+    void ProcessDeltaEvent(const RenderStudio::API::DeltaEvent& v);
+    void ProcessHistoryEvent(const RenderStudio::API::HistoryEvent& v);
+    void ProcessAcknowledgeEvent(const RenderStudio::API::AcknowledgeEvent& v);
+
+    friend class Logic;
+};
+
+class Logic : public RenderStudio::Networking::IClientLogic
+{
+public:
+    Logic(RenderStudioFileFormat& format);
+    virtual void OnConnected() override;
+    virtual void OnDisconnected() override;
+    virtual void OnMessage(const std::string& message) override;
+
+private:
+    RenderStudioFileFormat& mFormat;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

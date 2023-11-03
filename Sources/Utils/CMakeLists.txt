@@ -24,6 +24,7 @@ add_library(${KIT_TARGET_NAME} STATIC ${SOURCES})
 # Link libraries
 target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     RenderStudioLogger
+    zip::zip
 )
 
 target_include_directories(${KIT_TARGET_NAME} PRIVATE ..)

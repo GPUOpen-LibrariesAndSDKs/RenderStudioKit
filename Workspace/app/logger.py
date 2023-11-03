@@ -19,7 +19,7 @@ LOGGING_CONFIG = {
     "handlers": {
         "default": {
             "class": "logging.StreamHandler",
-            "formatter": "watchdog",
+            "formatter": "workspace",
             "stream": "ext://sys.stderr"
         },
         "syncthing": {
@@ -29,8 +29,8 @@ LOGGING_CONFIG = {
         }
     },
     "formatters": {
-        "watchdog": {
-            "format": "\033[94m[watchdog]\033[0m %(message)s",
+        "workspace": {
+            "format": "\033[94m[workspace]\033[0m %(message)s",
             "datefmt": "%H:%M:%S",
         },
         "syncthing": {

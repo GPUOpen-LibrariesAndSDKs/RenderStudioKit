@@ -108,75 +108,6 @@ RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer) const
     return TfConst_cast<RenderStudioDataPtr>(casted);
 }
 
-void
-RenderStudioFileFormat::OnMessage(const std::string& message)
-{
-    auto event = ParseEvent(message);
-
-    if (!event.has_value())
-    {
-        return;
-    }
-
-    std::visit(
-        Overload { [this](const RenderStudio::API::DeltaEvent& v)
-                   {
-                       if (!v.sequence.has_value())
-                       {
-                           LOG_WARNING << "Got update without sequence number";
-                           return;
-                       }
-
-                       SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
-
-                       if (layer == nullptr)
-                       {
-                           LOG_WARNING << "Got update for unknown layer: " << v.layer;
-                           return;
-                       }
-
-                       // Convert API update to internal format
-                       RenderStudioData::_HashTable updates;
-                       for (const auto& [key, value] : v.updates)
-                       {
-                           RenderStudioData::_SpecData spec;
-                           spec.specType = value.specType;
-                           spec.fields = value.fields;
-                           updates[key] = spec;
-                       }
-
-                       // Append deltas to the data
-                       _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence.value());
-                   },
-                   [](const RenderStudio::API::HistoryEvent& v)
-                   {
-                       // Send history notice
-                       (void)v;
-                       RenderStudioNotice::LiveHistoryStatus("History", "RenderStudio::Internal");
-                   },
-                   [this](const RenderStudio::API::AcknowledgeEvent& v)
-                   {
-                       SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
-
-                       if (layer == nullptr)
-                       {
-                           LOG_WARNING << "Got acknowledge for unknown layer: " << v.layer;
-                           return;
-                       }
-
-                       // Convert API update to internal format
-                       RenderStudioData::_HashTable updates;
-                       for (const auto& path : v.paths)
-                       {
-                           updates[path] = RenderStudioData::_SpecData {};
-                       }
-
-                       // Append deltas to the data
-                       _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence);
-                   } },
-        event.value().body);
-}
-
 bool
 RenderStudioFileFormat::ProcessLiveUpdates()
 {
@@ -238,9 +169,13 @@ RenderStudioFileFormat::Connect(const std::string& url)
 {
     mLayerRegistry.RemoveExpiredLayers();
 
+    if (!mLogic)
+    {
+        mLogic = std::make_shared<Logic>(*this);
+    }
+
     // Create client
-    mWebsocketClient
-        = RenderStudio::Networking::WebsocketClient::Create([this](const std::string& message) { OnMessage(message); });
+    mWebsocketClient = RenderStudio::Networking::WebsocketClient::Create(*mLogic.get());
 
     // Connect to endpoint
     try
@@ -369,6 +304,103 @@ RenderStudioFileFormat::~RenderStudioFileFormat()
     {
         mWebsocketClient->Disconnect();
     }
+}
+
+void
+RenderStudioFileFormat::ProcessDeltaEvent(const RenderStudio::API::DeltaEvent& v)
+{
+    if (!v.sequence.has_value())
+    {
+        LOG_WARNING << "Got update without sequence number";
+        return;
+    }
+
+    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
+
+    if (layer == nullptr)
+    {
+        LOG_WARNING << "Got update for unknown layer: " << v.layer;
+        return;
+    }
+
+    // Convert API update to internal format
+    RenderStudioData::_HashTable updates;
+    for (const auto& [key, value] : v.updates)
+    {
+        RenderStudioData::_SpecData spec;
+        spec.specType = value.specType;
+        spec.fields = value.fields;
+        updates[key] = spec;
+    }
+
+    // Append deltas to the data
+    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence.value());
+}
+
+void
+RenderStudioFileFormat::ProcessHistoryEvent(const RenderStudio::API::HistoryEvent& v)
+{
+    // Send history notice
+    (void)v;
+    RenderStudioNotice::LiveHistoryStatus("History", "RenderStudio::Internal");
+}
+
+void
+RenderStudioFileFormat::ProcessAcknowledgeEvent(const RenderStudio::API::AcknowledgeEvent& v)
+{
+    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
+
+    if (layer == nullptr)
+    {
+        LOG_WARNING << "Got acknowledge for unknown layer: " << v.layer;
+        return;
+    }
+
+    // Convert API update to internal format
+    RenderStudioData::_HashTable updates;
+    for (const auto& path : v.paths)
+    {
+        updates[path] = RenderStudioData::_SpecData {};
+    }
+
+    // Append deltas to the data
+    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence);
+}
+
+Logic::Logic(RenderStudioFileFormat& format)
+    : mFormat(format)
+{
+}
+
+void
+Logic::OnConnected()
+{
+    LOG_INFO << "Connected RenderStudioKit with remote Live server";
+    RenderStudioNotice::LiveConnectionChanged(true).Send();
+}
+
+void
+Logic::OnDisconnected()
+{
+    LOG_INFO << "Disconnected RenderStudioKit from remote Live server";
+    RenderStudioNotice::LiveConnectionChanged(false).Send();
+}
+
+void
+Logic::OnMessage(const std::string& message)
+{
+    auto event = ParseEvent(message);
+
+    if (!event.has_value())
+    {
+        return;
+    }
+
+    std::visit(
+        Overload { [this](const RenderStudio::API::DeltaEvent& v) { mFormat.ProcessDeltaEvent(v); },
+                   [this](const RenderStudio::API::HistoryEvent& v) { mFormat.ProcessHistoryEvent(v); },
+                   [this](const RenderStudio::API::AcknowledgeEvent& v) { mFormat.ProcessAcknowledgeEvent(v); } },
+        event.value().body);
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

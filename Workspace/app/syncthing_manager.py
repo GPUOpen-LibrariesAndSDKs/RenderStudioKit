@@ -91,7 +91,7 @@ class SyncthingManager:
                 local_id = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/status", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()['myID']
 
                 if settings.REMOTE_URL != 'localhost':
-                    remote = (await client.get(f"{settings.REMOTE_URL}/studio/watchdog/connect/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+                    remote = (await client.get(f"{settings.REMOTE_URL}/workspace/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 else:
                     remote = {
                         'folder_id': 'main-rs-workspace',
@@ -121,7 +121,7 @@ class SyncthingManager:
                     device = (await client.get(f"{settings.SYNCTHING_URL}/rest/config/defaults/device", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                     device['deviceID'] = remote['device_id']
                     device['name'] = remote['device_name']
-                    device['addresses'].append(settings.REMOTE_URL.replace('http:/', 'tcp:/'))
+                    device['addresses'].append(settings.REMOTE_URL.replace('http:/', 'tcp:/').replace('https:/', 'tcp:/') + ":22000")
                     config['devices'].append(device)
                 else:
                     existing_device['name'] = remote['device_name']
@@ -135,14 +135,14 @@ class SyncthingManager:
                 logger.info(f"Local config update: {response.status_code==200}")
 
                 if settings.REMOTE_URL != 'localhost':
-                    response = await client.post(f"{settings.REMOTE_URL}/studio/watchdog/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
+                    response = await client.post(f"{settings.REMOTE_URL}/workspace/connect", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps({'device_id': local_id}))
                     logger.info(f"Remote config update: {response.status_code==200}")
 
-                from app.connection_manager import connection_manager
-                await connection_manager.notify_connection_state(True)
         except Exception as e:
-            await connection_manager.notify_connection_state(False)
+            from app.connection_manager import connection_manager
+            await connection_manager.notify_connection_state_abort()
             logger.error(f"Caught exception on syncthing setup: {e}")
+            await self.terminate()
             logger.info("Bye-bye")
             os._exit(0)
 
@@ -152,10 +152,7 @@ class SyncthingManager:
                 result = await client.post(f"{settings.SYNCTHING_URL}/rest/system/shutdown", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})
                 await self.process.wait()
         except Exception as e:
-            logger.error(f"Caught exception on syncthing exit: {e}")
-        finally:
-            from app.connection_manager import connection_manager
-            await connection_manager.notify_connection_state(False)
+            logger.error(f"Syncthing: {e} (that should be fine)")
 
     async def get_events(self, client):
         try:

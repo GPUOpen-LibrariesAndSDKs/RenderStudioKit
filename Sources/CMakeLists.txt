@@ -114,11 +114,12 @@ if(NOT syncthing_POPULATED)
 endif()
 
 if (WIN32)
-    install(FILES ${syncthing_SOURCE_DIR}/syncthing.exe DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/)
+    install(FILES ${syncthing_SOURCE_DIR}/syncthing.exe
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/RenderStudioWorkspace)
 endif()
 
 if (UNIX)
     install(FILES ${syncthing_SOURCE_DIR}/syncthing
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/RenderStudioWorkspace
         PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
 endif()

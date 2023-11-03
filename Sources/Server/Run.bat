@@ -1,15 +1,17 @@
 @echo off
 setlocal
-set INSTALL_DIR=%~dp0..\..
-set STREAMER_DIR=%INSTALL_DIR%\Engine\StreamingApp
-Pushd %STREAMER_DIR%
-set USD_ROOT=%INSTALL_DIR%\USD
-set RPR=%USD_ROOT%
-set PYTHONPATH=%USD_ROOT%\lib\python
-set PXR_PLUGINPATH_NAME=%USD_ROOT%\plugin
-set USD_PATHS=%USD_ROOT%\bin;%USD_ROOT%\lib;%USD_ROOT%\plugin\usd
-set PATH=%USD_PATHS%;%PATH%
-set PXR_USDMTLX_STDLIB_SEARCH_PATHS=%USD_ROOT%\libraries
-set RENDERER_PATHS=%INSTALL_DIR%\Engine\UsdRenderer
-set PATH=%RENDERER_PATHS%;%PATH%
+
+:: Get current script directory
+set SCRIPT_DIR="%~dp0"
+
+:: Prepare environment
+set USD_DIR=%~dp0..
+set SERVICES_DIR=%USD_DIR%\..
+set PYTHON_DIR=%SERVICES_DIR%\Engine\StreamingApp
+
+:: Setup environment
+set USD_PATH=%USD_DIR%\lib;%USD_DIR%\bin;%USD_DIR%\plugin\usd
+set PATH=%PATH%;%USD_PATH%;%PYTHON_DIR%
+
+:: Launch server
 "%~dp0\RenderStudioServer.exe" %*

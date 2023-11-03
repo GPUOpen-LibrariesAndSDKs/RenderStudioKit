@@ -15,7 +15,7 @@
 #include "Kit.h"
 
 #include <Logger/Logger.h>
-#include <Networking/Syncthing.h>
+#include <Networking/Workspace.h>
 #include <Resolver/Resolver.h>
 #include <Utils/FileUtils.h>
 
@@ -41,15 +41,33 @@ LiveSessionDisconnect()
 }
 
 void
-SharedWorkspaceConnect()
+SharedWorkspaceConnect(Role role)
 {
-    RenderStudio::Networking::Syncthing::Connect();
+    RenderStudio::Networking::Workspace::Connect(role);
 }
 
 void
 SharedWorkspaceDisconnect()
 {
-    RenderStudio::Networking::Syncthing::Disconnect();
+    RenderStudio::Networking::Workspace::Disconnect();
+}
+
+bool
+SharedWorkspaceIsConnected()
+{
+    return RenderStudio::Networking::Workspace::IsConnected();
+}
+
+bool
+SharedWorkspaceIsIdle()
+{
+    return RenderStudio::Networking::Workspace::IsIdle();
+}
+
+void
+SharedWorkspaceWaitIdle()
+{
+    RenderStudio::Networking::Workspace::WaitIdle();
 }
 
 bool
@@ -74,14 +92,14 @@ void
 SetWorkspacePath(const std::string& path)
 {
     pxr::RenderStudioResolver::SetWorkspacePath(path);
-    RenderStudio::Networking::Syncthing::SetWorkspacePath(path);
+    RenderStudio::Networking::Workspace::SetWorkspacePath(path);
     LOG_INFO << "Set workspace path to: " << path;
 }
 
 void
 SetWorkspaceUrl(const std::string& url)
 {
-    RenderStudio::Networking::Syncthing::SetWorkspaceUrl(url);
+    RenderStudio::Networking::Workspace::SetWorkspaceUrl(url);
     LOG_INFO << "Set URL of remote workspace server to: " << url;
 }
 
@@ -100,7 +118,7 @@ GetDefaultWorkspacePath()
 std::string
 GetWorkspaceUrl()
 {
-    return RenderStudio::Networking::Syncthing::GetWorkspaceUrl();
+    return RenderStudio::Networking::Workspace::GetWorkspaceUrl();
 }
 
 } // namespace RenderStudio::Kit

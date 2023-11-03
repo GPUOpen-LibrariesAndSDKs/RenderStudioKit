@@ -24,6 +24,7 @@ add_library(${KIT_TARGET_NAME} SHARED ${SOURCES})
 target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     $<BUILD_INTERFACE:usd>
     RenderStudioLogger
+    RenderStudioUtils
 )
 
 if (MAYA_SUPPORT)

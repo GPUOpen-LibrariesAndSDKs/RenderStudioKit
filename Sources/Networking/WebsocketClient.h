@@ -47,11 +47,17 @@ class context;
 namespace RenderStudio::Networking
 {
 
+struct IClientLogic
+{
+    virtual void OnConnected() = 0;
+    virtual void OnDisconnected() = 0;
+    virtual void OnMessage(const std::string& message) = 0;
+    virtual ~IClientLogic() = default;
+};
+
 class WebsocketClient : public std::enable_shared_from_this<WebsocketClient>
 {
 public:
-    using OnMessageFn = std::function<void(const std::string&)>;
-
     template <typename... Args> static std::shared_ptr<WebsocketClient> Create(Args&&... args)
     {
         return std::shared_ptr<WebsocketClient> { new WebsocketClient { std::forward<Args>(args)... } };
@@ -62,9 +68,10 @@ public:
     std::future<bool> Connect(const Url& endpoint);
     std::future<bool> Disconnect();
     void Send(const std::string& message);
+    static bool IsPortInUse(std::uint16_t port);
 
 private:
-    explicit WebsocketClient(const OnMessageFn& fn);
+    explicit WebsocketClient(IClientLogic& logic);
 
     void Ping(boost::beast::error_code ec);
     void OnResolve(
@@ -95,12 +102,12 @@ private:
     std::shared_ptr<boost::asio::ssl::context> mSslContext;
     boost::beast::flat_buffer mReadBuffer;
     boost::asio::deadline_timer mPingTimer;
-    OnMessageFn mOnMessageFn;
     std::thread mThread;
     bool mConnected;
     std::string mSslHost;
 
     std::queue<std::string> mWriteQueue;
+    IClientLogic& mLogic;
 };
 
 } // namespace RenderStudio::Networking

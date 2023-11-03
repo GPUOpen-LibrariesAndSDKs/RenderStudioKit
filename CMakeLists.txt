@@ -71,42 +71,75 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake/
 )
 
-# Build watchdog
+# Build workspace
 if (WITH_SHARED_WORKSPACE_SUPPORT)
     # Install build dependencies with pip
     if (WITH_PYTHON_DEPENDENCIES_INSTALL)
         find_program(PIP_EXECUTABLE REQUIRED NAMES pip3 pip)
+        set(REQUIREMENTS_FILE ${CMAKE_SOURCE_DIR}/Workspace/requirements.txt)
+        set(INSTALLED_REQUIREMENTS_FILE ${CMAKE_CURRENT_BINARY_DIR}/installed_requirements.txt)
+
+        # Custom command to check if requirements have changed
+        add_custom_command(
+            OUTPUT ${INSTALLED_REQUIREMENTS_FILE}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${REQUIREMENTS_FILE} ${INSTALLED_REQUIREMENTS_FILE}
+            COMMAND ${PIP_EXECUTABLE} install -r ${REQUIREMENTS_FILE}
+            DEPENDS ${REQUIREMENTS_FILE}
+            COMMENT "Checking and installing python dependencies if required"
+        )
+
+        # Custom target for installing Python dependencies
         add_custom_target(
             InstallPythonDeps ALL
-            COMMAND ${PIP_EXECUTABLE} install -r ${CMAKE_SOURCE_DIR}/Watchdog/requirements.txt
-            COMMENT "Installing python dependencies with pip"
+            DEPENDS ${INSTALLED_REQUIREMENTS_FILE}
         )
     else()
-        find_program(PYINSTALLER_EXECUTABLE REQUIRED NAMES pyinstaller)
+        find_program(NUITKA_EXECUTABLE REQUIRED NAMES nuitka.bat)
     endif()
 
-    # Build executable with pyinstaller
-    add_custom_target(
-        ExecutePyinstaller ALL
-        COMMAND
-            pyinstaller
-            --distpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist
-            --workpath ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/build
-            ${CMAKE_SOURCE_DIR}/Watchdog/watchdog.spec
-        COMMENT "Building executable of RenderStudioWatchdog using pyinstaller"
-        DEPENDS InstallPythonDeps
-    )
-
     if (WIN32)
-        set(WATCHDOG_EXE_NAME "RenderStudioWatchdog.exe")
+        set(WORKSPACE_EXE_NAME "RenderStudioWorkspace.exe")
     endif()
 
     if (UNIX)
-        set(WATCHDOG_EXE_NAME "RenderStudioWatchdog")
+        set(WORKSPACE_EXE_NAME "RenderStudioWorkspace.bin")
     endif()
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/pyinstaller/dist/${WATCHDOG_EXE_NAME}
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/
-        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+    file(GLOB_RECURSE PYTHON_SOURCE_FILES ${CMAKE_SOURCE_DIR}/Workspace/*.py)
+
+    # Define the output of the command, i.e., the path of the executable produced by Nuitka
+    set(NUITKA_OUTPUT_EXE ${CMAKE_CURRENT_BINARY_DIR}/nuitka/RenderStudioWorkspace.dist/${WORKSPACE_EXE_NAME})
+    find_program(PYTHON_EXECUTABLE REQUIRED NAMES python3 python)
+
+    # Define a custom command that compiles the Python script into an executable
+    # This command will only run if the output file (Nuitka executable) is missing or if any of the PYTHON_SOURCE_FILES have changed.
+    add_custom_command(
+        OUTPUT ${NUITKA_OUTPUT_EXE}
+        COMMAND ${PYTHON_EXECUTABLE} -m nuitka
+            --output-dir=${CMAKE_CURRENT_BINARY_DIR}/nuitka
+            --standalone
+            --assume-yes-for-downloads
+            --windows-icon-from-ico=${CMAKE_SOURCE_DIR}/Resources/Icon.ico
+            ${CMAKE_SOURCE_DIR}/Workspace/RenderStudioWorkspace.py
+        DEPENDS ${PYTHON_SOURCE_FILES}
+        COMMENT "Building executable of RenderStudioWorkspace using nuitka"
+    )
+
+    # Define a custom target that depends on the Nuitka output executable
+    # This target will run every time, but the custom command above will only re-execute if its dependencies are updated.
+    add_custom_target(
+        ExecuteNuitka ALL
+        DEPENDS ${NUITKA_OUTPUT_EXE}
+    )
+
+    # Optionally, ensure that Python dependencies are installed before Nuitka is executed.
+    if (WITH_PYTHON_DEPENDENCIES_INSTALL)
+        add_dependencies(ExecuteNuitka InstallPythonDeps)
+    endif()
+
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/nuitka/RenderStudioWorkspace.dist/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/plugin/usd/RenderStudioWorkspace
+        USE_SOURCE_PERMISSIONS
     )
 endif()

@@ -18,6 +18,8 @@
 #include <filesystem>
 #include <string>
 
+#include <Kit.h>
+
 #include "WebsocketClient.h"
 
 #include <Utils/BackgroundTask.h>
@@ -25,14 +27,23 @@
 namespace RenderStudio::Networking
 {
 
-class Syncthing
+class Logic : public IClientLogic
 {
 public:
-    static void Connect();
+    virtual void OnConnected() override;
+    virtual void OnDisconnected() override;
+    virtual void OnMessage(const std::string& message) override;
+};
+
+class Workspace
+{
+public:
+    static void Connect(RenderStudio::Kit::Role role);
     static void Disconnect();
-
+    static void WaitIdle();
+    static bool IsIdle();
+    static bool IsConnected();
     static void SetWorkspacePath(const std::string& path);
-
     static void SetWorkspaceUrl(const std::string& url);
     static std::string GetWorkspaceUrl();
 
@@ -46,8 +57,16 @@ private:
     static inline std::shared_ptr<RenderStudio::Utils::BackgroundTask> sPingTask;
 
     // Process utils
-    static bool LaunchWatchdog();
-    static std::shared_ptr<WebsocketClient> CreateClient();
+    static bool LaunchWorkspace();
+
+    // State getters data
+    static inline std::mutex sStateMutex;
+    static inline std::condition_variable sStateConditionVariable;
+    static inline std::string sLastState = "";
+    static inline bool sConnected = false;
+    static inline Logic sLogic;
+
+    friend class Logic;
 };
 
 } // namespace RenderStudio::Networking

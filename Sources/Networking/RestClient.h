@@ -15,6 +15,7 @@
 #pragma once
 
 #pragma warning(push, 0)
+#include <filesystem>
 #include <map>
 
 #include <boost/asio/io_context.hpp>
@@ -32,6 +33,7 @@ public:
     std::string Get(const std::string& request);
     std::string Post(const std::string& request, const std::string& body);
     std::string Put(const std::string& request, const std::string& body);
+    void Download(const std::string& request, const std::filesystem::path& location);
 
     enum class Parameters
     {

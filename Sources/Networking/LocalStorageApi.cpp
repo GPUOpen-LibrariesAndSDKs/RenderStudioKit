@@ -17,8 +17,6 @@
 #pragma warning(push, 0)
 #include <fstream>
 
-#include <zip.h>
-
 #include <boost/algorithm/string.hpp>
 #include <fmt/format.h>
 #pragma warning(pop)
@@ -27,6 +25,7 @@
 #include "RestClient.h"
 
 #include <Logger/Logger.h>
+#include <Utils/FileUtils.h>
 
 namespace RenderStudio::Networking::LocalStorageAPI
 {
@@ -130,22 +129,18 @@ Download(const PackageResponse::Item& package, const std::filesystem::path& path
     }
 
     // Download light USDA file
-    std::filesystem::path usdaPath = path / package.file;
-    std::string usdaData
-        = RenderStudio::Networking::RestClient().Get(storageUrl + "/api/lights/" + package.id + "/file");
-    std::ofstream usdaOut(usdaPath, std::ios::binary);
-    usdaOut << usdaData;
-    usdaOut.close();
+    RenderStudio::Utils::TempDirectory temp;
+    std::filesystem::path usdaPath = temp.Path() / package.file;
+    RenderStudio::Networking::RestClient().Download(storageUrl + "/api/lights/" + package.id + "/file", usdaPath);
+    std::filesystem::rename(usdaPath, path / package.file);
 
     // Download light texture
     if (package.texture.has_value())
     {
-        std::filesystem::path texturePath = path / package.texture.value();
-        std::string textureData
-            = RenderStudio::Networking::RestClient().Get(storageUrl + "/api/lights/" + package.id + "/texture");
-        std::ofstream textureOut(texturePath, std::ios::binary);
-        textureOut << textureData;
-        textureOut.close();
+        std::filesystem::path texturePath = temp.Path() / package.file;
+        RenderStudio::Networking::RestClient().Download(
+            storageUrl + "/api/lights/" + package.id + "/texture", texturePath);
+        std::filesystem::rename(texturePath, path / package.texture.value());
     }
 
     return getUsdRoot();

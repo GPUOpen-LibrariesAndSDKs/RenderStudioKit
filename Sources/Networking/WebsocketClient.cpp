@@ -45,10 +45,10 @@ template <class... Ts> Overload(Ts...) -> Overload<Ts...>;
 namespace RenderStudio::Networking
 {
 
-WebsocketClient::WebsocketClient(const OnMessageFn& fn)
+WebsocketClient::WebsocketClient(IClientLogic& logic)
     : mTcpResolver(boost::asio::make_strand(mIoContext))
     , mPingTimer(mIoContext)
-    , mOnMessageFn(fn)
+    , mLogic(logic)
     , mConnected(false)
 {
 }
@@ -107,6 +107,7 @@ WebsocketClient::Disconnect()
     }
     else
     {
+        mLogic.OnDisconnected();
         promise->set_value(true);
     }
 
@@ -215,8 +216,8 @@ WebsocketClient::OnConnect(
 {
     if (ec)
     {
-        LOG_ERROR << "[WebsocketClient] " << ec.message();
         promise->set_value(false);
+        LOG_ERROR << "[WebsocketClient] " << ec.message();
         Disconnect();
         return;
     }
@@ -300,6 +301,7 @@ WebsocketClient::OnHandshake(std::shared_ptr<std::promise<bool>> promise, boost:
     LOG_INFO << "[WebsocketClient] Connected to " << mEndpoint.Host();
 
     mConnected = true;
+    mLogic.OnConnected();
     promise->set_value(true);
     OnPing({});
     OnRead({}, 0);
@@ -370,7 +372,7 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 
     if (transferred > 0)
     {
-        mOnMessageFn(boost::beast::buffers_to_string(mReadBuffer.data()));
+        mLogic.OnMessage(boost::beast::buffers_to_string(mReadBuffer.data()));
         mReadBuffer.clear();
     }
 
@@ -385,6 +387,8 @@ WebsocketClient::OnRead(boost::beast::error_code ec, std::size_t transferred)
 void
 WebsocketClient::OnClose(std::shared_ptr<std::promise<bool>> promise, boost::beast::error_code ec)
 {
+    mLogic.OnDisconnected();
+
     if (!mConnected)
     {
         promise->set_value(true);
@@ -397,6 +401,18 @@ WebsocketClient::OnClose(std::shared_ptr<std::promise<bool>> promise, boost::bea
         promise->set_value(false);
         Disconnect();
     }
+}
+
+bool
+WebsocketClient::IsPortInUse(std::uint16_t port)
+{
+    boost::asio::io_context svc;
+    boost::asio::ip::tcp::acceptor a(svc);
+    boost::system::error_code ec;
+    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port);
+    a.open(boost::asio::ip::tcp::v4(), ec);
+    a.bind(endpoint, ec);
+    return ec == boost::asio::error::address_in_use;
 }
 
 } // namespace RenderStudio::Networking

@@ -14,17 +14,16 @@
 
 #include "MaterialLibraryApi.h"
 
+#include "RestClient.h"
+
 #pragma warning(push, 0)
 #include <fstream>
-
-#include <zip.h>
 
 #include <boost/algorithm/string.hpp>
 #pragma warning(pop)
 
-#include "RestClient.h"
-
 #include <Logger/Logger.h>
+#include <Utils/FileUtils.h>
 
 namespace RenderStudio::Networking::MaterialLibraryAPI
 {
@@ -71,29 +70,12 @@ Download(const PackageResponse::Item& material, const std::filesystem::path& pat
         std::filesystem::create_directories(path);
     }
 
-    // Download archive
-    std::filesystem::path archivePath = path / "Package.zip";
-    std::string data = RenderStudio::Networking::RestClient().Get(material.file_url);
-    std::ofstream out(archivePath, std::ios::binary);
-    out << data;
-    out.close();
-
-    // Extract archive
-    int arg = 0;
-    auto status = zip_extract(
-        archivePath.string().c_str(),
-        path.string().c_str(),
-        [](auto a, auto b)
-        {
-            (void)a, void(b);
-            return 0;
-        },
-        &arg);
-
-    (void)status;
-
-    // Remove archive
-    std::filesystem::remove(archivePath);
+    // Download and extract archive
+    RenderStudio::Utils::TempDirectory temp;
+    std::filesystem::path archivePath = temp.Path() / "Package.zip";
+    RenderStudio::Networking::RestClient().Download(material.file_url, archivePath);
+    RenderStudio::Utils::Extract(archivePath, temp.Path() / "Package");
+    RenderStudio::Utils::Move(temp.Path() / "Package", path);
 
     // Return file name
     return getMtlxRoot();

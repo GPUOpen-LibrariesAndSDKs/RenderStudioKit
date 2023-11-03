@@ -15,6 +15,7 @@ RUN apt-get update && \
     libx11-dev \
     libgl1-mesa-dev \
     mc \
+    patchelf \
     zlib1g-dev \
     libssl-dev \
     libglu1-mesa-dev \
@@ -37,7 +38,7 @@ ENV DEBIAN_FRONTEND="interactive"
 WORKDIR /mnt
 CMD mkdir -p Build && \
     echo "[WebRTC]\npath = /dev/null\n[AMF]\npath = /dev/null" > Build/LocalBuildConfig.txt && \
-    python3 -u Tools/Build.py -v -ss -sr -sl -sh -sst -sp -si -su -fk && \
+    python3 -u Tools/Build.py -v -ss -sr -sl -sh -sst -sp -si -fu -fk && \
     bash -c "cp /usr/lib/x86_64-linux-gnu/libpython* Build/Install/USD/lib" && \
     bash -c "cp /usr/lib/x86_64-linux-gnu/libssl* Build/Install/USD/lib" && \
     bash -c "cp /usr/lib/x86_64-linux-gnu/libcrypto* Build/Install/USD/lib"

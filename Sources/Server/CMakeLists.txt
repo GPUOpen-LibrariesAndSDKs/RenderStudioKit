@@ -45,16 +45,14 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../)
 
-# Set compile options
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    HAVE_SNPRINTF
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
-    _WIN32_WINNT=0x0601
-)
-
 SetMaxWarningLevel(${PROJECT_NAME})
+SetDefaultCompileDefinitions(${PROJECT_NAME})
 
 # Install headers
 install(TARGETS ${PROJECT_NAME} DESTINATION RenderStudioServer)
-install(FILES Run.bat DESTINATION RenderStudioServer)
+
+if (WIN32)
+    install(PROGRAMS Run.bat DESTINATION RenderStudioServer)
+elseif(UNIX)
+    install(PROGRAMS Run.sh DESTINATION RenderStudioServer)
+endif()

@@ -12,27 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
+#pragma once
+
+#include <string>
 
 namespace RenderStudio::Utils
 {
 
-class TempDirectory
-{
-public:
-    TempDirectory();
-    ~TempDirectory();
-    std::filesystem::path Path() const;
+std::string GenerateUUID();
 
-private:
-    std::filesystem::path mPath;
-};
-
-std::filesystem::path GetProgramDataPath();
-std::filesystem::path GetDefaultWorkspacePath();
-std::filesystem::path GetRenderStudioPath();
-std::filesystem::path GetCachePath();
-void Extract(const std::filesystem::path& archive, const std::filesystem::path& destination);
-void Move(const std::filesystem::path& source, const std::filesystem::path& destination);
-
-} // namespace RenderStudio::Utils
+}

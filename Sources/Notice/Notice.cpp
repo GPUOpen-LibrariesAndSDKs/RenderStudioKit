@@ -20,6 +20,7 @@
 #pragma warning(pop)
 
 #include <Logger/Logger.h>
+#include <Utils/Uuid.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -29,48 +30,7 @@ TF_INSTANTIATE_TYPE(RenderStudioNotice::OwnerChanged, TfType::CONCRETE, TF_1_PAR
 TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceState, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioNotice::FileUpdated, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceConnectionChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
-
-namespace uuid
-{
-static std::random_device rd;
-static std::mt19937 gen(rd());
-static std::uniform_int_distribution<> dis(0, 15);
-static std::uniform_int_distribution<> dis2(8, 11);
-
-std::string
-generate_uuid_v4()
-{
-    std::stringstream ss;
-    int i;
-    ss << std::hex;
-    for (i = 0; i < 8; i++)
-    {
-        ss << dis(gen);
-    }
-    ss << "-";
-    for (i = 0; i < 4; i++)
-    {
-        ss << dis(gen);
-    }
-    ss << "-4";
-    for (i = 0; i < 3; i++)
-    {
-        ss << dis(gen);
-    }
-    ss << "-";
-    ss << dis2(gen);
-    for (i = 0; i < 3; i++)
-    {
-        ss << dis(gen);
-    }
-    ss << "-";
-    for (i = 0; i < 12; i++)
-    {
-        ss << dis(gen);
-    };
-    return ss.str();
-}
-} // namespace uuid
+TF_INSTANTIATE_TYPE(RenderStudioNotice::LiveConnectionChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 
 RenderStudioNotice::PrimitiveChanged::PrimitiveChanged(const SdfPath& path, bool resynced)
     : mChangedPrim(path)
@@ -108,7 +68,7 @@ RenderStudioNotice::PrimitiveChanged::IsValid() const
 RenderStudioNotice::LiveHistoryStatus::LiveHistoryStatus(const std::string& name, const std::string& category)
     : mName(name)
     , mCategory(category)
-    , mUuid(uuid::generate_uuid_v4())
+    , mUuid(RenderStudio::Utils::GenerateUUID())
 {
     mAction = RenderStudioNotice::LiveHistoryStatus::Action::Started;
     Send();
@@ -211,6 +171,17 @@ RenderStudioNotice::WorkspaceConnectionChanged::WorkspaceConnectionChanged(bool 
 
 bool
 RenderStudioNotice::WorkspaceConnectionChanged::IsConnected() const
+{
+    return mStatus;
+}
+
+RenderStudioNotice::LiveConnectionChanged::LiveConnectionChanged(bool status)
+    : mStatus(status)
+{
+}
+
+bool
+RenderStudioNotice::LiveConnectionChanged::IsConnected() const
 {
     return mStatus;
 }

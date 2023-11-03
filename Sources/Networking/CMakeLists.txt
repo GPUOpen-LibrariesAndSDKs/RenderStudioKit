@@ -37,7 +37,6 @@ target_link_libraries(${KIT_TARGET_NAME} PRIVATE
     Boost::boost
     OpenSSL::SSL
     uriparser
-    zip::zip
     fmt::fmt
     RenderStudioLogger
     RenderStudioUtils

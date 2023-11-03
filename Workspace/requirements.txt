@@ -4,3 +4,4 @@ pyinstaller==5.13.2
 pyinstaller-hooks-contrib==2023.10
 websockets==10.4
 httpx==0.24.1
+nuitka==1.8.5

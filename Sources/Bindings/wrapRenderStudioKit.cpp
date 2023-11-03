@@ -17,6 +17,7 @@
 #ifdef HOUDINI_SUPPORT
 #include <hboost/python/class.hpp>
 #include <hboost/python/def.hpp>
+#include <hboost/python/enum.hpp>
 using namespace hboost::python;
 #else
 #include <boost/noncopyable.hpp>
@@ -25,6 +26,7 @@ using namespace hboost::python;
 #include <boost/python/reference_existing_object.hpp>
 #include <boost/python/return_value_policy.hpp>
 #include <boost/python/tuple.hpp>
+#include <boost/python/enum.hpp>
 using namespace boost::python;
 #endif
 
@@ -33,11 +35,16 @@ wrapRenderStudioKit()
 {
     using namespace RenderStudio::Kit;
 
+    enum_<Role>("Role")
+    .value("Server", Role::Server)
+    .value("Client", Role::Client)
+    ;
+
     def("LiveSessionConnect", &LiveSessionConnect, args("info"));
     def("LiveSessionUpdate", &LiveSessionUpdate);
     def("LiveSessionDisconnect", &LiveSessionDisconnect);
 
-    def("SharedWorkspaceConnect", &SharedWorkspaceConnect);
+    def("SharedWorkspaceConnect", &SharedWorkspaceConnect, args("role"));
     def("SharedWorkspaceDisconnect", &SharedWorkspaceDisconnect);
 
     def("IsUnresolvable", &IsUnresolvable, args("path"));

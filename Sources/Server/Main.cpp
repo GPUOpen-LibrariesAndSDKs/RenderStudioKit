@@ -31,12 +31,16 @@ auto
 main() -> int
 try
 {
+#ifdef PLATFORM_WINDOWS
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     const boost::asio::ip::address address = boost::asio::ip::make_address("0.0.0.0");
-    const std::uint16_t port = 10000;
+    const std::uint16_t port = 52702;
     const std::int32_t threads = 10;
 
     RenderStudio::Kit::SetWorkspaceUrl("localhost");
-    RenderStudio::Kit::SharedWorkspaceConnect();
+    RenderStudio::Kit::SharedWorkspaceConnect(RenderStudio::Kit::Role::Server);
 
     LOG_INFO << "Server started at " << address << ":" << port << " (threads: " << threads << ")";
 

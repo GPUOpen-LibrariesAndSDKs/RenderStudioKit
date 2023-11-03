@@ -28,6 +28,16 @@ class ConnectionManager:
         self.active_connections = {}
         self.syncthing_was_launched = False
 
+        if settings.REMOTE_URL == 'localhost':
+            self.last_folder_summary_event = {
+                'event': 'Event::StateChanged',
+                'state': 'idle'
+            }
+            self.last_device_connected_event = {
+                'event': 'Event::Connection',
+                'connected': True
+            }
+
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         first_connection = not self.active_connections
@@ -39,15 +49,19 @@ class ConnectionManager:
             asyncio.create_task(connection_manager.on_first_client_connected())
             asyncio.create_task(connection_manager.auto_disconnect_clients_job())
             asyncio.create_task(connection_manager.auto_poll_syncthing_job())
+        else:
+            if self.last_device_connected_event:
+                await self.broadcast(self.last_device_connected_event)
+            if self.last_folder_summary_event:
+                await self.broadcast(self.last_folder_summary_event)
 
     async def disconnect(self, websocket: WebSocket, should_close: bool):
         if should_close:
             await websocket.close()
 
-        logger.info(f"Disconnected client {should_close}")
-
         if websocket in self.active_connections:
             del self.active_connections[websocket]
+            logger.info(f"Disconnected client, count: {len(self.active_connections)}")
             await asyncio.sleep(5)
             last_connection = not self.active_connections
             if last_connection:
@@ -72,6 +86,7 @@ class ConnectionManager:
     async def on_last_client_disconnected(self):
         await syncthing_manager.terminate()
         logger.info("Syncthing stopped")
+        await self.notify_connection_state_abort()
         logger.info("Bye-bye")
         os._exit(0)
 
@@ -87,29 +102,55 @@ class ConnectionManager:
             await asyncio.sleep(5)
 
     async def auto_poll_syncthing_job(self):
-        async with httpx.AsyncClient() as client:
-            while True:
-                events = await syncthing_manager.get_events(client)
-                for event in events:
-                    if event['type'] == 'ItemFinished':
-                        path = 'studio:/' + event['data']['item'].replace('\\', '/')
-                        await self.broadcast({
-                            'event': 'Event::FileUpdated',
-                            'path': path
-                        })
-                    elif event['type'] == 'StateChanged':
-                        state = event['data']['to']
-                        await self.broadcast({
-                            'event': 'Event::StateChanged',
-                            'state': state
-                        })
+        try:
+            async with httpx.AsyncClient() as client:
+                while True:
+                    events = await syncthing_manager.get_events(client)
+                    for event in events:
+                        if event['type'] == 'ItemFinished':
+                            path = 'studio:/' + event['data']['item'].replace('\\', '/')
+                            await self.broadcast({
+                                'event': 'Event::FileUpdated',
+                                'path': path
+                            })
+                        elif event['type'] == 'StateChanged':
+                            # Here broadcast only errors
+                            state = event['data']['to']
+                            if state == 'error':
+                                await self.broadcast({
+                                    'event': 'Event::StateChanged',
+                                    'state': state
+                                })
+                        elif event['type'] == 'DeviceConnected':
+                            self.last_device_connected_event = {
+                                'event': 'Event::Connection',
+                                'connected': True
+                            }
+                            await self.broadcast(self.last_device_connected_event)
+                        elif event['type'] == 'FolderSummary':
+                            state = "error"
+                            if event['data']['summary']['globalBytes'] == 0:
+                                state = "syncing"
+                            elif event['data']['summary']['globalBytes'] != event['data']['summary']['inSyncBytes']:
+                                state = "syncing"
+                            elif event['data']['summary']['globalBytes'] == event['data']['summary']['inSyncBytes']:
+                                state = "idle"
 
-                await asyncio.sleep(1)
+                            self.last_folder_summary_event = {
+                                'event': 'Event::StateChanged',
+                                'state': state
+                            }
+                            await self.broadcast(self.last_folder_summary_event)
+                    await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(e)
+            await self.on_last_client_disconnected()
 
-    async def notify_connection_state(self, status):
-        await self.broadcast({
+    async def notify_connection_state_abort(self):
+        self.last_device_connected_event = {
             'event': 'Event::Connection',
-            'connected': status
-        })
+            'connected': False
+        }
+        await self.broadcast(self.last_device_connected_event)
 
 connection_manager = ConnectionManager()

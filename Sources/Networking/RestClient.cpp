@@ -15,6 +15,7 @@
 #include "RestClient.h"
 
 #pragma warning(push, 0)
+#include <fstream>
 #include <set>
 
 #include <boost/beast/core.hpp>
@@ -26,6 +27,7 @@
 #include "Certificates.h"
 
 #include <Logger/Logger.h>
+#include <Utils/FileUtils.h>
 
 namespace RenderStudio::Networking
 {
@@ -269,6 +271,31 @@ RestClient::Put(const std::string& request, const std::string& body)
 RestClient::RestClient(const std::map<RestClient::Parameters, std::string>& parameters)
     : mParameters(parameters)
 {
+}
+
+void
+RestClient::Download(const std::string& request, const std::filesystem::path& location)
+{
+    RenderStudio::Utils::TempDirectory temp;
+
+    if (!std::filesystem::exists(location))
+    {
+        std::filesystem::create_directories(location.parent_path());
+    }
+
+    std::string data = Get(request);
+    std::ofstream out(temp.Path() / location.filename(), std::ios::binary);
+    out << data;
+    out.close();
+
+    try
+    {
+        std::filesystem::rename(temp.Path() / location.filename(), location);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_ERROR << e.what();
+    }
 }
 
 } // namespace RenderStudio::Networking

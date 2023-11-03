@@ -28,7 +28,7 @@ app = FastAPI()
 async def startup_event():
     logger.info("Startup event which should check remote")
 
-@app.websocket("/studio/watchdog")
+@app.websocket("/workspace/ws")
 async def watchdog(websocket: WebSocket):
     await connection_manager.connect(websocket)
     try:
@@ -40,7 +40,7 @@ async def watchdog(websocket: WebSocket):
 class ConnectionInfo(BaseModel):
     device_id: str
 
-@app.get("/studio/watchdog/connect/info")
+@app.get("/workspace/info")
 async def info():
     device = await syncthing_manager.get_device()
     config = await syncthing_manager.get_config()
@@ -52,7 +52,7 @@ async def info():
     }
 
 
-@app.post("/studio/watchdog/connect")
+@app.post("/workspace/connect")
 async def connect(info: ConnectionInfo):
     await syncthing_manager.append_device(info.device_id)
     return {'status': 'ok'}

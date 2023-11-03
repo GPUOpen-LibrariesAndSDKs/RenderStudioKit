@@ -149,6 +149,19 @@ public:
     private:
         bool mStatus;
     };
+
+    class LiveConnectionChanged : public TfNotice
+    {
+    public:
+        AR_API
+        LiveConnectionChanged(bool status);
+
+        AR_API
+        bool IsConnected() const;
+
+    private:
+        bool mStatus;
+    };
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

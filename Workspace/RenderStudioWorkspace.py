@@ -20,8 +20,8 @@ from app.logger import logger
 from app.settings import settings
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="AMD RenderStudio watchdog service", allow_abbrev=False)
-    parser.add_argument('-p', '--port', help="Port for watchdog", type=str, required=False, default=52700)
+    parser = argparse.ArgumentParser(description="AMD RenderStudio workspace service", allow_abbrev=False)
+    parser.add_argument('-p', '--port', help="Port for workspace", type=int, required=False, default=52700)
     parser.add_argument('-i', '--ping-interval', help="Required ping interval", type=int, required=False, default=10)
     parser.add_argument('-s', '--syncthing-url', help="Syncthing API url", type=str, required=False, default="http://127.0.0.1:52701")
     parser.add_argument('-r', '--remote-url', help="Remote Syncthing API url", type=str, required=True)

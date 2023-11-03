@@ -89,6 +89,7 @@ protected:
 
 private:
     static std::filesystem::path GetRootPath();
+    static std::filesystem::path GetAssetsCachePath();
 
     static std::unique_ptr<RenderStudio::Kit::LiveSessionInfo> sLiveModeInfo;
     static inline RenderStudioFileFormatPtr sFileFormat;

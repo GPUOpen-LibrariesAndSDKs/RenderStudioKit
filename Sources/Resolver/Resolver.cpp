@@ -144,10 +144,23 @@ RenderStudioResolver::ProcessLiveUpdates()
 void
 RenderStudioResolver::StartLiveMode(const RenderStudio::Kit::LiveSessionInfo& info)
 {
-    sLiveModeInfo = std::make_unique<RenderStudio::Kit::LiveSessionInfo>(info);
+    RenderStudio::Kit::LiveSessionInfo copy = info;
+
+    if (copy.liveUrl.find("localhost") != std::string::npos)
+    {
+        boost::algorithm::replace_all(copy.liveUrl, "/workspace/live", ":52702");
+        LOG_INFO << "Replaced live URL for localhost: " << info.liveUrl << " -> " << copy.liveUrl;
+    }
+
+    if (copy.liveUrl.find("127.0.0.1") != std::string::npos)
+    {
+        boost::algorithm::replace_all(copy.liveUrl, "/workspace/live", ":52702");
+        LOG_INFO << "Replaced live URL for localhost: " << info.liveUrl << " -> " << copy.liveUrl;
+    }
 
     // Connect here for now
-    sFileFormat->Connect(info.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
+    sLiveModeInfo = std::make_unique<RenderStudio::Kit::LiveSessionInfo>(copy);
+    sFileFormat->Connect(copy.liveUrl + "/" + info.channelId + "/?user=" + info.userId);
 }
 
 void
@@ -172,7 +185,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Materials";
+            std::filesystem::path location = RenderStudioResolver::GetAssetsCachePath() / "Materials";
             for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
@@ -192,7 +205,7 @@ RenderStudioResolver::_Resolve(const std::string& path) const
         if (tokens.size() > 2)
         {
             std::string uuid = tokens.at(1);
-            std::filesystem::path location = RenderStudioResolver::GetRootPath() / "Storage";
+            std::filesystem::path location = RenderStudioResolver::GetAssetsCachePath() / "Storage";
             for (std::size_t i = 1; i < tokens.size(); i++)
             {
                 location /= tokens.at(i);
@@ -350,7 +363,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
             notice.emplace(uuid, "material");
         }
 
-        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Materials" / uuid;
+        std::filesystem::path saveLocation = RenderStudioResolver::GetAssetsCachePath() / "Materials" / uuid;
         return GpuOpenAsset::Open(uuid, saveLocation);
     }
 
@@ -361,7 +374,7 @@ RenderStudioResolver::_OpenAsset(const ArResolvedPath& resolvedPath) const
         std::string name = resolvedPath.GetPathString();
         name.erase(0, std::string("storage:/").size());
 
-        std::filesystem::path saveLocation = RenderStudioResolver::GetRootPath() / "Storage" / name;
+        std::filesystem::path saveLocation = RenderStudioResolver::GetAssetsCachePath() / "Storage" / name;
         return LocalStorageAsset::Open(name, saveLocation);
     }
 
@@ -379,6 +392,12 @@ std::filesystem::path
 RenderStudioResolver::GetRootPath()
 {
     return sWorkspacePath.empty() ? RenderStudio::Utils::GetDefaultWorkspacePath() : sWorkspacePath;
+}
+
+std::filesystem::path
+RenderStudioResolver::GetAssetsCachePath()
+{
+    return RenderStudio::Utils::GetCachePath() / "assets";
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

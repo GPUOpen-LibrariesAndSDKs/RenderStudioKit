@@ -25,6 +25,7 @@
 #include <boost/log/sinks/unbounded_ordering_queue.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/utility/setup/console.hpp>
+#include <boost/make_shared.hpp>
 #include <fmt/color.h>
 #include <fmt/format.h>
 #pragma warning(pop)
@@ -37,7 +38,7 @@ namespace RenderStudio
 {
 
 void
-coloring_formatter(logging::record_view const& rec, logging::formatting_ostream& strm)
+coloring_formatter(logging::record_view const& rec, logging::wformatting_ostream& strm)
 {
     // Serverity section
     auto severity = rec[logging::trivial::severity];
@@ -89,11 +90,14 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(logger, RenderStudioLogger)
 {
     logging::add_common_attributes();
 
-    boost::shared_ptr<sinks::text_ostream_backend> backend = boost::make_shared<sinks::text_ostream_backend>();
-    backend->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+    // Shared pointer for the backend
+    auto backend = boost::make_shared<sinks::wtext_ostream_backend>();
+    backend->add_stream(boost::shared_ptr<std::wostream>(&std::wcout, boost::null_deleter()));
     backend->auto_flush(true);
-    using sink_t = sinks::asynchronous_sink<sinks::text_ostream_backend>;
-    boost::shared_ptr<sink_t> sink(new sink_t(backend));
+
+    // Create the sink
+    using sink_t = sinks::asynchronous_sink<sinks::wtext_ostream_backend>;
+    auto sink = boost::make_shared<sink_t>(backend);
     sink->set_formatter(&coloring_formatter);
     boost::log::core::get()->add_sink(sink);
 

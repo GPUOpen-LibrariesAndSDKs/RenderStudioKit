@@ -40,11 +40,26 @@ void LiveSessionDisconnect();
 
 // ========== File Syncing API ==========
 
+enum class Role
+{
+    Server,
+    Client
+};
+
 /// @brief Starts file sharing for inside workspace directory.
-void SharedWorkspaceConnect();
+void SharedWorkspaceConnect(Role role = Role::Client);
 
 /// @brief Stops file sharing for inside workspace directory.
 void SharedWorkspaceDisconnect();
+
+/// @brief Checks if connected to shared workspace
+bool SharedWorkspaceIsConnected();
+
+/// @brief Checks if sycnrhonization is finished.
+bool SharedWorkspaceIsIdle();
+
+/// @brief Waits for sycnrhonization to be finished.
+void SharedWorkspaceWaitIdle();
 
 /// @brief Set directory which would be synchronized for all connected users
 /// @param path Directory to syncronize
