@@ -59,7 +59,7 @@ if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 endif()
 
 # Install headers
-install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h
+install(FILES WebsocketClient.h RestClient.h MaterialLibraryApi.h Url.h Certificates.h WebsocketServer.h
     DESTINATION include/RenderStudio/Networking)
 
 install(FILES ${OPENSSL_SSL_BINARY} ${OPENSSL_CRYPTO_BINARY}
