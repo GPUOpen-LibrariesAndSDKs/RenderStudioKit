@@ -15,6 +15,7 @@
 #pragma warning(push, 0)
 #include <iostream>
 #include <list>
+#include <locale>
 #include <numeric>
 
 #include <boost/asio/ip/address.hpp>
@@ -33,6 +34,10 @@ try
 {
 #ifdef PLATFORM_WINDOWS
     SetConsoleOutputCP(CP_UTF8);
+#endif
+
+#ifdef PLATFORM_UNIX
+    std::locale::global(std::locale("en_US.UTF-8"));
 #endif
 
     const boost::asio::ip::address address = boost::asio::ip::make_address("0.0.0.0");

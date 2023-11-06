@@ -36,15 +36,20 @@ Logic::OnConnected(ConnectionPtr connection)
     channel.AddConnection(connection);
 
     // Send history
-    for (const RenderStudio::API::DeltaEvent& delta : channel.GetHistory())
+    for (const auto& [layer, deltas] : channel.GetHistory())
     {
-        RenderStudio::API::Event event { "Delta::Event", delta };
-        connection->Send(boost::json::serialize(boost::json::value_from(event)));
+        for (const auto& delta : deltas)
+        {
+            RenderStudio::API::Event event { "Delta::Event", delta };
+            connection->Send(boost::json::serialize(boost::json::value_from(event)));
+        }
     }
 
     // History sending finished
     RenderStudio::API::Event event { "History::Event", RenderStudio::API::HistoryEvent {} };
     connection->Send(boost::json::serialize(boost::json::value_from(event)));
+
+    DebugPrint();
 }
 
 void
@@ -71,6 +76,8 @@ Logic::OnDisconnected(ConnectionPtr connection)
     {
         mChannels.erase(connection->GetChannel());
     }
+
+    DebugPrint();
 }
 
 void
@@ -98,7 +105,7 @@ Logic::OnMessage(ConnectionPtr connection, const std::string& message)
 
                 // Process sequence
                 Channel& channel = mChannels.at(connection->GetChannel());
-                std::size_t sequence = channel.GetSequenceNumber();
+                std::size_t sequence = channel.GetSequenceNumber(v.layer);
                 RenderStudio::API::DeltaEvent acknowledgedDelta = v;
                 acknowledgedDelta.sequence = sequence;
 
@@ -132,6 +139,33 @@ Logic::OnMessage(ConnectionPtr connection, const std::string& message)
                 // Do nothing. Only clients receive acknowledges
             } },
         event.value().body);
+}
+
+void
+Logic::DebugPrint() const
+{
+    if (mChannels.empty())
+    {
+        return;
+    }
+
+    LOG_DEBUG << ":: Global channels stats ::";
+    for (const auto& [name, channel] : mChannels)
+    {
+        LOG_DEBUG << "Channel '" << name << "' stats";
+        LOG_DEBUG << " - Connected users: " << channel.GetConnections().size();
+        std::string layers = "[";
+        for (auto it = channel.GetHistory().begin(); it != channel.GetHistory().end(); ++it)
+        {
+            layers += "(name: " + it->first + ", history: " + std::to_string(it->second.size()) + ")";
+            if (std::next(it) != channel.GetHistory().end())
+            {
+                layers += ", ";
+            }
+        }
+        layers += "]";
+        LOG_DEBUG << " - Used layers: " << layers;
+    }
 }
 
 std::optional<RenderStudio::API::Event>

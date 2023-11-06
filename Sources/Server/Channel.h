@@ -31,13 +31,14 @@ public:
     void AddConnection(ConnectionPtr connection);
     void RemoveConnection(ConnectionPtr connection);
     void Send(ConnectionPtr connection, const std::string& message);
-    const std::vector<RenderStudio::API::DeltaEvent>& GetHistory() const;
+    const std::map<std::string, std::vector<RenderStudio::API::DeltaEvent>>& GetHistory() const;
+    const std::list<ConnectionPtr>& GetConnections() const;
     void AddToHistory(const RenderStudio::API::DeltaEvent& v);
     bool Empty() const;
-    std::size_t GetSequenceNumber() const;
+    std::size_t GetSequenceNumber(const std::string& layer) const;
 
 private:
-    std::vector<RenderStudio::API::DeltaEvent> mHistory;
+    std::map<std::string, std::vector<RenderStudio::API::DeltaEvent>> mHistory;
     std::list<ConnectionPtr> mConnections;
     std::string mName;
 };

@@ -27,6 +27,7 @@ public:
     void OnMessage(ConnectionPtr connection, const std::string& message);
 
 private:
+    void DebugPrint() const;
     std::optional<RenderStudio::API::Event> ParseEvent(const std::string& message);
 
     std::map<std::string, Channel> mChannels;

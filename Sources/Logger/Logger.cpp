@@ -16,6 +16,7 @@
 
 #pragma warning(push, 0)
 #include <boost/log/attributes/attribute_value.hpp>
+#include <boost/log/expressions.hpp>
 #include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/block_on_overflow.hpp>
 #include <boost/log/sinks/bounded_fifo_queue.hpp>
@@ -40,6 +41,11 @@ namespace RenderStudio
 void
 coloring_formatter(logging::record_view const& rec, logging::wformatting_ostream& strm)
 {
+    // Time section
+    strm << fmt::format(
+        fg(fmt::color::dim_gray), expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M")(rec))
+         << " ";
+
     // Serverity section
     auto severity = rec[logging::trivial::severity];
 

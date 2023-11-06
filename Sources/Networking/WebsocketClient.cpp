@@ -48,8 +48,8 @@ namespace RenderStudio::Networking
 WebsocketClient::WebsocketClient(IClientLogic& logic)
     : mTcpResolver(boost::asio::make_strand(mIoContext))
     , mPingTimer(mIoContext)
-    , mLogic(logic)
     , mConnected(false)
+    , mLogic(logic)
 {
 }
 

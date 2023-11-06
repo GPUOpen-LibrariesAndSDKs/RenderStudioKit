@@ -49,16 +49,27 @@ Channel::Send(ConnectionPtr connection, const std::string& message)
     }
 }
 
-const std::vector<RenderStudio::API::DeltaEvent>&
+const std::map<std::string, std::vector<RenderStudio::API::DeltaEvent>>&
 Channel::GetHistory() const
 {
     return mHistory;
 }
 
+const std::list<ConnectionPtr>&
+Channel::GetConnections() const
+{
+    return mConnections;
+}
+
 void
 Channel::AddToHistory(const RenderStudio::API::DeltaEvent& v)
 {
-    mHistory.push_back(v);
+    if (mHistory.find(v.layer) == mHistory.end())
+    {
+        mHistory.insert({ v.layer, {} });
+    }
+
+    mHistory.at(v.layer).push_back(v);
 }
 
 bool
@@ -68,7 +79,13 @@ Channel::Empty() const
 }
 
 std::size_t
-Channel::GetSequenceNumber() const
+Channel::GetSequenceNumber(const std::string& layer) const
 {
-    return mHistory.size() + 1;
+    // No history for this layer yet, send first number
+    if (mHistory.find(layer) == mHistory.end())
+    {
+        return 1;
+    }
+
+    return mHistory.at(layer).size() + 1;
 }
