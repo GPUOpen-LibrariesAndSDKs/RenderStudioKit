@@ -22,6 +22,7 @@ from typing import List
 from app.logger import logger
 from app.settings import settings
 from app.syncthing_manager import syncthing_manager
+from app.terminator import terminator
 
 class ConnectionManager:
     def __init__(self):
@@ -37,36 +38,47 @@ class ConnectionManager:
                 'event': 'Event::Connection',
                 'connected': True
             }
+        else:
+            self.last_folder_summary_event = None
+            self.last_device_connected_event = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         first_connection = not self.active_connections
         self.active_connections[websocket] = asyncio.get_running_loop().time()
-        logger.info(f"Connected client, count: {len(self.active_connections)}")
+        logger.info(f"[Websocket] Connected client, count: {len(self.active_connections)}")
         if first_connection and not self.syncthing_was_launched:
             self.syncthing_was_launched = True
-            logger.info("First client connected, starting everything")
-            asyncio.create_task(connection_manager.on_first_client_connected())
+            logger.info("[Websocket] First client connected, starting everything")
+            asyncio.create_task(syncthing_manager.start())
             asyncio.create_task(connection_manager.auto_disconnect_clients_job())
             asyncio.create_task(connection_manager.auto_poll_syncthing_job())
+
+            if settings.REMOTE_URL != 'localhost':
+                asyncio.create_task(connection_manager.auto_check_connected_device())
         else:
             if self.last_device_connected_event:
                 await self.broadcast(self.last_device_connected_event)
             if self.last_folder_summary_event:
                 await self.broadcast(self.last_folder_summary_event)
 
-    async def disconnect(self, websocket: WebSocket, should_close: bool):
-        if should_close:
+    async def disconnect(self, websocket: WebSocket):
+        try:
             await websocket.close()
+        except Exception as e:
+            logger.info(f"[Websocket] Caught exception during websocket close: {e} (That should be fine)")
 
-        if websocket in self.active_connections:
-            del self.active_connections[websocket]
-            logger.info(f"Disconnected client, count: {len(self.active_connections)}")
-            await asyncio.sleep(5)
-            last_connection = not self.active_connections
-            if last_connection:
-                logger.info("Last client disconnected, killing everything")
-                await asyncio.create_task(connection_manager.on_last_client_disconnected())
+        if not websocket in self.active_connections:
+            logger.info("[Websocket] For some reason disconnected websocket wasn't in active connections list. Skipping")
+
+        del self.active_connections[websocket]
+        logger.info(f"[Websocket] Disconnected client, count: {len(self.active_connections)}")
+        await asyncio.sleep(1)
+
+        last_connection = not self.active_connections
+        if last_connection:
+            logger.info("[Websocket] Last client disconnected, killing everything")
+            await asyncio.create_task(terminator.terminate_all())
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
@@ -79,32 +91,44 @@ class ConnectionManager:
         await websocket.receive_text()
         self.active_connections[websocket] = asyncio.get_running_loop().time()
 
-    async def on_first_client_connected(self):
-        await syncthing_manager.start()
-        logger.info("Syncthing started and configured")
-
-    async def on_last_client_disconnected(self):
-        await syncthing_manager.terminate()
-        logger.info("Syncthing stopped")
-        await self.notify_connection_state_abort()
-        logger.info("Bye-bye")
-        os._exit(0)
-
     async def auto_disconnect_clients_job(self):
-        while True:
-            current_time = asyncio.get_running_loop().time()
-            remove_list = []
-            for websocket, time in self.active_connections.items():
-                if current_time - time > settings.REQUIRED_PING_INTERVAL_SECONDS:
-                    remove_list.append(websocket)
-            for websocket in remove_list:
-                await self.disconnect(websocket, should_close=True)
-            await asyncio.sleep(5)
+        try:
+            while True:
+                current_time = asyncio.get_running_loop().time()
+                remove_list = []
+                for websocket, time in self.active_connections.items():
+                    if current_time - time > settings.REQUIRED_PING_INTERVAL_SECONDS:
+                        remove_list.append(websocket)
+                for websocket in remove_list:
+                    await self.disconnect(websocket)
+                await asyncio.sleep(5)
+        except Exception as e:
+            logger.error(f'[Websocket] Fatal error: {e}')
+            await asyncio.create_task(terminator.terminate_all())
+
+    async def auto_check_connected_device(self):
+        try:
+            while True:
+                if self.last_device_connected_event:
+                    break
+
+                if await syncthing_manager.is_connected():
+                    self.last_device_connected_event = {
+                        'event': 'Event::Connection',
+                        'connected': True
+                    }
+                    await self.broadcast(self.last_device_connected_event)
+                    logger.info('[Websocket] Sent connected message from rest call!')
+                    break
+
+                await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f'[Websocket] Error in auto check connected device: {e}')
 
     async def auto_poll_syncthing_job(self):
-        try:
-            async with httpx.AsyncClient() as client:
-                while True:
+        async with httpx.AsyncClient() as client:
+            while True:
+                try:
                     events = await syncthing_manager.get_events(client)
                     for event in events:
                         if event['type'] == 'ItemFinished':
@@ -141,16 +165,40 @@ class ConnectionManager:
                                 'state': state
                             }
                             await self.broadcast(self.last_folder_summary_event)
-                    await asyncio.sleep(1)
-        except Exception as e:
-            logger.error(e)
-            await self.on_last_client_disconnected()
+                        elif event['type'] == 'PendingDevicesChanged':
+                            logger.info(event)
+                            if 'added' in event['data']:
+                                for device in event['data']['added']:
+                                    await syncthing_manager.append_device(device)
+                        elif event['type'] == 'PendingFoldersChanged':
+                            if 'added' in event['data']:
+                                for folder in event['data']['added']:
+                                    await syncthing_manager.append_folder(folder)
+                        elif event['type'] == 'FolderErrors':
+                            await syncthing_manager.fix_folder_errors()
 
-    async def notify_connection_state_abort(self):
-        self.last_device_connected_event = {
-            'event': 'Event::Connection',
-            'connected': False
-        }
-        await self.broadcast(self.last_device_connected_event)
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    logger.error(f'[Websocket] Fatal error in auto poll: {e}')
+                    await asyncio.create_task(terminator.terminate_all())
+
+    async def terminate(self):
+        try:
+            self.last_device_connected_event = {
+                'event': 'Event::Connection',
+                'connected': False
+            }
+            await self.broadcast(self.last_device_connected_event)
+        except Exception as e:
+            logger.error(f"[Terminate Websocket] Send disconnect event: {e} (that should be fine)")
+
+        try:
+            for websocket in list(self.active_connections.keys()):
+                try:
+                    await websocket.close()
+                except Exception as e:
+                    logger.error(f"[Terminate] Close websocket: {e} (that should be fine)")
+        except Exception as e:
+            logger.error(f"[Terminate Websocket] Close all websockets: {e} (that should be fine)")
 
 connection_manager = ConnectionManager()

@@ -35,7 +35,7 @@ async def watchdog(websocket: WebSocket):
         while True:
             await connection_manager.receive_text(websocket)
     except WebSocketDisconnect:
-        await connection_manager.disconnect(websocket, should_close=False)
+        await connection_manager.disconnect(websocket)
 
 class ConnectionInfo(BaseModel):
     device_id: str
@@ -51,8 +51,7 @@ async def info():
         'folder_name': config['folders'][0]['label']
     }
 
-
 @app.post("/workspace/connect")
 async def connect(info: ConnectionInfo):
-    await syncthing_manager.append_device(info.device_id)
+    # Legacy method for backward compatibility
     return {'status': 'ok'}

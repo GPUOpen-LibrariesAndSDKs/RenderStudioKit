@@ -14,9 +14,10 @@
 
 import time
 from rs import RenderStudioKit as kit
+import rs
 
 kit.SetWorkspacePath("/mnt/WorkspaceTest")
 # kit.SetWorkspaceUrl("http://...")
-kit.SharedWorkspaceConnect()
+kit.SharedWorkspaceConnect(kit.Role.Client)
 
 time.sleep(90)

@@ -10,4 +10,4 @@ test:
 	docker run --rm -v $(PROJECT_DIR):/mnt/ -v $(PROJECT_DIR)/SyncthingTest/:/var/lib/AMD/ --name render-studio-tester-container render-studio-tester-image
 
 deploy:
-	rsync -azP --delete $(PROJECT_DIR)/Build/Install/USD/* studio:/opt/rs/
+	rsync -azP --delete $(PROJECT_DIR)/Build/Install/USD/* amazon:/opt/rs/
