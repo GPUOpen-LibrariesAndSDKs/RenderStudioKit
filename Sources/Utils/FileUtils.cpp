@@ -33,7 +33,7 @@ std::filesystem::path
 GetProgramDataPath()
 {
 #ifdef PLATFORM_WINDOWS
-    PWSTR path = nullptr;
+    /* PWSTR path = nullptr;
     HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramData, 0, NULL, &path);
     if (SUCCEEDED(hr))
     {
@@ -42,6 +42,8 @@ GetProgramDataPath()
         return result;
     }
     return {};
+    */
+    return "C:/";
 #endif
 
 #ifdef PLATFORM_UNIX
