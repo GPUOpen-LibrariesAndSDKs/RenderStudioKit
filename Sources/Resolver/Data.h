@@ -113,6 +113,12 @@ public:
     AR_API
     std::size_t GetSequence() const { return mLatestAppliedSequence; }
 
+    AR_API
+    void SetOriginalFormat(SdfFileFormatConstPtr format);
+
+    AR_API
+    SdfFileFormatConstPtr GetOriginalFormat() const { return mOriginalFormat; };
+
 protected:
     // SdfAbstractData overrides
     AR_API
@@ -165,6 +171,8 @@ private:
 
     _HashTable mData;
     _HashTable mLocalDeltas;
+
+    SdfFileFormatConstPtr mOriginalFormat = nullptr;
 
     std::set<SdfPath> mUnacknowledgedFields;
     std::mutex mRemoteMutex;

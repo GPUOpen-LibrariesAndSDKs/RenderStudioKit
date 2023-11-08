@@ -45,6 +45,30 @@ TF_REGISTRY_FUNCTION(TfType) { SDF_DEFINE_FILE_FORMAT(RenderStudioFileFormat, Sd
 namespace
 {
 
+static SdfFileFormatConstPtr
+_GetFileFormat(const TfToken& formatId)
+{
+    const SdfFileFormatConstPtr fileFormat = SdfFileFormat::FindById(formatId);
+    TF_VERIFY(fileFormat);
+    return fileFormat;
+}
+
+static const UsdUsdcFileFormatConstPtr&
+_GetUsdcFileFormat()
+{
+    static const auto usdcFormat
+        = TfDynamic_cast<UsdUsdcFileFormatConstPtr>(_GetFileFormat(UsdUsdcFileFormatTokens->Id));
+    return usdcFormat;
+}
+
+static const UsdUsdaFileFormatConstPtr&
+_GetUsdaFileFormat()
+{
+    static const auto usdaFormat
+        = TfDynamic_cast<UsdUsdaFileFormatConstPtr>(_GetFileFormat(UsdUsdaFileFormatTokens->Id));
+    return usdaFormat;
+}
+
 static const SdfFileFormatConstPtr
 _GetOriginalFormat(const std::string& path)
 {
@@ -67,6 +91,20 @@ _GetOriginalFormat(const std::string& path)
         }
     }
 
+    const auto& usdcFileFormat = _GetUsdcFileFormat();
+    const auto& usdaFileFormat = _GetUsdaFileFormat();
+
+    if (usdcFileFormat->CanRead(path))
+    {
+        return usdcFileFormat;
+    }
+
+    if (usdaFileFormat->CanRead(path))
+    {
+        return usdaFileFormat;
+    }
+
+    // Fallback to search by extension
     return SdfFileFormat::FindByExtension(extension);
 }
 
@@ -98,6 +136,20 @@ RenderStudioDataPtr
 RenderStudioFileFormat::_GetRenderStudioData(SdfLayerHandle layer) const
 {
     SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(*layer);
+    RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
+
+    if (casted == nullptr)
+    {
+        throw std::runtime_error("Layer has no RenderStudio data");
+    }
+
+    return TfConst_cast<RenderStudioDataPtr>(casted);
+}
+
+RenderStudioDataPtr
+RenderStudioFileFormat::_GetRenderStudioData(const SdfLayer& layer) const
+{
+    SdfAbstractDataConstPtr abstract = SdfFileFormat::_GetLayerData(layer);
     RenderStudioDataConstPtr casted = TfDynamic_cast<RenderStudioDataConstPtr>(abstract);
 
     if (casted == nullptr)
@@ -264,6 +316,7 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
     // Tell layer that loading is finished and all new updates would be considered as user edit
     if (mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) == nullptr)
     {
+        _GetRenderStudioData(SdfLayerHandle { layer })->SetOriginalFormat(format);
         _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
         mLayerRegistry.AddLayer(SdfLayerHandle { layer });
     }
@@ -278,14 +331,15 @@ RenderStudioFileFormat::WriteToFile(
     const std::string& comment,
     const FileFormatArguments& args) const
 {
-    std::string resolvedPath = RenderStudioResolver::ResolveImpl(filePath);
-    SdfFileFormatConstPtr format = _GetOriginalFormat(resolvedPath);
+    // TODO: Add support for custom args
+    SdfFileFormatConstPtr format = _GetRenderStudioData(layer)->GetOriginalFormat();
 
     if (format == nullptr)
     {
         return false;
     }
 
+    std::string resolvedPath = RenderStudioResolver::ResolveImpl(filePath);
     return format->WriteToFile(layer, resolvedPath, comment, args);
 }
 

@@ -820,4 +820,10 @@ RenderStudioData::EraseTimeSample(const SdfPath& path, double time)
     }
 }
 
+void
+RenderStudioData::SetOriginalFormat(SdfFileFormatConstPtr format)
+{
+    mOriginalFormat = format;
+}
+
 PXR_NAMESPACE_CLOSE_SCOPE
