@@ -71,8 +71,8 @@ class SyncthingManager:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
-        except Exception as e:
-            logger.error(f"[Syncthing] Fatal error on syncthing startup: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Fatal error on syncthing startup: {traceback.format_exc()}")
             await asyncio.create_task(terminator.terminate_all())
 
         asyncio.create_task(self.communicate())
@@ -147,21 +147,33 @@ class SyncthingManager:
                 response = await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
                 logger.info(f"[Syncthing] Local config update: {response.status_code==200}")
 
-        except Exception as e:
-            logger.error(f"[Syncthing] Fatal error on syncthing startup: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Fatal error on syncthing startup: {traceback.format_exc()}")
             await asyncio.create_task(terminator.terminate_all())
 
         try:
             if settings.REMOTE_URL != 'localhost':
                 if await self.has_folder_errors():
                     await self.fix_folder_errors()
-        except Exception as e:
-            print("[Syncthing] Can't fix folder errors")
+        except Exception:
+            print(f"[Syncthing] Can't fix folder errors: {traceback.format_exc()}")
 
-    async def get_events(self, client):
+    async def get_events(self):
         try:
-            events = (await client.get(f"{settings.SYNCTHING_URL}/rest/events?since={self.max_event_id}&timeout=120", headers={'Authorization': F'Bearer {settings.SYNCTHING_API_KEY}'})).json()
-        except:
+            async with httpx.AsyncClient(timeout=120) as client:
+                logger.info(f'[Syncthing] Polling events with id {self.max_event_id}')
+                response = await client.get(f"{settings.SYNCTHING_URL}/rest/events?since={self.max_event_id}&timeout=120", headers={'Authorization': F'Bearer {settings.SYNCTHING_API_KEY}'})
+                if response.status_code == 200:
+                    if response.content:
+                        events = response.json()
+                    else:
+                        logger.error(f"[Syncthing] Got empty response with status {response.status_code}")
+                        return []
+                else:
+                    logger.error(f"[Syncthing] Got response with status {response.status_code}: {response.content}")
+                    return []
+        except Exception:
+            logger.error(f"[Syncthing] get_events error: {traceback.format_exc()}")
             return []
         first_poll = self.max_event_id == 0
         for event in events:
@@ -185,6 +197,22 @@ class SyncthingManager:
         async with httpx.AsyncClient() as client:
             return await client.put(f"{settings.SYNCTHING_URL}/rest/config", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'}, data=json.dumps(config))
 
+    async def cleanup_devices(self, client):
+        try:
+            connections = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/connections", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
+            device_id_to_remove = []
+
+            for device_id in connections['connections'].keys():
+                if not connections['connections'][device_id]['connected']:
+                    device_id_to_remove.append(device_id)
+
+            for device_id in device_id_to_remove:
+                await self.remove_device(device_id)
+
+            logger.info(f"[Syncthing] Cleanup removed {len(device_id_to_remove)} devices!")
+        except Exception:
+            logger.error(f"[Syncthing] Can't cleanup devices: {traceback.format_exc()}")
+
     async def append_device(self, device):
         try:
             logger.info(f"[Syncthing] Request to add device")
@@ -192,8 +220,28 @@ class SyncthingManager:
             config['devices'].append(device)
             response = await self.put_config(config)
             logger.info(f"[Syncthing] Add device status: {response.status_code==200}")
-        except Exception as e:
-            logger.error(f"[Syncthing] Can't add device: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Can't add device: {traceback.format_exc()}")
+
+    async def remove_device(self, device_id):
+        try:
+            logger.info(f"[Syncthing] Request to remove device")
+            config = await self.get_config()
+
+            existing_device = next((device for device in config['devices'] if device['deviceID'] == device_id), None)
+            if existing_device:
+                logger.info('Found device in devices')
+                config['devices'].remove(existing_device)
+
+            existing_folder_device = next((device for device in config['folders'][0]['devices'] if device['deviceID'] == device_id), None)
+            if existing_folder_device:
+                logger.info('Found device in folders')
+                config['folders'][0]['devices'].remove(existing_folder_device)
+
+            response = await self.put_config(config)
+            logger.info(f"[Syncthing] Remove device status: {response.status_code==200}")
+        except Exception:
+            logger.error(f"[Syncthing] Can't remove device: {traceback.format_exc()}")
 
     async def append_folder(self, folder):
         try:
@@ -206,8 +254,8 @@ class SyncthingManager:
             it['devices'].append({'deviceID': folder['deviceID']})
             response = await self.put_config(config)
             logger.info(f"[Syncthing] Share folder status: {response.status_code==200}")
-        except Exception as e:
-            logger.error(f"[Syncthing] Can't share folder: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Can't share folder: {traceback.format_exc()}")
 
     async def fix_folder_errors(self):
         try:
@@ -236,8 +284,8 @@ class SyncthingManager:
                 it['devices'].append({'deviceID': remote['device_id']})
                 response = await self.put_config(config)
                 logger.info(f"[Syncthing] Fixing, append again device status: {response.status_code==200}")
-        except Exception as e:
-            logger.error(f"[Syncthing] Can't fix folder errors: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Can't fix folder errors: {traceback.format_exc()}")
 
     async def has_folder_errors(self):
         try:
@@ -247,8 +295,8 @@ class SyncthingManager:
                     return True
                 else:
                     return False
-        except Exception as e:
-            logger.error(f"[Syncthing] Caught exception in has_folder_errors getter: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Caught exception in has_folder_errors getter: {traceback.format_exc()}")
             return False
 
     async def is_connected(self):
@@ -257,21 +305,21 @@ class SyncthingManager:
                 response = (await client.get(f"{settings.SYNCTHING_URL}/rest/system/connections", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 remote = (await client.get(f"{settings.REMOTE_URL}/workspace/info", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})).json()
                 return response['connections'][remote['device_id']]['connected']
-        except Exception as e:
-            logger.error(f"[Syncthing] Caught exception in is_connected getter: {e}")
+        except Exception:
+            logger.error(f"[Syncthing] Caught exception in is_connected getter: {traceback.format_exc()}")
             return False
 
     async def terminate(self):
         try:
             async with httpx.AsyncClient() as client:
                 result = await client.post(f"{settings.SYNCTHING_URL}/rest/system/shutdown", headers={'Authorization': f'Bearer {settings.SYNCTHING_API_KEY}'})
-        except Exception as e:
-            logger.error(f"[Terminate Syncthing] Rest request to shutdown: {e} (that should be fine)")
+        except Exception:
+            logger.error(f"[Terminate Syncthing] Rest request to shutdown: {traceback.format_exc()} (that should be fine)")
 
         try:
             await self.process.wait()
-        except Exception as e:
-            logger.error(f"[Terminate Syncthing] Waiting for working process exit: {e} (that should be fine)")
+        except Exception:
+            logger.error(f"[Terminate Syncthing] Waiting for working process exit: {traceback.format_exc()} (that should be fine)")
 
         self.max_event_id = 0
 

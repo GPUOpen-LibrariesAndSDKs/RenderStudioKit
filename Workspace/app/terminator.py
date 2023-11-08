@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import traceback
 
 class Terminator:
     async def terminate_all(self):
@@ -23,13 +24,13 @@ class Terminator:
             from app.syncthing_manager import syncthing_manager
             await syncthing_manager.terminate()
         except Exception as e:
-            logger.error(f"[Terminator] Syncthing: {e} (that should be fine)")
+            logger.error(f"[Terminator] Syncthing: {traceback.format_exc()} (that should be fine)")
 
         try:
             from app.connection_manager import connection_manager
             await connection_manager.terminate()
         except Exception as e:
-            logger.error(f"[Terminator] Websocket: {e} (that should be fine)")
+            logger.error(f"[Terminator] Websocket: {traceback.format_exc()} (that should be fine)")
 
         logger.info('Bye-bye')
         os._exit(1)

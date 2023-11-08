@@ -17,9 +17,10 @@ import asyncio
 import threading
 import os
 import httpx
+import traceback
 from typing import List
 
-from app.logger import logger
+from app.logger import logger, syncthing_logger
 from app.settings import settings
 from app.syncthing_manager import syncthing_manager
 from app.terminator import terminator
@@ -56,6 +57,8 @@ class ConnectionManager:
 
             if settings.REMOTE_URL != 'localhost':
                 asyncio.create_task(connection_manager.auto_check_connected_device())
+            else:
+                asyncio.create_task(connection_manager.auto_clean_devices_job())
         else:
             if self.last_device_connected_event:
                 await self.broadcast(self.last_device_connected_event)
@@ -65,8 +68,8 @@ class ConnectionManager:
     async def disconnect(self, websocket: WebSocket):
         try:
             await websocket.close()
-        except Exception as e:
-            logger.info(f"[Websocket] Caught exception during websocket close: {e} (That should be fine)")
+        except Exception:
+            logger.info(f"[Websocket] Caught exception during websocket close: {traceback.format_exc()} (That should be fine)")
 
         if not websocket in self.active_connections:
             logger.info("[Websocket] For some reason disconnected websocket wasn't in active connections list. Skipping")
@@ -102,8 +105,8 @@ class ConnectionManager:
                 for websocket in remove_list:
                     await self.disconnect(websocket)
                 await asyncio.sleep(5)
-        except Exception as e:
-            logger.error(f'[Websocket] Fatal error: {e}')
+        except Exception:
+            logger.error(f'[Websocket] Fatal error: {traceback.format_exc()}')
             await asyncio.create_task(terminator.terminate_all())
 
     async def auto_check_connected_device(self):
@@ -122,65 +125,79 @@ class ConnectionManager:
                     break
 
                 await asyncio.sleep(1)
-        except Exception as e:
-            logger.error(f'[Websocket] Error in auto check connected device: {e}')
+        except Exception:
+            logger.error(f'[Websocket] Error in auto check connected device: {traceback.format_exc()}')
 
-    async def auto_poll_syncthing_job(self):
+    async def auto_clean_devices_job(self):
         async with httpx.AsyncClient() as client:
             while True:
                 try:
-                    events = await syncthing_manager.get_events(client)
-                    for event in events:
-                        if event['type'] == 'ItemFinished':
-                            path = 'studio:/' + event['data']['item'].replace('\\', '/')
-                            await self.broadcast({
-                                'event': 'Event::FileUpdated',
-                                'path': path
-                            })
-                        elif event['type'] == 'StateChanged':
-                            # Here broadcast only errors
-                            state = event['data']['to']
-                            if state == 'error':
-                                await self.broadcast({
-                                    'event': 'Event::StateChanged',
-                                    'state': state
-                                })
-                        elif event['type'] == 'DeviceConnected':
-                            self.last_device_connected_event = {
-                                'event': 'Event::Connection',
-                                'connected': True
-                            }
-                            await self.broadcast(self.last_device_connected_event)
-                        elif event['type'] == 'FolderSummary':
-                            state = "error"
-                            if event['data']['summary']['globalBytes'] == 0:
-                                state = "syncing"
-                            elif event['data']['summary']['globalBytes'] != event['data']['summary']['inSyncBytes']:
-                                state = "syncing"
-                            elif event['data']['summary']['globalBytes'] == event['data']['summary']['inSyncBytes']:
-                                state = "idle"
+                    await syncthing_manager.cleanup_devices(client)
+                    await asyncio.sleep(120)
+                except Exception:
+                    logger.error(f'[Websocket] Fatal error in auto clean devices: {traceback.format_exc()}')
+                    await asyncio.create_task(terminator.terminate_all())
 
-                            self.last_folder_summary_event = {
+    async def auto_poll_syncthing_job(self):
+        while True:
+            try:
+                events = await syncthing_manager.get_events()
+                for event in events:
+                    if event['type'] == 'ItemFinished':
+                        path = 'studio:/' + event['data']['item'].replace('\\', '/')
+                        await self.broadcast({
+                            'event': 'Event::FileUpdated',
+                            'path': path
+                        })
+                    elif event['type'] == 'StateChanged':
+                        # Here broadcast only errors
+                        state = event['data']['to']
+                        if state == 'error':
+                            await self.broadcast({
                                 'event': 'Event::StateChanged',
                                 'state': state
-                            }
-                            await self.broadcast(self.last_folder_summary_event)
-                        elif event['type'] == 'PendingDevicesChanged':
-                            logger.info(event)
-                            if 'added' in event['data']:
-                                for device in event['data']['added']:
-                                    await syncthing_manager.append_device(device)
-                        elif event['type'] == 'PendingFoldersChanged':
-                            if 'added' in event['data']:
-                                for folder in event['data']['added']:
-                                    await syncthing_manager.append_folder(folder)
-                        elif event['type'] == 'FolderErrors':
-                            await syncthing_manager.fix_folder_errors()
-
-                    await asyncio.sleep(1)
-                except Exception as e:
-                    logger.error(f'[Websocket] Fatal error in auto poll: {e}')
-                    await asyncio.create_task(terminator.terminate_all())
+                            })
+                    elif event['type'] == 'DeviceConnected':
+                        logger.info(event)
+                        self.last_device_connected_event = {
+                            'event': 'Event::Connection',
+                            'connected': True
+                        }
+                        await self.broadcast(self.last_device_connected_event)
+                    elif event['type'] == 'FolderSummary':
+                        state = "error"
+                        if event['data']['summary']['globalBytes'] == 0:
+                            state = "syncing"
+                        elif event['data']['summary']['globalBytes'] != event['data']['summary']['inSyncBytes']:
+                            state = "syncing"
+                        elif event['data']['summary']['globalBytes'] == event['data']['summary']['inSyncBytes']:
+                            state = "idle"
+                        self.last_folder_summary_event = {
+                            'event': 'Event::StateChanged',
+                            'state': state
+                        }
+                        await self.broadcast(self.last_folder_summary_event)
+                    elif event['type'] == 'PendingDevicesChanged':
+                        logger.info(event)
+                        if 'added' in event['data']:
+                            for device in event['data']['added']:
+                                await syncthing_manager.append_device(device)
+                    elif event['type'] == 'PendingFoldersChanged':
+                        logger.info(event)
+                        if 'added' in event['data']:
+                            for folder in event['data']['added']:
+                                await syncthing_manager.append_folder(folder)
+                    elif event['type'] == 'FolderErrors':
+                        logger.info(event)
+                        await syncthing_manager.fix_folder_errors()
+                    elif event['type'] == 'DeviceDisconnected':
+                        logger.info(event)
+                        # if settings.REMOTE_URL == 'localhost':
+                        #    await syncthing_manager.remove_device(event['data']['id'])
+                await asyncio.sleep(1)
+            except Exception:
+                logger.error(f'[Websocket] Fatal error in auto poll: {traceback.format_exc()}')
+                await asyncio.create_task(terminator.terminate_all())
 
     async def terminate(self):
         try:
@@ -189,16 +206,16 @@ class ConnectionManager:
                 'connected': False
             }
             await self.broadcast(self.last_device_connected_event)
-        except Exception as e:
-            logger.error(f"[Terminate Websocket] Send disconnect event: {e} (that should be fine)")
+        except Exception:
+            logger.error(f"[Terminate Websocket] Send disconnect event: {traceback.format_exc()} (that should be fine)")
 
         try:
             for websocket in list(self.active_connections.keys()):
                 try:
                     await websocket.close()
-                except Exception as e:
-                    logger.error(f"[Terminate] Close websocket: {e} (that should be fine)")
-        except Exception as e:
-            logger.error(f"[Terminate Websocket] Close all websockets: {e} (that should be fine)")
+                except Exception:
+                    logger.error(f"[Terminate] Close websocket: {traceback.format_exc()} (that should be fine)")
+        except Exception:
+            logger.error(f"[Terminate Websocket] Close all websockets: {traceback.format_exc()} (that should be fine)")
 
 connection_manager = ConnectionManager()
