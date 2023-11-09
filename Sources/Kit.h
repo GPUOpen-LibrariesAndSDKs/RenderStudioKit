@@ -55,11 +55,17 @@ void SharedWorkspaceDisconnect();
 /// @brief Checks if connected to shared workspace
 bool SharedWorkspaceIsConnected();
 
-/// @brief Checks if sycnrhonization is finished.
+/// @brief Checks if synchronization is finished.
 bool SharedWorkspaceIsIdle();
 
-/// @brief Waits for sycnrhonization to be finished.
+/// @brief Waits for synchronization to be finished.
 void SharedWorkspaceWaitIdle();
+
+/// @brief Pauses synchronization. Useful to be sure files aren't locked by syncthing
+void SharedWorkspacePause();
+
+/// @brief Resumes synchronization.
+void SharedWorkspaceResume();
 
 /// @brief Set directory which would be synchronized for all connected users
 /// @param path Directory to syncronize

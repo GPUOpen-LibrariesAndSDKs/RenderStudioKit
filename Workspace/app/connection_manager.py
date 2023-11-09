@@ -91,8 +91,15 @@ class ConnectionManager:
             await connection.send_json(message)
 
     async def receive_text(self, websocket: WebSocket):
-        await websocket.receive_text()
+        text = await websocket.receive_text()
         self.active_connections[websocket] = asyncio.get_running_loop().time()
+
+        if text == 'pause':
+            await syncthing_manager.pause()
+        elif text == 'resume':
+            await syncthing_manager.resume()
+        elif text == 'ping':
+            pass
 
     async def auto_disconnect_clients_job(self):
         try:
@@ -129,14 +136,14 @@ class ConnectionManager:
             logger.error(f'[Websocket] Error in auto check connected device: {traceback.format_exc()}')
 
     async def auto_clean_devices_job(self):
-        async with httpx.AsyncClient() as client:
-            while True:
-                try:
+        while True:
+            try:
+                async with httpx.AsyncClient() as client:
                     await syncthing_manager.cleanup_devices(client)
-                    await asyncio.sleep(120)
-                except Exception:
-                    logger.error(f'[Websocket] Fatal error in auto clean devices: {traceback.format_exc()}')
-                    await asyncio.create_task(terminator.terminate_all())
+                    await asyncio.sleep(600)
+            except Exception:
+                logger.error(f'[Websocket] Fatal error in auto clean devices: {traceback.format_exc()}')
+                await asyncio.create_task(terminator.terminate_all())
 
     async def auto_poll_syncthing_job(self):
         while True:
@@ -192,8 +199,16 @@ class ConnectionManager:
                         await syncthing_manager.fix_folder_errors()
                     elif event['type'] == 'DeviceDisconnected':
                         logger.info(event)
+                        #
+                        # Commented out since currently automatic job makes device cleanup
+                        #
                         # if settings.REMOTE_URL == 'localhost':
                         #    await syncthing_manager.remove_device(event['data']['id'])
+                        #
+                    elif event['type'] == 'FolderPaused':
+                        await self.broadcast({'event': 'Event::Paused'})
+                    elif event['type'] == 'FolderResumed':
+                        await self.broadcast({'event': 'Event::Resumed'})
                 await asyncio.sleep(1)
             except Exception:
                 logger.error(f'[Websocket] Fatal error in auto poll: {traceback.format_exc()}')

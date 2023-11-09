@@ -41,6 +41,8 @@ public:
     static void Connect(RenderStudio::Kit::Role role);
     static void Disconnect();
     static void WaitIdle();
+    static void Pause();
+    static void Resume();
     static bool IsIdle();
     static bool IsConnected();
     static void SetWorkspacePath(const std::string& path);
@@ -63,6 +65,12 @@ private:
     static inline std::mutex sStateMutex;
     static inline std::condition_variable sStateConditionVariable;
     static inline std::string sLastState = "";
+
+    // Paused getters data
+    static inline std::mutex sPausedMutex;
+    static inline std::condition_variable sPausedConditionVariable;
+    static inline bool sPaused = false;
+
     static inline bool sConnected = false;
     static inline Logic sLogic;
 

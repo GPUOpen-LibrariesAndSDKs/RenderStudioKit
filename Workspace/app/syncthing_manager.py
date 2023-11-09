@@ -309,6 +309,22 @@ class SyncthingManager:
             logger.error(f"[Syncthing] Caught exception in is_connected getter: {traceback.format_exc()}")
             return False
 
+    async def pause(self):
+        try:
+            config = await self.get_config()
+            config['folders'][0]['paused'] = True
+            response = await self.put_config(config)
+        except Exception:
+            logger.error(f"[Syncthing] Caught exception in pause: {traceback.format_exc()}")
+
+    async def resume(self):
+        try:
+            config = await self.get_config()
+            config['folders'][0]['paused'] = False
+            response = await self.put_config(config)
+        except Exception:
+            logger.error(f"[Syncthing] Caught exception in resume: {traceback.format_exc()}")
+
     async def terminate(self):
         try:
             async with httpx.AsyncClient() as client:

@@ -70,6 +70,18 @@ SharedWorkspaceWaitIdle()
     RenderStudio::Networking::Workspace::WaitIdle();
 }
 
+void
+SharedWorkspacePause()
+{
+    RenderStudio::Networking::Workspace::Pause();
+}
+
+void
+SharedWorkspaceResume()
+{
+    RenderStudio::Networking::Workspace::Resume();
+}
+
 bool
 IsUnresolvable(const std::string& path)
 {

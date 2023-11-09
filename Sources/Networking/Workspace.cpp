@@ -162,6 +162,40 @@ Workspace::WaitIdle()
     LOG_INFO << "Workspace became idle";
 }
 
+void
+Workspace::Pause()
+{
+    if (sClient == nullptr)
+    {
+        LOG_WARNING << "Tried to pause workspace when client isn't connected";
+        return;
+    }
+
+    sClient->Send("pause");
+
+    LOG_DEBUG << "Wait for pause";
+    std::unique_lock lock(Workspace::sPausedMutex);
+    sPausedConditionVariable.wait(lock, [] { return sPaused; });
+    LOG_DEBUG << "Pause done";
+}
+
+void
+Workspace::Resume()
+{
+    if (sClient == nullptr)
+    {
+        LOG_WARNING << "Tried to resume workspace when client isn't connected";
+        return;
+    }
+
+    sClient->Send("resume");
+
+    LOG_DEBUG << "Wait for resume";
+    std::unique_lock lock(Workspace::sPausedMutex);
+    sPausedConditionVariable.wait(lock, [] { return !sPaused; });
+    LOG_DEBUG << "Resume done";
+}
+
 bool
 Workspace::IsIdle()
 {
@@ -277,6 +311,18 @@ Logic::OnMessage(const std::string& message)
             std::unique_lock lock(Workspace::sStateMutex);
             Workspace::sConnected = connected;
             Workspace::sStateConditionVariable.notify_all();
+        }
+        else if (event == "Event::Paused")
+        {
+            std::unique_lock lock(Workspace::sPausedMutex);
+            Workspace::sPaused = true;
+            Workspace::sPausedConditionVariable.notify_all();
+        }
+        else if (event == "Event::Resumed")
+        {
+            std::unique_lock lock(Workspace::sPausedMutex);
+            Workspace::sPaused = false;
+            Workspace::sPausedConditionVariable.notify_all();
         }
     }
     catch (const std::exception& ex)
