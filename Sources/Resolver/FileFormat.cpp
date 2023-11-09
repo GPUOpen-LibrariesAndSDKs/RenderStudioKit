@@ -91,17 +91,20 @@ _GetOriginalFormat(const std::string& path)
         }
     }
 
-    const auto& usdcFileFormat = _GetUsdcFileFormat();
-    const auto& usdaFileFormat = _GetUsdaFileFormat();
-
-    if (usdcFileFormat->CanRead(path))
+    if (extension.find(".usd") != std::string::npos)
     {
-        return usdcFileFormat;
-    }
+        const auto& usdcFileFormat = _GetUsdcFileFormat();
+        const auto& usdaFileFormat = _GetUsdaFileFormat();
 
-    if (usdaFileFormat->CanRead(path))
-    {
-        return usdaFileFormat;
+        if (usdcFileFormat->CanRead(path))
+        {
+            return usdcFileFormat;
+        }
+
+        if (usdaFileFormat->CanRead(path))
+        {
+            return usdaFileFormat;
+        }
     }
 
     // Fallback to search by extension
