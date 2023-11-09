@@ -33,17 +33,46 @@ std::filesystem::path
 GetProgramDataPath()
 {
 #ifdef PLATFORM_WINDOWS
-    /* PWSTR path = nullptr;
-    HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramData, 0, NULL, &path);
-    if (SUCCEEDED(hr))
+    std::string useLegacyFolder = "OFF";
+
+    auto GetEnironmentImpl = [](const std::string& name)
     {
-        std::filesystem::path result(path);
-        CoTaskMemFree(path);
-        return result;
+        const DWORD size = GetEnvironmentVariable(name.c_str(), nullptr, 0);
+        if (size != 0)
+        {
+            std::unique_ptr<char[]> buffer(new char[size]);
+            GetEnvironmentVariable(name.c_str(), buffer.get(), size);
+            return std::string(buffer.get());
+        }
+        else
+        {
+            return std::string();
+        }
+    };
+
+    if (!GetEnironmentImpl("RENDER_STUDIO_USE_LEGACY_FOLDER").empty())
+    {
+        useLegacyFolder = GetEnironmentImpl("RENDER_STUDIO_USE_LEGACY_FOLDER");
     }
-    return {};
-    */
-    return "C:/";
+
+    if (useLegacyFolder == "ON")
+    {
+        LOG_FATAL << "Using legacy windows folder in ProgramData";
+
+        PWSTR path = nullptr;
+        HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramData, 0, NULL, &path);
+        if (SUCCEEDED(hr))
+        {
+            std::filesystem::path result(path);
+            CoTaskMemFree(path);
+            return result;
+        }
+        return {};
+    }
+    else
+    {
+        return "C:/";
+    }
 #endif
 
 #ifdef PLATFORM_UNIX
