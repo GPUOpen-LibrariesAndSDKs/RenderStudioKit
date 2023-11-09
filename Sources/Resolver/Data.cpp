@@ -147,6 +147,19 @@ RenderStudioData::ApplyDelta(
     {
         notices.push_back(RenderStudioNotice::PrimitiveChanged(path, true));
     }
+
+    // Currently we don't sync spec removal, so detect it from empty typeName
+    if (key == SdfFieldKeys->TypeName && value.IsHolding<TfToken>())
+    {
+        TfToken data = value.Get<TfToken>();
+
+        // Trigger for us to erase spec
+        if (data.IsEmpty())
+        {
+            EraseSpec(path);
+            return;
+        }
+    }
 }
 
 void
