@@ -168,8 +168,32 @@ RenderStudioFileFormat::ProcessLiveUpdates()
 {
     bool updated = false;
 
+    // Fetch all incoming events and release lock so newer events could be accumulated
+    std::unique_lock<std::mutex> lock(mEventMutex);
+    auto deltas = std::move(mAccumulatedDeltas);
+    auto reloads = std::move(mRequestedReloads);
+    auto acknowledges = std::move(mAccumulatedAcknowledges);
+    lock.unlock();
+
+    // Process reloads. It's safe to do it from beginning, since we already discarded all the deltas before reloading
+    mReloadInProgress = true;
+    for (const std::string& id : reloads)
+    {
+        SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(id);
+        if (layer == nullptr)
+        {
+            LOG_WARNING << "Tried to reload expired layer: " << id;
+            continue;
+        }
+        layer->Reload();
+        RenderStudioNotice::LayerReloaded(id).Send();
+        updated = true;
+    }
+    mReloadInProgress = false;
+
+    // Process deltas
     mLayerRegistry.ForEachLayer(
-        [this, &updated](SdfLayerHandle layer)
+        [this, &updated, &deltas, &reloads, &acknowledges](SdfLayerHandle layer)
         {
             RenderStudioDataPtr data = _GetRenderStudioData(layer);
 
@@ -180,8 +204,8 @@ RenderStudioFileFormat::ProcessLiveUpdates()
             }
 
             // Send local deltas
-            auto deltas = data->FetchLocalDeltas();
-            if (!deltas.empty())
+            auto local = data->FetchLocalDeltas();
+            if (!local.empty())
             {
                 try
                 {
@@ -191,7 +215,7 @@ RenderStudioFileFormat::ProcessLiveUpdates()
                     body.user = RenderStudioResolver::GetCurrentUserId();
                     body.sequence = std::nullopt;
 
-                    for (const auto& [key, value] : deltas)
+                    for (const auto& [key, value] : local)
                     {
                         body.updates[key] = RenderStudio::API::SpecData { value.specType, value.fields };
                     }
@@ -205,7 +229,39 @@ RenderStudioFileFormat::ProcessLiveUpdates()
                 }
             }
 
-            // Apply remote deltas
+            // Accumulate remote acknowledges inside data
+            if (auto it = acknowledges.find(layer->GetIdentifier()); it != acknowledges.end())
+            {
+                for (const RenderStudio::API::AcknowledgeEvent& acknowledge : it->second)
+                {
+                    // Convert API update to internal format
+                    RenderStudioData::_HashTable updates;
+                    for (const auto& path : acknowledge.paths)
+                    {
+                        updates[path] = RenderStudioData::_SpecData {};
+                    }
+                    data->AccumulateRemoteUpdate(updates, acknowledge.sequence);
+                }
+            }
+
+            // Accumulate remote deltas inside data
+            if (auto it = deltas.find(layer->GetIdentifier()); it != deltas.end())
+            {
+                for (const RenderStudio::API::DeltaEvent& delta : it->second)
+                {
+                    // Convert API update to internal format
+                    RenderStudioData::_HashTable updates;
+                    for (const auto& [key, value] : delta.updates)
+                    {
+                        RenderStudioData::_SpecData spec;
+                        spec.specType = value.specType;
+                        spec.fields = value.fields;
+                        updates[key] = spec;
+                    }
+                    data->AccumulateRemoteUpdate(updates, delta.sequence.value());
+                }
+            }
+
             std::size_t sequence = data->GetSequence();
             data->ProcessRemoteUpdates(layer);
 
@@ -224,13 +280,8 @@ RenderStudioFileFormat::Connect(const std::string& url)
 {
     mLayerRegistry.RemoveExpiredLayers();
 
-    if (!mLogic)
-    {
-        mLogic = std::make_shared<Logic>(*this);
-    }
-
     // Create client
-    mWebsocketClient = RenderStudio::Networking::WebsocketClient::Create(*mLogic.get());
+    mWebsocketClient = RenderStudio::Networking::WebsocketClient::Create(*this);
 
     // Connect to endpoint
     try
@@ -316,13 +367,27 @@ RenderStudioFileFormat::Read(SdfLayer* layer, const std::string& resolvedPath, b
     renderStudioData->CopyFrom(abstractData);
     SdfFileFormat::_SetLayerData(layer, renderStudioData);
 
-    // Tell layer that loading is finished and all new updates would be considered as user edit
-    if (mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) == nullptr)
+    // Here's first time layer read
+    bool firstTimeLoading = mLayerRegistry.GetByIdentifier(layer->GetIdentifier()) == nullptr;
+    if (firstTimeLoading)
     {
-        _GetRenderStudioData(SdfLayerHandle { layer })->SetOriginalFormat(format);
-        _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
         mLayerRegistry.AddLayer(SdfLayerHandle { layer });
     }
+
+    // Notify other clients about reloading if we initiated it
+    if (!mReloadInProgress && mWebsocketClient != nullptr && !firstTimeLoading)
+    {
+        // Here's consider layer reloading
+        RenderStudio::API::ReloadEvent body;
+        body.layer = layer->GetIdentifier();
+        body.user = RenderStudioResolver::GetCurrentUserId();
+        body.sequence = std::nullopt;
+        RenderStudio::API::Event event { "Reload::Event", body };
+        mWebsocketClient->Send(boost::json::serialize(boost::json::value_from(event)));
+    }
+
+    _GetRenderStudioData(SdfLayerHandle { layer })->SetOriginalFormat(format);
+    _GetRenderStudioData(SdfLayerHandle { layer })->OnLoaded();
 
     return result;
 }
@@ -372,26 +437,8 @@ RenderStudioFileFormat::ProcessDeltaEvent(const RenderStudio::API::DeltaEvent& v
         return;
     }
 
-    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
-
-    if (layer == nullptr)
-    {
-        LOG_WARNING << "Got update for unknown layer: " << v.layer;
-        return;
-    }
-
-    // Convert API update to internal format
-    RenderStudioData::_HashTable updates;
-    for (const auto& [key, value] : v.updates)
-    {
-        RenderStudioData::_SpecData spec;
-        spec.specType = value.specType;
-        spec.fields = value.fields;
-        updates[key] = spec;
-    }
-
-    // Append deltas to the data
-    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence.value());
+    std::lock_guard<std::mutex> lock(mEventMutex);
+    mAccumulatedDeltas[v.layer].push_back(v);
 }
 
 void
@@ -405,46 +452,53 @@ RenderStudioFileFormat::ProcessHistoryEvent(const RenderStudio::API::HistoryEven
 void
 RenderStudioFileFormat::ProcessAcknowledgeEvent(const RenderStudio::API::AcknowledgeEvent& v)
 {
-    SdfLayerHandle layer = mLayerRegistry.GetByIdentifier(v.layer);
-
-    if (layer == nullptr)
-    {
-        LOG_WARNING << "Got acknowledge for unknown layer: " << v.layer;
-        return;
-    }
-
-    // Convert API update to internal format
-    RenderStudioData::_HashTable updates;
-    for (const auto& path : v.paths)
-    {
-        updates[path] = RenderStudioData::_SpecData {};
-    }
-
-    // Append deltas to the data
-    _GetRenderStudioData(layer)->AccumulateRemoteUpdate(updates, v.sequence);
-}
-
-Logic::Logic(RenderStudioFileFormat& format)
-    : mFormat(format)
-{
+    std::lock_guard<std::mutex> lock(mEventMutex);
+    mAccumulatedAcknowledges[v.layer].push_back(v);
 }
 
 void
-Logic::OnConnected()
+RenderStudioFileFormat::ProcessReloadEvent(const RenderStudio::API::ReloadEvent& v)
+{
+    if (!v.sequence.has_value())
+    {
+        LOG_WARNING << "Got update without sequence number";
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(mEventMutex);
+
+    // Clear all deltas that happen before reload, we not going to apply them
+    if (auto it = mAccumulatedDeltas.find(v.layer); it != mAccumulatedDeltas.end())
+    {
+        mAccumulatedDeltas.erase(it);
+    }
+
+    // Clear all acknowledges that happen before reload, data would be re-created so not use them
+    if (auto it = mAccumulatedAcknowledges.find(v.layer); it != mAccumulatedAcknowledges.end())
+    {
+        mAccumulatedAcknowledges.erase(it);
+    }
+
+    // Store information that reloading is required
+    mRequestedReloads.push_back(v.layer);
+}
+
+void
+RenderStudioFileFormat::OnConnected()
 {
     LOG_INFO << "Connected RenderStudioKit with remote Live server";
     RenderStudioNotice::LiveConnectionChanged(true).Send();
 }
 
 void
-Logic::OnDisconnected()
+RenderStudioFileFormat::OnDisconnected()
 {
     LOG_INFO << "Disconnected RenderStudioKit from remote Live server";
     RenderStudioNotice::LiveConnectionChanged(false).Send();
 }
 
 void
-Logic::OnMessage(const std::string& message)
+RenderStudioFileFormat::OnMessage(const std::string& message)
 {
     auto event = ParseEvent(message);
 
@@ -454,9 +508,10 @@ Logic::OnMessage(const std::string& message)
     }
 
     std::visit(
-        Overload { [this](const RenderStudio::API::DeltaEvent& v) { mFormat.ProcessDeltaEvent(v); },
-                   [this](const RenderStudio::API::HistoryEvent& v) { mFormat.ProcessHistoryEvent(v); },
-                   [this](const RenderStudio::API::AcknowledgeEvent& v) { mFormat.ProcessAcknowledgeEvent(v); } },
+        Overload { [this](const RenderStudio::API::DeltaEvent& v) { ProcessDeltaEvent(v); },
+                   [this](const RenderStudio::API::HistoryEvent& v) { ProcessHistoryEvent(v); },
+                   [this](const RenderStudio::API::AcknowledgeEvent& v) { ProcessAcknowledgeEvent(v); },
+                   [this](const RenderStudio::API::ReloadEvent& v) { ProcessReloadEvent(v); } },
         event.value().body);
 }
 

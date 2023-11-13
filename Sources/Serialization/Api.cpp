@@ -183,6 +183,35 @@ tag_invoke(const value_to_tag<HistoryEvent>&, const value& json)
     return {};
 }
 
+// --- ReloadEvent ---
+void
+tag_invoke(const value_from_tag&, value& json, const ReloadEvent& v)
+{
+    object result;
+    result["layer"] = boost::json::value_from(v.layer);
+    result["user"] = boost::json::value_from(v.user);
+
+    if (v.sequence.has_value())
+    {
+        result["sequence"] = boost::json::value_from(v.sequence.value());
+    }
+
+    json = result;
+}
+
+ReloadEvent
+tag_invoke(const value_to_tag<ReloadEvent>&, const value& json)
+{
+    boost::json::object root = json.as_object();
+    ReloadEvent result;
+
+    Helper::Extract(root, result.layer, "layer");
+    Helper::Extract(root, result.user, "user");
+    Helper::Extract(root, result.sequence, "sequence");
+
+    return result;
+}
+
 // --- Event ---
 void
 tag_invoke(const value_from_tag&, value& json, const Event& v)
@@ -202,9 +231,13 @@ tag_invoke(const value_from_tag&, value& json, const Event& v)
     {
         result["body"] = boost::json::value_from(std::get<HistoryEvent>(v.body));
     }
+    else if (v.event == "Reload::Event")
+    {
+        result["body"] = boost::json::value_from(std::get<ReloadEvent>(v.body));
+    }
     else
     {
-        throw std::runtime_error("JSON event is unsupported");
+        throw std::runtime_error("JSON event is unsupported: " + v.event);
     }
 
     json = result;
@@ -229,6 +262,10 @@ tag_invoke(const value_to_tag<Event>&, const value& json)
     else if (jsonEvent == "History::Event")
     {
         result.body = boost::json::value_to<HistoryEvent>(jsonObject.at("body"));
+    }
+    else if (jsonEvent == "Reload::Event")
+    {
+        result.body = boost::json::value_to<ReloadEvent>(jsonObject.at("body"));
     }
     else
     {

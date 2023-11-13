@@ -140,7 +140,7 @@ class ConnectionManager:
             try:
                 async with httpx.AsyncClient() as client:
                     await syncthing_manager.cleanup_devices(client)
-                    await asyncio.sleep(600)
+                    await asyncio.sleep(3600)
             except Exception:
                 logger.error(f'[Websocket] Fatal error in auto clean devices: {traceback.format_exc()}')
                 await asyncio.create_task(terminator.terminate_all())

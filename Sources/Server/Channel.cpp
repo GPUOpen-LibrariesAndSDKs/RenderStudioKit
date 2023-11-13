@@ -72,6 +72,17 @@ Channel::AddToHistory(const RenderStudio::API::DeltaEvent& v)
     mHistory.at(v.layer).push_back(v);
 }
 
+void
+Channel::ClearHistory(const std::string& layer)
+{
+    if (mHistory.find(layer) == mHistory.end())
+    {
+        return;
+    }
+
+    mHistory.at(layer).clear();
+}
+
 bool
 Channel::Empty() const
 {

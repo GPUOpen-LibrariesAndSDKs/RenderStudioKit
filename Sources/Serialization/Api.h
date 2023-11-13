@@ -74,10 +74,20 @@ struct HistoryEvent
 void tag_invoke(const value_from_tag&, value& json, const HistoryEvent& v);
 HistoryEvent tag_invoke(const value_to_tag<HistoryEvent>&, const value& json);
 
+struct ReloadEvent
+{
+    std::string layer;
+    std::string user;
+    std::optional<std::size_t> sequence;
+};
+
+void tag_invoke(const value_from_tag&, value& json, const ReloadEvent& v);
+ReloadEvent tag_invoke(const value_to_tag<ReloadEvent>&, const value& json);
+
 struct Event
 {
     std::string event;
-    std::variant<DeltaEvent, AcknowledgeEvent, HistoryEvent> body;
+    std::variant<DeltaEvent, AcknowledgeEvent, HistoryEvent, ReloadEvent> body;
 };
 
 void tag_invoke(const value_from_tag&, value& json, const Event& v);

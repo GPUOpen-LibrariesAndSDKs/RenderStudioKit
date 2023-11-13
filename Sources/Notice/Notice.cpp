@@ -31,6 +31,7 @@ TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceState, TfType::CONCRETE, TF_1_P
 TF_INSTANTIATE_TYPE(RenderStudioNotice::FileUpdated, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioNotice::WorkspaceConnectionChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 TF_INSTANTIATE_TYPE(RenderStudioNotice::LiveConnectionChanged, TfType::CONCRETE, TF_1_PARENT(TfNotice))
+TF_INSTANTIATE_TYPE(RenderStudioNotice::LayerReloaded, TfType::CONCRETE, TF_1_PARENT(TfNotice))
 
 RenderStudioNotice::PrimitiveChanged::PrimitiveChanged(const SdfPath& path, bool resynced)
     : mChangedPrim(path)
@@ -184,6 +185,17 @@ bool
 RenderStudioNotice::LiveConnectionChanged::IsConnected() const
 {
     return mStatus;
+}
+
+RenderStudioNotice::LayerReloaded::LayerReloaded(const std::string& identifier)
+    : mIdentifier(identifier)
+{
+}
+
+std::string
+RenderStudioNotice::LayerReloaded::GetIdentifier() const
+{
+    return mIdentifier;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

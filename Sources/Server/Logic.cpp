@@ -137,6 +137,31 @@ Logic::OnMessage(ConnectionPtr connection, const std::string& message)
             {
                 (void)v;
                 // Do nothing. Only clients receive acknowledges
+            },
+            [&connection, this, &message](const RenderStudio::API::ReloadEvent& v)
+            {
+                // Thread safety
+                std::lock_guard<std::mutex> lock(mMutex);
+
+                if (mChannels.count(connection->GetChannel()) == 0)
+                {
+                    LOG_ERROR << "User \'" << connection->GetDebugName()
+                              << "\' sent message from non-existent channel \'" << connection->GetChannel() << "\'";
+                    return;
+                }
+
+                // Process sequence
+                Channel& channel = mChannels.at(connection->GetChannel());
+                std::size_t sequence = channel.GetSequenceNumber(v.layer);
+                RenderStudio::API::ReloadEvent acknowledgedReload = v;
+                acknowledgedReload.sequence = sequence;
+
+                // Broadcast update to users
+                channel.ClearHistory(v.layer);
+                channel.Send(
+                    connection,
+                    boost::json::serialize(
+                        boost::json::value_from(RenderStudio::API::Event { "Reload::Event", acknowledgedReload })));
             } },
         event.value().body);
 }

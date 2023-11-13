@@ -252,6 +252,10 @@ void
 RenderStudioData::OnLoaded()
 {
     mIsLoaded = true;
+    mLocalDeltas.clear();
+    mUnacknowledgedFields.clear();
+    mLatestAppliedSequence = 0;
+    mRemoteDeltasQueue.clear();
 }
 
 bool

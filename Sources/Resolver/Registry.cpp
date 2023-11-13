@@ -35,6 +35,17 @@ RenderStudioLayerRegistry::AddLayer(SdfLayerHandle layer)
 }
 
 void
+RenderStudioLayerRegistry::RemoveLayer(SdfLayerHandle layer)
+{
+    if (mCreatedLayers.find(layer->GetIdentifier()) == mCreatedLayers.end())
+    {
+        return;
+    }
+
+    mCreatedLayers.erase(layer->GetIdentifier());
+}
+
+void
 RenderStudioLayerRegistry::RemoveExpiredLayers()
 {
 #if (VS_PLATFORM_TOOLSET > 141)

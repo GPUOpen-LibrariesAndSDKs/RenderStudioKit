@@ -24,6 +24,7 @@ class RenderStudioLayerRegistry
 {
 public:
     void AddLayer(SdfLayerHandle layer);
+    void RemoveLayer(SdfLayerHandle layer);
     void RemoveExpiredLayers();
     void ForEachLayer(const std::function<void(SdfLayerHandle)>& fn);
     SdfLayerHandle GetByIdentifier(const std::string& identifier);

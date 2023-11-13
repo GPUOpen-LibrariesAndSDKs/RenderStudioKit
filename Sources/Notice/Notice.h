@@ -162,6 +162,19 @@ public:
     private:
         bool mStatus;
     };
+
+    class LayerReloaded : public TfNotice
+    {
+    public:
+        AR_API
+        LayerReloaded(const std::string& identifier);
+
+        AR_API
+        std::string GetIdentifier() const;
+
+    private:
+        std::string mIdentifier;
+    };
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

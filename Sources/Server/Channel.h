@@ -34,6 +34,7 @@ public:
     const std::map<std::string, std::vector<RenderStudio::API::DeltaEvent>>& GetHistory() const;
     const std::list<ConnectionPtr>& GetConnections() const;
     void AddToHistory(const RenderStudio::API::DeltaEvent& v);
+    void ClearHistory(const std::string& layer);
     bool Empty() const;
     std::size_t GetSequenceNumber(const std::string& layer) const;
 

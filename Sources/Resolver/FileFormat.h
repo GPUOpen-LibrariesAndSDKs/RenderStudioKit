@@ -43,7 +43,9 @@ TF_DECLARE_WEAK_AND_REF_PTRS(RenderStudioFileFormat);
 class ArAsset;
 class Logic;
 
-class RenderStudioFileFormat : public SdfFileFormat
+class RenderStudioFileFormat
+    : public SdfFileFormat
+    , public RenderStudio::Networking::IClientLogic
 {
 public:
     AR_API
@@ -70,6 +72,11 @@ public:
         const std::string& comment = std::string(),
         const FileFormatArguments& args = FileFormatArguments()) const override;
 
+    // IClientLogic implementation
+    virtual void OnConnected() override;
+    virtual void OnDisconnected() override;
+    virtual void OnMessage(const std::string& message) override;
+
 private:
     SDF_FILE_FORMAT_FACTORY_ACCESS;
 
@@ -81,30 +88,23 @@ private:
     void Disconnect();
     RenderStudioDataPtr _GetRenderStudioData(SdfLayerHandle layer) const;
     RenderStudioDataPtr _GetRenderStudioData(const SdfLayer& layer) const;
-    void OnMessage(const std::string& message);
 
     friend class RenderStudioResolver;
     mutable RenderStudioLayerRegistry mLayerRegistry;
     std::shared_ptr<RenderStudio::Networking::WebsocketClient> mWebsocketClient;
-    std::shared_ptr<Logic> mLogic;
 
+    // Main logic
+    std::map<std::string, std::vector<RenderStudio::API::DeltaEvent>> mAccumulatedDeltas;
+    std::map<std::string, std::vector<RenderStudio::API::AcknowledgeEvent>> mAccumulatedAcknowledges;
+    std::vector<std::string> mRequestedReloads;
+    std::mutex mEventMutex;
+    bool mReloadInProgress = false;
+
+    // Processing methods
     void ProcessDeltaEvent(const RenderStudio::API::DeltaEvent& v);
     void ProcessHistoryEvent(const RenderStudio::API::HistoryEvent& v);
     void ProcessAcknowledgeEvent(const RenderStudio::API::AcknowledgeEvent& v);
-
-    friend class Logic;
-};
-
-class Logic : public RenderStudio::Networking::IClientLogic
-{
-public:
-    Logic(RenderStudioFileFormat& format);
-    virtual void OnConnected() override;
-    virtual void OnDisconnected() override;
-    virtual void OnMessage(const std::string& message) override;
-
-private:
-    RenderStudioFileFormat& mFormat;
+    void ProcessReloadEvent(const RenderStudio::API::ReloadEvent& v);
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
