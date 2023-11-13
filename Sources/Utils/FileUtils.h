@@ -28,7 +28,7 @@ private:
     std::filesystem::path mPath;
 };
 
-std::filesystem::path GetProgramDataPath();
+std::filesystem::path GetUserHomePath();
 std::filesystem::path GetDefaultWorkspacePath();
 std::filesystem::path GetRenderStudioPath();
 std::filesystem::path GetCachePath();

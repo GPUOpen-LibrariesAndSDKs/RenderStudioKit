@@ -30,7 +30,7 @@ namespace RenderStudio::Utils
 {
 
 std::filesystem::path
-GetProgramDataPath()
+GetUserHomePath()
 {
 #ifdef PLATFORM_WINDOWS
     std::string useLegacyFolder = "OFF";
@@ -71,12 +71,20 @@ GetProgramDataPath()
     }
     else
     {
-        return "C:/";
+        PWSTR path = nullptr;
+        HRESULT hr = SHGetKnownFolderPath(FOLDERID_Profile, 0, NULL, &path);
+        if (SUCCEEDED(hr))
+        {
+            std::filesystem::path result(path);
+            CoTaskMemFree(path);
+            return result;
+        }
+        return {};
     }
 #endif
 
 #ifdef PLATFORM_UNIX
-    return std::filesystem::path("/var/lib/");
+    return std::filesystem::path("/var/lib/AMD/");
 #endif
 }
 
@@ -100,7 +108,7 @@ GetDefaultWorkspacePath()
 std::filesystem::path
 GetRenderStudioPath()
 {
-    std::filesystem::path path = GetProgramDataPath() / "AMD" / "AMD RenderStudio";
+    std::filesystem::path path = GetUserHomePath() / "AMD RenderStudio";
 
     if (!std::filesystem::exists(path))
     {
