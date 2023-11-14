@@ -247,9 +247,13 @@ RenderStudioResolver::GetLocalStorageUrl()
     {
         return sLiveModeInfo->storageUrl;
     }
-    else
+    else if (ArchHasEnv("STORAGE_SERVER_URL"))
     {
         return ArchGetEnv("STORAGE_SERVER_URL");
+    }
+    else
+    {
+        return "https://renderstudio.matlib.gpuopen.com/workspace/storage";
     }
 }
 
