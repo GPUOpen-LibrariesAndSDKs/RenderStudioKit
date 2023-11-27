@@ -110,7 +110,9 @@ if (WITH_SHARED_WORKSPACE_SUPPORT)
 
     # Define the output of the command, i.e., the path of the executable produced by Nuitka
     set(NUITKA_OUTPUT_EXE ${CMAKE_CURRENT_BINARY_DIR}/nuitka/RenderStudioWorkspace.dist/${WORKSPACE_EXE_NAME})
-    find_program(PYTHON_EXECUTABLE REQUIRED NAMES python3 python)
+    if (NOT PYTHON_EXECUTABLE)
+        find_program(PYTHON_EXECUTABLE REQUIRED NAMES python3 python)
+    endif()
 
     # Define a custom command that compiles the Python script into an executable
     # This command will only run if the output file (Nuitka executable) is missing or if any of the PYTHON_SOURCE_FILES have changed.
@@ -121,6 +123,7 @@ if (WITH_SHARED_WORKSPACE_SUPPORT)
             --standalone
             --assume-yes-for-downloads
             --windows-icon-from-ico=${CMAKE_SOURCE_DIR}/Resources/Icon.ico
+            --msvc=14.2
             ${CMAKE_SOURCE_DIR}/Workspace/RenderStudioWorkspace.py
         DEPENDS ${PYTHON_SOURCE_FILES}
         COMMENT "Building executable of RenderStudioWorkspace using nuitka"
