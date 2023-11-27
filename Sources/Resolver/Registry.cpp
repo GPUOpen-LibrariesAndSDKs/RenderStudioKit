@@ -16,11 +16,7 @@
 
 #pragma warning(push, 0)
 
-#if (VS_PLATFORM_TOOLSET > 141)
-#include <map>
-#else
 #include <experimental/map>
-#endif
 
 #pragma warning(pop)
 
@@ -48,11 +44,7 @@ RenderStudioLayerRegistry::RemoveLayer(SdfLayerHandle layer)
 void
 RenderStudioLayerRegistry::RemoveExpiredLayers()
 {
-#if (VS_PLATFORM_TOOLSET > 141)
-    std::erase_if(mCreatedLayers, [](const auto& pair) { return pair.second.IsExpired(); });
-#else
     std::experimental::erase_if(mCreatedLayers, [](const auto& pair) { return pair.second.IsExpired(); });
-#endif
 }
 void
 RenderStudioLayerRegistry::ForEachLayer(const std::function<void(SdfLayerHandle)>& fn)

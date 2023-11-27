@@ -1,7 +1,21 @@
 # AMD RenderStudio Kit
 This repo contains all required methods to integrate USD software into AMD RenderStudio ecosystem
 
-## Building
+## Quick start
+### Build OpenUSD
+```bash
+cd OpenUSD
+python build_scripts\build_usd.py --openimageio --materialx --src Downloads --build Build Install --build-args "boost, --with-log"
+```
+
+### Build RenderStudioKit
+```bash
+cd RenderStudioKit
+cmake -B Build -DCMAKE_PREFIX_PATH=<OpenUSD> -DCMAKE_INSTALL_PREFIX=<OpenUSD>
+cmake --build Build --config Release
+```
+
+## Build overview
 ### Dependencies
 ```bash
 pip3 install -r Workspace/requirements.txt
@@ -12,10 +26,6 @@ pip3 install -r Workspace/requirements.txt
 WITH_SHARED_WORKSPACE_SUPPORT [ON] - Enables shared workspace feature. Requires pyinstaller to be installed
 WITH_PYTHON_DEPENDENCIES_INSTALL [ON] - Enables automatic install for all build requirements for Python
 USD_LOCATION [""] - Here CMAKE_INSTALL_PREFIX of USD build should be passed
-```
-### Dockerized build for linux (with main RenderStudio repo downloaded)
-```bash
-make -C Kit/Tools/ build
 ```
 
 ## Deployment
